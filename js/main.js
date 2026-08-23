@@ -66,7 +66,7 @@ var GAME_LIST = [
         { id: "worldQuiz", emoji: "🌍", name: "세계 나라·수도 맞추기", desc: "국기를 보고 나라와 수도 이름을 맞혀요", quickStart: "startWorldQuizSession" }
      ]},
      { cat: "👀 관찰력 게임", games: [
-        {id: "spotChange", emoji: "🔎", name: "무엇이 바뀌었을까", desc: "5초 안에 달라진 곳을 모두 찾아요", quickStart: "startSpotChangeGame" },
+        { id: "spotChange", emoji: "🔎", name: "무엇이 바뀌었을까", desc: "5초 안에 달라진 곳을 모두 찾아요", quickStart: "startSpotChangeGame" },
         { id: "numberRush", emoji: "🔢", name: "숫자야 나와라!", desc: "작은 수부터 순서대로 눌러요", quickStart: "startNumberRushSession" },
         { id: "memoryRoom", emoji: "🛋️", name: "기억의 방", desc: "물건들이 있던 자리를 기억해요", quickStart: "startRoomSession" }
      ]},,
