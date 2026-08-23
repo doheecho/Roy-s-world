@@ -7,6 +7,7 @@ var PRECACHE_URLS = [
     '/Roy-s-world/css/style.css',
     '/Roy-s-world/js/main.js',
     '/Roy-s-world/js/games/memory.js',
+    '/Roy-s-world/js/games/memoryroom.js',
     '/Roy-s-world/js/games/spatial.js',
     '/Roy-s-world/js/games/hangul.js',
     '/Roy-s-world/js/games/observation.js',
