@@ -1,18 +1,18 @@
-var CACHE_NAME = 'eroi-playground-v1';
+var CACHE_NAME = 'eroi-playground-v2';
 var PRECACHE_URLS = [
-    '/',
-    '/index.html',
-    '/manifest.json',
-    '/css/style.css',
-    '/js/main.js',
-    '/js/games/memory.js',
-    '/js/games/spatial.js',
-    '/js/games/hangul.js',
-    '/js/games/observation.js',
-    '/js/games/logic.js',
-    '/js/games/math.js',
-    '/js/games/coding.js',
-    '/icon-512x512.png'
+    '/Roy-s-world/',
+    '/Roy-s-world/index.html',
+    '/Roy-s-world/manifest.json',
+    '/Roy-s-world/css/style.css',
+    '/Roy-s-world/js/main.js',
+    '/Roy-s-world/js/games/memory.js',
+    '/Roy-s-world/js/games/spatial.js',
+    '/Roy-s-world/js/games/hangul.js',
+    '/Roy-s-world/js/games/observation.js',
+    '/Roy-s-world/js/games/logic.js',
+    '/Roy-s-world/js/games/math.js',
+    '/Roy-s-world/js/games/coding.js',
+    '/Roy-s-world/icon-512x512.png'
 ];
 
 self.addEventListener('install', function (e) {
@@ -52,7 +52,7 @@ self.addEventListener('fetch', function (e) {
                 }
                 return response;
             }).catch(function () {
-                if (e.request.mode === 'navigate') return caches.match('/index.html');
+                if (e.request.mode === 'navigate') return caches.match('/Roy-s-world/index.html');
             });
         })
     );
