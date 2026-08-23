@@ -45,7 +45,7 @@ var GAME_LIST = [
         { id: "memoryMatch", emoji: "🃏", name: "카드 짝맞추기", desc: "숨겨진 카드의 짝을 찾아요", quickStart: "startMemoryMatchGame" },
         { id: "simonGame", emoji: "🔵", name: "순서 기억하기", desc: "불빛 순서를 기억해서 눌러요", quickStart: "initSimonGame" },
         { id: "flashMemory", emoji: "⚡", name: "순간 기억하기", desc: "잠깐 보여준 걸 기억해요", quickStart: "startFlashSession" },
-        { id: "pianoKeys", emoji: "🎹", name: "피아노 건반 누르기", desc: "건반이 눌리는 순서를 기억해서 따라 눌러요", quickStart: "startPianoSession" }
+        { id: "pianoKeys", emoji: "🎹", name: "피아노 건반 누르기", desc: "건반이 눌리는 순서를 기억해서 따라 눌러요", quickStart: "startPianoSession" },
         { id: "melodyGame", emoji: "🎼", name: "멜로디 연주하기", desc: "악보를 보고 건반으로 멜로디를 연주해요", quickStart: "startMelodySession" },
     ]},
     { cat: "🧩 공간지각 게임", games: [
