@@ -14,6 +14,7 @@ var PRECACHE_URLS = [
     '/Roy-s-world/js/games/logic.js',
     '/Roy-s-world/js/games/math.js',
     '/Roy-s-world/js/games/coding.js',
+    '/Roy-s-world/js/games/melody.js',
     '/Roy-s-world/icon-512x512.png'
 ];
 
