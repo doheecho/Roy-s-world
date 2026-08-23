@@ -64,12 +64,13 @@ var GAME_LIST = [
         { id: "hanjaQuiz", emoji: "漢", name: "한자 공부", desc: "한자와 한자어의 뜻을 배우고 반대말도 찾아봐요", quickStart: "startHanjaSession" },
         { id: "proverbIdiom", emoji: "📜", name: "고사성어·속담 맞추기", desc: "뜻 설명을 읽고 알맞은 고사성어나 속담을 골라요", quickStart: "startProverbSession" },
         { id: "worldQuiz", emoji: "🌍", name: "세계 나라·수도 맞추기", desc: "국기를 보고 나라와 수도 이름을 맞혀요", quickStart: "startWorldQuizSession" }
-    ]},
-    { cat: "👀 관찰력 게임", games: [
-        { id: "spotChange", emoji: "🔎", name: "무엇이 바뀌었을까", desc: "5초 안에 달라진 곳을 모두 찾아요", quickStart: "startSpotChangeGame" },
-        { id: "numberRush", emoji: "🔢", name: "숫자야 나와라!", desc: "작은 수부터 순서대로 눌러요", quickStart: "startNumberRushSession" }
-    ]},
-    { cat: "🎯 논리 사고 놀이", games: [
+     ]},
+     { cat: "👀 관찰력 게임", games: [
+        {id: "spotChange", emoji: "🔎", name: "무엇이 바뀌었을까", desc: "5초 안에 달라진 곳을 모두 찾아요", quickStart: "startSpotChangeGame" },
+        { id: "numberRush", emoji: "🔢", name: "숫자야 나와라!", desc: "작은 수부터 순서대로 눌러요", quickStart: "startNumberRushSession" },
+        { id: "memoryRoom", emoji: "🛋️", name: "기억의 방", desc: "물건들이 있던 자리를 기억해요", quickStart: "startRoomSession" }
+     ]},,
+     { cat: "🎯 논리 사고 놀이", games: [
         { id: "patternMatrix", emoji: "🧩", name: "패턴 매트릭스", desc: "규칙을 찾아 빈칸을 채워요", quickStart: "startPatternSession" },
         { id: "sizeLogic", emoji: "📏", name: "크기 순서 추론", desc: "단서를 읽고 순서를 추론해요", quickStart: "initSizeLogic" },
         { id: "mirrorSymmetry", emoji: "🪞", name: "거울 대칭 완성하기", desc: "거울처럼 똑같이 반대쪽을 완성해요", quickStart: "initMirrorSymmetry" },
