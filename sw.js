@@ -1,4 +1,5 @@
-var CACHE_NAME = 'eroi-playground-v2';
+var CACHE_PREFIX = 'eroi-playground-';
+var CACHE_NAME = CACHE_PREFIX + 'v3';
 var PRECACHE_URLS = [
     '/Roy-s-world/',
     '/Roy-s-world/index.html',
@@ -26,10 +27,13 @@ self.addEventListener('install', function (e) {
 });
 
 self.addEventListener('activate', function (e) {
+    // 주의: Cache Storage는 origin(도메인) 전체에서 공유되며 서비스워커 scope와 무관하다.
+    // 접두사(CACHE_PREFIX)로 걸러내지 않으면 같은 도메인의 다른 앱(예: /Teenieping/) 캐시까지
+    // 여기서 지워버려 두 앱의 설치/오프라인 캐시가 서로 충돌하게 된다.
     e.waitUntil(
         caches.keys().then(function (keys) {
             return Promise.all(
-                keys.filter(function (k) { return k !== CACHE_NAME; })
+                keys.filter(function (k) { return k.indexOf(CACHE_PREFIX) === 0 && k !== CACHE_NAME; })
                     .map(function (k) { return caches.delete(k); })
             );
         }).then(function () {
