@@ -290,14 +290,14 @@ function stopMelodyPlayback() {
     clearAllGameTimers();
     melodyState.isPlaying = false;
     melodyState.demoActiveEvent = null;
-    renderMelodyGame();
+    updateMelodyTop();
 }
 function startMelodyPlayback() {
     melodyState.isPlaying = true;
     playMelodyEventsDemo(getVisibleEvents(), function () {
         melodyState.isPlaying = false;
         melodyState.demoActiveEvent = null;
-        renderMelodyGame();
+        updateMelodyTop();
     });
 }
 
@@ -378,8 +378,8 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
         if (y > maxY) maxY = y;
     });
     // 여백 최소화: 위쪽은 (기둥 높이 + 여유), 아래쪽은 (계이름표 공간 + 여유)만큼만 확보 - 잘리지 않는 선에서 최대한 축소
-    var staffTop = Math.max(0, -minY) + 26;
-    var bottomMargin = Math.max(0, maxY - 56) + 20;
+    var staffTop = Math.max(0, -minY) + 24;
+    var bottomMargin = Math.max(0, maxY - 56) + 26;
     var svgHeight = staffTop + 56 + bottomMargin;
     var svgWidth = leftPad + widthUnits * unitPx + 24;
     var html = '<div style="background:#fff; border:2px solid #1f2937; border-radius:0.6rem; padding:0.6rem 0.4rem; margin-bottom:0.5rem; overflow-x:auto;">';
@@ -435,7 +435,7 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
         if (d.dot) {
             html += '<circle cx="' + (cx + 12) + '" cy="' + (cy - 2) + '" r="1.6" fill="' + fill + '" />';
         }
-        html += '<text x="' + cx + '" y="' + (staffTop + maxY + 14) + '" font-size="12" fill="' + (isDemoActive ? '#a16207' : '#6b7280') + '" font-weight="' + (isDemoActive ? '800' : '400') + '" text-anchor="middle">' + meta.name + '</text>';
+        html += '<text x="' + cx + '" y="' + (staffTop + maxY + 20) + '" font-size="12" fill="' + (isDemoActive ? '#a16207' : '#6b7280') + '" font-weight="' + (isDemoActive ? '800' : '400') + '" text-anchor="middle">' + meta.name + '</text>';
     });
     html += '</svg></div>';
     return html;
@@ -451,7 +451,7 @@ function renderMelodyKeyboard() {
     return html;
 }
 
-function renderMelodyGame() {
+function renderMelodyTopHtml() {
     var song = melodyState.song;
     var totalNotes = song.noteEvents.length;
     var isFull = melodyState.mode === 'full';
@@ -461,8 +461,19 @@ function renderMelodyGame() {
     html += '<div class="status-row"><div>' + melodyState.pos + ' / ' + totalNotes + '음 연주함</div><div>맞은 음: ' + melodyState.hits + '</div></div>';
     html += renderMelodyStaffLines(getVisibleEvents(), getUnitOffset());
     html += '<button id="melodyPlaybackBtn" class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="toggleMelodyPlayback()">' + (melodyState.isPlaying ? '⏸ 멈추기' : '🔊 다시 듣기') + '</button>';
-    html += renderMelodyKeyboard();
+    return html;
+}
+// 건반은 세션 동안 절대 바뀌지 않으므로(같은 곡이면 옥타브 구성 고정) 한 번만 그리고,
+// 이후에는 melodyTopArea(악보/상태/재생버튼)만 갱신해서 건반 DOM이 계속 살아있게 함
+// -> 건반 눌림 효과(flashKeyPress)가 화면에 그려질 시간을 확보하기 위함
+function renderMelodyGame() {
+    var html = '<div id="melodyTopArea">' + renderMelodyTopHtml() + '</div>';
+    html += '<div id="melodyKeyboardArea">' + renderMelodyKeyboard() + '</div>';
     document.getElementById('mainArea').innerHTML = html;
+}
+function updateMelodyTop() {
+    var el = document.getElementById('melodyTopArea');
+    if (el) { el.innerHTML = renderMelodyTopHtml(); } else { renderMelodyGame(); }
 }
 
 // ---- 리듬 그대로 재생 (쉼표=무음, 홀드=길게) + 재생 중인 음 노란색 하이라이트 ----
@@ -497,7 +508,7 @@ function playMelodyEventsDemo(events, onComplete) {
         } else {
             melodyState.demoActiveEvent = null;
         }
-        renderMelodyGame();
+        updateMelodyTop();
         var t = setTimeout(function () { i++; step(); }, durMs);
         activeTimers.push(t);
     }
@@ -524,12 +535,12 @@ function melodyKeyClick(btn, octaveOffset, pitchClass) {
         var nextSeg = melodySegIndexOf(noteEvents[melodyState.pos]);
         if (nextSeg !== melodyState.segIndex) {
             melodyState.segIndex = nextSeg;
-            renderMelodyGame();
+            updateMelodyTop();
             startMelodyPlayback();
             return;
         }
     }
-    renderMelodyGame();
+    updateMelodyTop();
 }
 
 function renderMelodyResult() {
