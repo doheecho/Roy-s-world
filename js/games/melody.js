@@ -349,7 +349,8 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
             var stemX = cx + 6.5, stemTopY = cy - 30;
             html += '<line x1="' + stemX + '" y1="' + cy + '" x2="' + stemX + '" y2="' + stemTopY + '" stroke="' + fill + '" stroke-width="1.5" />';
             if (d.flag) {
-                html += '<path d="M ' + stemX + ' ' + stemTopY + ' C ' + (stemX + 9) + ' ' + (stemTopY + 3) + ', ' + (stemX + 10) + ' ' + (stemTopY + 12) + ', ' + (stemX + 2) + ' ' + (stemTopY + 16) + '" stroke="' + fill + '" stroke-width="1.8" fill="none" stroke-linecap="round" />';
+                var flagPath = 'M ' + stemX + ' ' + stemTopY + ' L ' + (stemX + 9) + ' ' + (stemTopY + 5) + ' L ' + stemX + ' ' + (stemTopY + 11) + ' Z';
+                html += '<path d="' + flagPath + '" fill="' + fill + '" />';
             }
         }
         if (d.dot) {
@@ -475,6 +476,7 @@ function renderMelodyResult() {
     }
     html += '</div>';
     html += '<button class="action-btn secondary" style="width:100%; margin-top:0.5rem;" onclick="renderMelodySetup()">다른 노래 선택 🎵</button>';
+    html += '<button class="action-btn secondary" style="width:100%; margin-top:0.5rem;" onclick="goHome()">⏮ 이전으로 가기</button>';
     document.getElementById('mainArea').innerHTML = html;
 }
 
