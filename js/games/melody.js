@@ -11,6 +11,7 @@
 
 var SEGMENT_BEATS = 16; // 구간(다시듣기 단위) = 4분음표 4마디 = 16박
 var MELODY_BEAT_MS = 480; // 4분음표 1박의 재생 길이(ms)
+var MELODY_FIRST_NOTE_DELAY_MS = 1000; // 오디오 컨텍스트가 완전히 켜질 시간을 주기 위한 첫 음 지연
 
 // 인덱스(0~12) = buildPianoKeys('mid') 의 keys 배열 인덱스와 동일
 // 0:도 1:도# 2:레 3:레# 4:미 5:파 6:파# 7:솔 8:솔# 9:라 10:라# 11:시 12:도(높은)
@@ -124,26 +125,46 @@ function getVisibleEvents() {
     return melodyState.song.events.filter(function (e) { return e.segIndex === melodyState.segIndex; });
 }
 function getBeatOffset() { return melodyState.mode === 'full' ? 0 : melodyState.segIndex * SEGMENT_BEATS; }
-function getWidthBeats() { return melodyState.mode === 'full' ? melodyState.song.totalBeats : SEGMENT_BEATS; }
 
-// ---- 오선보 렌더링 (넓게, 가로 스크롤) ----
-function renderMelodyStaff(events, beatOffset, widthBeats) {
-    var BEAT_PX = 42;
+// ---- 오선보 렌더링: 화면 폭에 따라 한 줄(태블릿) / 두 줄(모바일)로 자동 분배 ----
+function isMelodyWideScreen() { return window.innerWidth >= 700; }
+
+function renderMelodyStaffLines(events, beatOffset) {
+    var lineBeats = isMelodyWideScreen() ? 16 : 8;
+    var beatPx = isMelodyWideScreen() ? 42 : 34;
+    var groups = {};
+    events.forEach(function (ev) {
+        var rel = ev.startBeat - beatOffset;
+        var lineIdx = Math.floor(rel / lineBeats);
+        if (!groups[lineIdx]) groups[lineIdx] = [];
+        groups[lineIdx].push(ev);
+    });
+    var lineIdxs = Object.keys(groups).map(function (k) { return parseInt(k, 10); }).sort(function (a, b) { return a - b; });
+    var html = '<div style="margin-bottom:0.8rem;">';
+    lineIdxs.forEach(function (li) {
+        var lineOffset = beatOffset + li * lineBeats;
+        html += renderMelodyStaffSvg(groups[li], lineOffset, lineBeats, beatPx);
+    });
+    html += '</div>';
+    return html;
+}
+
+function renderMelodyStaffSvg(events, beatOffset, widthBeats, beatPx) {
     var leftPad = 46;
     var staffTop = 15;
-    var svgWidth = leftPad + widthBeats * BEAT_PX + 24;
+    var svgWidth = leftPad + widthBeats * beatPx + 24;
     var svgHeight = 100;
-    var html = '<div style="background:#fff; border:2px solid #1f2937; border-radius:0.6rem; padding:0.6rem 0.4rem; margin-bottom:0.8rem; overflow-x:auto;">';
-    html += '<svg width="' + svgWidth + '" height="' + svgHeight + '" viewBox="0 0 ' + svgWidth + ' ' + svgHeight + '" style="display:block;">';
+    var html = '<div style="background:#fff; border:2px solid #1f2937; border-radius:0.6rem; padding:0.6rem 0.4rem; margin-bottom:0.5rem; overflow-x:auto;">';
+    html += '<svg width="' + svgWidth + '" height="' + svgHeight + '" viewBox="0 0 ' + svgWidth + ' ' + svgHeight + '" style="display:block; max-width:100%;">';
     [0, 14, 28, 42, 56].forEach(function (ly) {
         html += '<line x1="4" y1="' + (staffTop + ly) + '" x2="' + (svgWidth - 4) + '" y2="' + (staffTop + ly) + '" stroke="#1f2937" stroke-width="1.5" />';
     });
     html += '<text x="6" y="' + (staffTop + 52) + '" font-size="46" fill="#1f2937">𝄞</text>';
     events.forEach(function (ev) {
         var relBeat = ev.startBeat - beatOffset;
-        var cx = leftPad + relBeat * BEAT_PX + (ev.beats * BEAT_PX) / 2 + 14;
+        var cx = leftPad + relBeat * beatPx + (ev.beats * beatPx) / 2 + 14;
         if (ev.type === 'rest') {
-            var rw = Math.max(ev.beats * BEAT_PX - 10, 10);
+            var rw = Math.max(ev.beats * beatPx - 10, 10);
             html += '<rect x="' + (cx - rw / 2) + '" y="' + (staffTop + 24) + '" width="' + rw + '" height="8" rx="3" fill="#d1d5db" />';
             return;
         }
@@ -205,7 +226,7 @@ function renderMelodyGame() {
     var html = '<div class="game-title-box">🎼 멜로디 연주하기 · ' + song.name + (isFull ? ' (전체곡)' : '') + '</div>';
     html += '<div class="game-sub-desc">주황색 음표를 순서대로 건반으로 눌러보세요!</div>';
     html += '<div class="status-row"><div>' + melodyState.pos + ' / ' + totalNotes + '음 연주함</div><div>맞은 음: ' + melodyState.hits + '</div></div>';
-    html += renderMelodyStaff(getVisibleEvents(), getBeatOffset(), getWidthBeats());
+    html += renderMelodyStaffLines(getVisibleEvents(), getBeatOffset());
     html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="playMelodySegmentDemo()">🔊 ' + (isFull ? '전체' : '이 구간') + ' 다시 듣기</button>';
     html += renderMelodyKeyboard();
     document.getElementById('mainArea').innerHTML = html;
@@ -240,7 +261,8 @@ function playMelodyEventsDemo(events) {
         var t = setTimeout(function () { i++; step(); }, durMs);
         activeTimers.push(t);
     }
-    var t0 = setTimeout(step, 250);
+    // 오디오 컨텍스트가 완전히 켜질 시간을 주기 위해 첫 음은 1초 뒤에 시작
+    var t0 = setTimeout(step, MELODY_FIRST_NOTE_DELAY_MS);
     activeTimers.push(t0);
 }
 function playMelodySegmentDemo() { playMelodyEventsDemo(getVisibleEvents()); }
