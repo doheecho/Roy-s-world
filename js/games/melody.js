@@ -159,7 +159,6 @@ function melodySegIndexOf(ev) {
 }
 
 var MELODY_SONGS = [    buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
-    buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
     buildMelodySong('butterfly', '나비야', '솔미미-파레레-도레미파솔솔솔-솔미미미파레레-도미솔미레미도-레레레레레미파-미미미미미파솔-솔미미미파레레레도미솔미레미도-'),
     buildMelodySong('schoolbell', '학교종', '솔솔라라솔솔미-솔솔미미레---솔솔라라솔솔미-솔미레미도---'),
     buildMelodySong('bear', '곰세마리', '도도(8)도(8)도도미솔미도솔(8)솔(8)미솔(8)솔(8)미도도도-솔솔미도솔솔솔-솔솔미도솔솔솔-솔솔미도솔(8)솔(8)솔(8)라(8)솔-u도솔u도솔미레도-'),
@@ -340,6 +339,7 @@ function stopMelodyPlayback() {
     updateMelodyTop();
 }
 function startMelodyPlaybackWith(events) {
+    getPianoAudioCtx(); // 오디오 컨텍스트를 버튼 누르는 즉시 생성/재개시켜서, 실제 재생 전 준비 시간을 확보
     melodyState.isPlaying = true;
     updateMelodyTop();
     playMelodyEventsDemo(events, function () {
@@ -546,9 +546,9 @@ function renderMelodyTopHtml() {
         html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="listenFullDemo()">🔊 다시 듣기</button>';
     } else {
         html += '<div class="options-grid" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:0.8rem;">';
-        html += '<button class="action-btn secondary" onclick="listenSegmentDemo()">구간 듣기</button>';
-        html += '<button class="action-btn secondary" onclick="listenFullDemo()">전체 듣기</button>';
-        html += '<button class="action-btn secondary" onclick="renderMelodySetup()">처음 으로</button>';
+        html += '<button class="action-btn secondary" onclick="listenSegmentDemo()">🔊 구간 듣기</button>';
+        html += '<button class="action-btn secondary" onclick="listenFullDemo()">🎬 전체 듣기</button>';
+        html += '<button class="action-btn secondary" onclick="renderMelodySetup()">⏮ 처음으로</button>';
         html += '</div>';
     }
     return html;
