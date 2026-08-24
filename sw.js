@@ -1,5 +1,5 @@
 var CACHE_PREFIX = 'eroi-playground-';
-var CACHE_NAME = CACHE_PREFIX + 'v3';
+var CACHE_NAME = CACHE_PREFIX + 'v4';
 var PRECACHE_URLS = [
     '/Roy-s-world/',
     '/Roy-s-world/index.html',
@@ -7,12 +7,13 @@ var PRECACHE_URLS = [
     '/Roy-s-world/css/style.css',
     '/Roy-s-world/js/main.js',
     '/Roy-s-world/js/games/memory.js',
-    '/Roy-s-world/js/games/memoryroom.js',
     '/Roy-s-world/js/games/spatial.js',
     '/Roy-s-world/js/games/hangul.js',
     '/Roy-s-world/js/games/observation.js',
     '/Roy-s-world/js/games/logic.js',
     '/Roy-s-world/js/games/math.js',
+    '/Roy-s-world/js/games/coding.js',
+    '/Roy-s-world/js/games/memoryroom.js',
     '/Roy-s-world/js/games/melody.js',
     '/Roy-s-world/icon-512x512.png'
 ];
