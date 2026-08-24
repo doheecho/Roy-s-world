@@ -80,7 +80,13 @@ function parseMelodyPattern(str) {
         var c2 = str.charAt(checkIdx);
         if (noteMap.hasOwnProperty(c2)) {
             var pitchClass = noteMap[c2];
-            i = checkIdx + 1;
+            var afterNoteIdx = checkIdx + 1;
+            if (str.charAt(afterNoteIdx) === '#') {
+                pitchClass += 1;
+                afterNoteIdx += 1;
+                if (pitchClass >= 12) { pitchClass -= 12; octaveOffset += 1; } // 시# 같은 예외 처리(다음 옥타브로 넘어감)
+            }
+            i = afterNoteIdx;
             var dur = MELODY_DEFAULT_UNITS;
             var dm = melodyMatchDurationParen(str, i);
             if (dm) { dur = dm.units; i = dm.nextIndex; }
@@ -124,12 +130,10 @@ function getSongOctaveOffsets(song) {
 function melodySegIndexOf(ev) { return Math.floor(ev.startUnit / melodyState.segmentUnits); }
 
 var MELODY_SONGS = [
-    buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
-    buildMelodySong('butterfly', '나비야', '솔미미-파레레-도레미파솔솔솔-솔미미미파레레-도미솔미레미도-레레레레레미파-미미미미미파솔-솔미미미파레레레도미솔미레미도-'),
-    buildMelodySong('schoolbell', '학교종', '솔솔라라솔솔미-솔솔미미레---솔솔라라솔솔미-솔미레미도---'),
-    buildMelodySong('bear', '곰세마리', '도도(8)도(8)도도미솔미도솔(8)솔(8)미솔(8)솔(8)미도도도-솔솔미도솔솔솔-솔솔미도솔솔솔-솔솔미도솔(8)솔(8)솔(8)라(8)솔-u도솔u도솔미레도-'),
-    buildMelodySong('shoes', '새신을신고', '솔미(8)레(8)도도도(8)d시(8)도(8)레(8)미미솔미(8)라(8)솔(8)파(8)미(8)레(8)미레도(4)'),
-    buildMelodySong('Die Forelle', '송어', '솔u도(3)u도(8)u미u미u도(2)솔(2)솔(3)솔(8)u레(8)u도(8)시(8)라(8)솔(2)-(3)솔u도(3)u도(8)u미u미u도(2)솔u도시라(8)시(8)u도파#솔(2)-(3)솔(8)시(3)시(8)u도(8)시(8)라(8)시(8)u도(2)솔u도시(3)시(8)시(8)u파(8)레(8)시(8)u도(2)-u도라(3)라(8)라u도u도(2)솔(2)솔(3)솔(8)u레시u도(2)-(2)')
+    buildMelodySong('twinkle', '작은별', '도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)'),
+    buildMelodySong('butterfly', '나비야', '솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)레(4)미(4)파(4)솔(4)솔(4)솔(4)-(4)솔(4)미(4)미(4)미(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)-(4)레(4)레(4)레(4)레(4)레(4)미(4)파(4)-(4)미(4)미(4)미(4)미(4)미(4)파(4)솔(4)-(4)솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)'),
+    buildMelodySong('schoolbell', '학교종', '솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)솔(4)미(4)미(4)레(4)-(4)-(4)-(4)솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)미(4)레(4)미(4)도(4)-(4)-(4)'),
+    buildMelodySong('bear', '곰세마리', '도(8)-(8)도(8)도(8)도(8)-(8)도(8)-(8)미(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)솔(8)미(8)-(8)솔(8)솔(8)미(8)-(8)도(8)-(8)도(8)-(8)도(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)솔(8)-(8)솔(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)솔(8)-(8)솔(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)u솔(8)라(8)솔(8)-(8)-(8)-(8)u도(8)-(8)솔(8)-(8)u도(8)-(8)솔(8)-(8)미(8)-(8)레(8)-(8)도(8)-(8)-(8)-(8)')
 ];
 
 var melodySettings = { songId: 'twinkle', segmentMeasures: 2 };
@@ -271,37 +275,54 @@ function startMelodySession(fullMode) {
         song: song, pos: 0, hits: 0,
         mode: fullMode ? 'full' : 'segment',
         segmentUnits: MELODY_MEASURE_UNITS * melodySettings.segmentMeasures,
-        segIndex: 0, finished: false, isPlaying: false, demoActiveEvent: null
+        segIndex: 0, finished: false, isPlaying: false, demoActiveEvent: null,
+        displayFull: false
     };
-    renderMelodyGame();
-    startMelodyPlayback();
+    renderMelodyGame(); // 자동재생 없이 화면만 그림 - 구간듣기/전체듣기 버튼을 눌러야 재생 시작
 }
 function retryMelodySong() { startMelodySession(melodyState.mode === 'full'); }
 
 function getVisibleEvents() {
-    if (melodyState.mode === 'full') return melodyState.song.events;
+    if (melodyState.mode === 'full' || melodyState.displayFull) return melodyState.song.events;
     return melodyState.song.events.filter(function (e) { return melodySegIndexOf(e) === melodyState.segIndex; });
 }
-function getUnitOffset() { return melodyState.mode === 'full' ? 0 : melodyState.segIndex * melodyState.segmentUnits; }
+function getUnitOffset() {
+    if (melodyState.mode === 'full' || melodyState.displayFull) return 0;
+    return melodyState.segIndex * melodyState.segmentUnits;
+}
 
-// ---- 재생 토글 (다시 듣기 <-> 멈추기) ----
-function toggleMelodyPlayback() {
-    if (melodyState.isPlaying) { stopMelodyPlayback(); } else { startMelodyPlayback(); }
+// ---- 재생 컨트롤: 구간 듣기 / 전체 듣기 / 중단하기 ----
+function listenSegmentDemo() {
+    melodyState.displayFull = false;
+    startMelodyPlaybackWith(getVisibleEvents());
+}
+function listenFullDemo() {
+    melodyState.displayFull = true;
+    updateMelodyTop(); // 전체 악보로 화면 전환
+    startMelodyPlaybackWith(melodyState.song.events);
 }
 function stopMelodyPlayback() {
     clearAllGameTimers();
     melodyState.isPlaying = false;
     melodyState.demoActiveEvent = null;
+    if (melodyState.displayFull && melodyState.mode !== 'full') {
+        melodyState.displayFull = false; // 전체듣기 중단하면 다시 구간 화면으로
+    }
     updateMelodyTop();
 }
-function startMelodyPlayback() {
+function startMelodyPlaybackWith(events) {
     melodyState.isPlaying = true;
-    playMelodyEventsDemo(getVisibleEvents(), function () {
+    updateMelodyTop();
+    playMelodyEventsDemo(events, function () {
         melodyState.isPlaying = false;
         melodyState.demoActiveEvent = null;
+        if (melodyState.displayFull && melodyState.mode !== 'full') { melodyState.displayFull = false; }
         updateMelodyTop();
     });
 }
+// 구간이 바뀔 때(연주 중 다음 구간으로 넘어갈 때)는 그대로 자동으로 미리 들려줌
+function startMelodyPlayback() { startMelodyPlaybackWith(getVisibleEvents()); }
+
 
 // ---- 오선보 렌더링 ----
 function isMelodyWideScreen() { return window.innerWidth >= 700; }
@@ -462,7 +483,16 @@ function renderMelodyTopHtml() {
     html += '<div class="game-sub-desc">주황색 음표를 순서대로 건반으로 눌러보세요! (연주 중 노란색으로 반짝이는 음이 지금 들리는 음이에요)</div>';
     html += '<div class="status-row"><div>' + melodyState.pos + ' / ' + totalNotes + '음 연주함</div><div>맞은 음: ' + melodyState.hits + '</div></div>';
     html += renderMelodyStaffLines(getVisibleEvents(), getUnitOffset());
-    html += '<button id="melodyPlaybackBtn" class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="toggleMelodyPlayback()">' + (melodyState.isPlaying ? '⏸ 멈추기' : '🔊 다시 듣기') + '</button>';
+    if (melodyState.isPlaying) {
+        html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="stopMelodyPlayback()">⏸ 중단하기</button>';
+    } else if (isFull) {
+        html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="listenFullDemo()">🔊 다시 듣기</button>';
+    } else {
+        html += '<div class="options-grid" style="margin-bottom:0.8rem;">';
+        html += '<button class="action-btn secondary" onclick="listenSegmentDemo()">🔊 구간 듣기</button>';
+        html += '<button class="action-btn secondary" onclick="listenFullDemo()">🎬 전체 듣기</button>';
+        html += '</div>';
+    }
     return html;
 }
 // 건반은 세션 동안 절대 바뀌지 않으므로(같은 곡이면 옥타브 구성 고정) 한 번만 그리고,
@@ -487,12 +517,19 @@ function playMelodyTone(freq, ms) {
     osc.type = 'sine';
     osc.frequency.value = freq;
     var dur = ms / 1000;
-    gain.gain.setValueAtTime(0.25, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    var peak = 0.28;
+    var attack = Math.min(0.012, dur * 0.2); // 짧은 어택(클릭 노이즈 방지)
+    var release = Math.min(0.07, dur * 0.4); // 끝부분만 짧게 릴리즈
+    var sustainEnd = Math.max(attack, dur - release);
+    var now = ctx.currentTime;
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(peak, now + attack);
+    gain.gain.setValueAtTime(peak, now + sustainEnd); // 음 길이 대부분을 일정한 크기로 유지 -> 눌린 느낌
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
     osc.connect(gain);
     gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + dur);
+    osc.start(now);
+    osc.stop(now + dur);
 }
 function playMelodyEventsDemo(events, onComplete) {
     var i = 0;
