@@ -149,6 +149,24 @@ function renderMelodyStaffLines(events, beatOffset) {
     return html;
 }
 
+// 실제 악보 표기에 맞는 쉼표 기호 (1박=4분쉼표, 2박=2분쉼표, 3박=점2분쉼표, 4박 이상=온쉼표)
+function renderMelodyRestGlyph(cx, staffTop, beats, fill) {
+    var midY = staffTop + 28;  // 가운데줄(3번째 줄)
+    var line4Y = staffTop + 14; // 위에서 두번째 줄
+    if (beats === 1) {
+        return '<text x="' + cx + '" y="' + (midY + 10) + '" font-size="30" fill="' + fill + '" text-anchor="middle">𝄽</text>';
+    }
+    if (beats === 2) {
+        return '<rect x="' + (cx - 6) + '" y="' + (midY - 5) + '" width="12" height="5" fill="' + fill + '" />';
+    }
+    if (beats === 3) {
+        var html = '<rect x="' + (cx - 6) + '" y="' + (midY - 5) + '" width="12" height="5" fill="' + fill + '" />';
+        html += '<circle cx="' + (cx + 11) + '" cy="' + (midY - 2) + '" r="1.6" fill="' + fill + '" />';
+        return html;
+    }
+    return '<rect x="' + (cx - 6) + '" y="' + line4Y + '" width="12" height="5" fill="' + fill + '" />';
+}
+
 function renderMelodyStaffSvg(events, beatOffset, widthBeats, beatPx) {
     var leftPad = 46;
     var staffTop = 15;
@@ -164,8 +182,7 @@ function renderMelodyStaffSvg(events, beatOffset, widthBeats, beatPx) {
         var relBeat = ev.startBeat - beatOffset;
         var cx = leftPad + relBeat * beatPx + (ev.beats * beatPx) / 2 + 14;
         if (ev.type === 'rest') {
-            var rw = Math.max(ev.beats * beatPx - 10, 10);
-            html += '<rect x="' + (cx - rw / 2) + '" y="' + (staffTop + 24) + '" width="' + rw + '" height="8" rx="3" fill="#d1d5db" />';
+            html += renderMelodyRestGlyph(cx, staffTop, ev.beats, '#9ca3af');
             return;
         }
         var meta = MELODY_NOTE_META[ev.idx];
