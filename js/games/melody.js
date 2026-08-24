@@ -130,13 +130,14 @@ function getSongOctaveOffsets(song) {
 function melodySegIndexOf(ev) { return Math.floor(ev.startUnit / melodyState.segmentUnits); }
 
 var MELODY_SONGS = [    buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
+    buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
     buildMelodySong('butterfly', '나비야', '솔미미-파레레-도레미파솔솔솔-솔미미미파레레-도미솔미레미도-레레레레레미파-미미미미미파솔-솔미미미파레레레도미솔미레미도-'),
     buildMelodySong('schoolbell', '학교종', '솔솔라라솔솔미-솔솔미미레---솔솔라라솔솔미-솔미레미도---'),
     buildMelodySong('bear', '곰세마리', '도도(8)도(8)도도미솔미도솔(8)솔(8)미솔(8)솔(8)미도도도-솔솔미도솔솔솔-솔솔미도솔솔솔-솔솔미도솔(8)솔(8)솔(8)라(8)솔-u도솔u도솔미레도-'),
     buildMelodySong('shoes', '새신을신고', '솔미(8)레(8)도도도(8)d시(8)도(8)레(8)미미솔미(8)라(8)솔(8)파(8)미(8)레(8)미레도(4)'),
     buildMelodySong('Die Forelle', '송어', '솔u도(3)u도(8)u미u미u도(2)솔(2)솔(3)솔(8)u레(8)u도(8)시(8)라(8)솔(2)-(3)솔u도(3)u도(8)u미u미u도(2)솔u도시라(8)시(8)u도파#솔(2)-(3)솔(8)시(3)시(8)u도(8)시(8)라(8)시(8)u도(2)솔u도시(3)시(8)시(8)u파(8)레(8)시(8)u도(2)-u도라(3)라(8)라u도u도(2)솔(2)솔(3)솔(8)u레시u도(2)-(2)'),
-    buildMelodySong('Fur Elise', '엘리제를위하여', 'u미(8)u레#(8)미u(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(6)도(8)미(8)라(8)시(6)미(8)솔#(8)시(8)u도(6)-(8)u미(8)u레#(8)미u(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(6)도(8)미(8)라(8)시(6)미(8)u도(8)시(8)라(6)-(8)')
-];
+    buildMelodySong('Fur Elise', '엘리제를위하여', 'u미(8)u레#(8)u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)솔#(8)시(8)u도(3)미(8)u미(8)u레#(8)u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)u도(8)시(8)라(3)-(8)')
+    ];
 
 var melodySettings = { songId: 'twinkle', segmentMeasures: 2 };
 var melodyState = {};
