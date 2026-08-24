@@ -170,7 +170,8 @@ var MELODY_SONGS = [    buildMelodySong('twinkle', '작은별', '도도솔솔라
     buildMelodySong('My home', '나비정원에가자', '레(16)레(16)라(4)-(8)솔(8)솔(8)솔(16)파(16)레(16)파(8)레-(4)레(16)레(16)라(4)-(8)솔(8)솔(8)솔(16)파(16)레(16)파(8)레-(4)u레(8)라(8)솔(16)솔(16)파(16)솔(8)파(8)레(8)레(16)레(16)u레(8)라(8)솔(16)솔(16)파(16)솔(8)라(4)-(8)레(16)레(16)라(4)-(8)솔(8)솔(8)솔(16)파(16)레(16)파(8)레(8)-(4)')
     ];
 
-var melodySettings = { songId: 'twinkle', segmentMeasures: 2 };
+var melodySettings = { songId: 'twinkle', segmentMeasures: 2, playbackSpeed: 1 };
+function setMelodyPlaybackSpeed(sp) { melodySettings.playbackSpeed = sp; updateMelodyTop(); }
 var melodyState = {};
 var melodyMode = 'song';
 var freePlaySettings = { octaves: 1 };
@@ -541,6 +542,13 @@ function renderMelodyTopHtml() {
     html += '<div class="game-sub-desc">주황색 음표를 순서대로 건반으로 눌러보세요! (연주 중 노란색으로 반짝이는 음이 지금 들리는 음이에요)</div>';
     html += '<div class="status-row"><div>' + melodyState.pos + ' / ' + totalNotes + '음 연주함</div><div>맞은 음: ' + melodyState.hits + '</div></div>';
     html += renderMelodyStaffLines(getVisibleEvents());
+    if (!melodyState.isPlaying) {
+        html += '<div class="setup-section-label">재생 속도</div><div class="setup-btn-group" style="margin-bottom:0.5rem;">';
+        [0.5, 0.8, 1, 1.2].forEach(function (sp) {
+            html += '<button class="setup-btn' + (melodySettings.playbackSpeed === sp ? ' active' : '') + '" onclick="setMelodyPlaybackSpeed(' + sp + ')">x' + sp + '</button>';
+        });
+        html += '</div>';
+    }
     if (melodyState.isPlaying) {
         html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="stopMelodyPlayback()">⏸ 중단하기</button>';
     } else if (isFull) {
@@ -568,27 +576,62 @@ function updateMelodyTop() {
 }
 
 // ---- 리듬 그대로 재생 (쉼표=무음, 홀드=길게) + 재생 중인 음 노란색 하이라이트 ----
+// 여러 배음(하모닉)을 섞어서 사인파 하나보다 피아노에 가까운 음색을 냄
+var MELODY_HARMONICS = [
+    { mult: 1, gain: 1 }, { mult: 2, gain: 0.32 }, { mult: 3, gain: 0.15 }, { mult: 4, gain: 0.07 }
+];
 function playMelodyTone(freq, ms) {
     var ctx = getPianoAudioCtx();
     if (!ctx) return;
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
     var dur = ms / 1000;
-    var peak = 0.28;
+    var peak = 0.26;
     var attack = Math.min(0.012, dur * 0.2); // 짧은 어택(클릭 노이즈 방지)
-    var release = Math.min(0.07, dur * 0.4); // 끝부분만 짧게 릴리즈
+    var release = Math.min(0.09, dur * 0.4); // 끝부분만 짧게 릴리즈
     var sustainEnd = Math.max(attack, dur - release);
     var now = ctx.currentTime;
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(peak, now + attack);
-    gain.gain.setValueAtTime(peak, now + sustainEnd); // 음 길이 대부분을 일정한 크기로 유지 -> 눌린 느낌
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + dur);
+    var masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.0001, now);
+    masterGain.gain.exponentialRampToValueAtTime(peak, now + attack);
+    masterGain.gain.setValueAtTime(peak, now + sustainEnd); // 음 길이 대부분을 일정한 크기로 유지 -> 눌린 느낌
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    masterGain.connect(ctx.destination);
+    MELODY_HARMONICS.forEach(function (h) {
+        var osc = ctx.createOscillator();
+        var hGain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq * h.mult;
+        hGain.gain.value = h.gain;
+        osc.connect(hGain);
+        hGain.connect(masterGain);
+        osc.start(now);
+        osc.stop(now + dur + 0.05);
+    });
+}
+// 건반을 직접 눌렀을 때 나는 소리 - memory.js의 playPianoTone을 피아노에 더 가까운 소리로 덮어씀
+// (memory.js보다 이 파일이 나중에 로드되므로 전역에서 이 정의가 최종 적용됨 - 기존 피아노 건반 게임에도 동일하게 적용됨)
+function playPianoTone(freq) {
+    var ctx = getPianoAudioCtx();
+    if (!ctx) return;
+    var now = ctx.currentTime;
+    var peak = 0.3;
+    var attack = 0.008;
+    var masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.0001, now);
+    masterGain.gain.exponentialRampToValueAtTime(peak, now + attack); // 빠른 어택 - 눌리는 느낌
+    masterGain.gain.exponentialRampToValueAtTime(peak * 0.35, now + 0.2); // 피아노 특유의 초반 감쇠
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.9); // 자연스러운 여운(스타카토 아님)
+    masterGain.connect(ctx.destination);
+    MELODY_HARMONICS.forEach(function (h) {
+        var osc = ctx.createOscillator();
+        var hGain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq * h.mult;
+        hGain.gain.value = h.gain;
+        osc.connect(hGain);
+        hGain.connect(masterGain);
+        osc.start(now);
+        osc.stop(now + 1.0);
+    });
 }
 function playMelodyEventsDemo(events, onComplete) {
     var i = 0;
@@ -599,7 +642,7 @@ function playMelodyEventsDemo(events, onComplete) {
             return;
         }
         var ev = events[i];
-        var durMs = ev.units * MELODY_UNIT_MS;
+        var durMs = (ev.units * MELODY_UNIT_MS) / melodySettings.playbackSpeed;
         if (ev.type === 'note') {
             melodyState.demoActiveEvent = ev;
             playMelodyTone(getMelodyNoteFreq(ev.pitchClass, ev.octaveOffset), Math.min(durMs * 0.92, 1600));
