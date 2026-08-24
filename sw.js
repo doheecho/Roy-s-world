@@ -1,5 +1,5 @@
 var CACHE_PREFIX = 'eroi-playground-';
-var CACHE_NAME = CACHE_PREFIX + 'v4.001';
+var CACHE_NAME = CACHE_PREFIX + 'v4.002';
 var PRECACHE_URLS = [
     '/Roy-s-world/',
     '/Roy-s-world/index.html',
