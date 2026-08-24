@@ -2,15 +2,18 @@
 // 이 파일은 memory.js 의 buildPianoKeys()/playPianoTone()/getPianoAudioCtx() 를 그대로 재사용합니다.
 // (도~도 한 옥타브, 반음 포함 13건반: buildPianoKeys('mid') 결과와 인덱스가 1:1로 대응)
 //
-// 노래 데이터는 문자열 표기법으로 작성합니다 (parseMelodyPattern이 자동으로 박자를 계산):
-//   도레미파솔라시 : 각 글자 = 4분음표 1박
-//   -              : 4분음표 1박짜리 쉼표(무음). 연달아 쓰면 그만큼 길게 쉼
-//   ~              : 바로 앞 음을 1박 더 늘려서 홀드(예: "솔~" = 솔을 2박 = 2분음표)
-//   도(높은음)      : 옥타브 위 도 (일반 "도"는 항상 낮은 도)
+// ---- 노래 데이터 표기법 ----
+// 기본 단위는 8분음표(1유닛)입니다.
+//   도레미파솔라시      : 글자 하나 = 8분음표 1개 (기본)
+//   도(4)               : 괄호 안 숫자는 음표의 "분모"(4=4분음표=2유닛, 2=2분음표=4유닛, 1=온음표=8유닛)
+//   -                   : 8분쉼표 1개 (기본). 뒤에 (4) 등을 붙이면 그 길이만큼 쉼
+//   ~                   : 바로 앞 음을 8분음표 1개 분량 더 홀드(연장)
+//   도(높은음)           : 옥타브 위 도 (괄호 뒤에 (4) 등을 추가로 붙여 길이 지정 가능)
+// 연속된 쉼표(-)는 자동으로 합쳐져서 알맞은 쉼표 기호(8분/4분/점4분/2분/점2분/온쉼표)로 그려집니다.
 // 새 노래를 추가하려면 MELODY_SONGS 배열에 buildMelodySong(id, 이름, 패턴문자열)만 추가하면 됩니다.
 
-var SEGMENT_BEATS = 16; // 구간(다시듣기 단위) = 4분음표 4마디 = 16박
-var MELODY_BEAT_MS = 480; // 4분음표 1박의 재생 길이(ms)
+var SEGMENT_UNITS = 32; // 구간(다시듣기 단위) = 4마디(8분음표 32개)
+var MELODY_UNIT_MS = 240; // 8분음표 1유닛의 재생 길이(ms)
 var MELODY_FIRST_NOTE_DELAY_MS = 1000; // 오디오 컨텍스트가 완전히 켜질 시간을 주기 위한 첫 음 지연
 
 // 인덱스(0~12) = buildPianoKeys('mid') 의 keys 배열 인덱스와 동일
@@ -32,54 +35,73 @@ var MELODY_NOTE_META = [
 ];
 
 // ---- 패턴 문자열 파서 ----
+function melodyMatchDurationParen(s, i) {
+    if (s.charAt(i) !== '(') return null;
+    var j = i + 1, numStr = '';
+    while (j < s.length && s.charAt(j) >= '0' && s.charAt(j) <= '9') { numStr += s.charAt(j); j++; }
+    if (numStr === '' || s.charAt(j) !== ')') return null;
+    var denom = parseInt(numStr, 10);
+    if (!denom || denom <= 0) return null;
+    var units = Math.round(8 / denom); // 8분음표=1유닛 기준, N분음표 = 8/N 유닛
+    return { units: units, nextIndex: j + 1 };
+}
 function parseMelodyPattern(str) {
     var noteMap = { '도': 0, '레': 2, '미': 4, '파': 5, '솔': 7, '라': 9, '시': 11 };
-    var beatTokens = [];
+    var events = [];
     var i = 0;
     while (i < str.length) {
         var c = str.charAt(i);
-        if (c === '-') { beatTokens.push('REST'); i++; continue; }
-        if (c === '~') { beatTokens.push('SUSTAIN'); i++; continue; }
-        if (str.substr(i, 6) === '도(높은음)') { beatTokens.push(12); i += 6; continue; }
-        if (noteMap.hasOwnProperty(c)) { beatTokens.push(noteMap[c]); i++; continue; }
+        if (c === '~') {
+            if (events.length > 0 && events[events.length - 1].type === 'note') {
+                events[events.length - 1].units++;
+            }
+            i++; continue;
+        }
+        var pitchIdx = null, consumed = 0;
+        if (str.substr(i, 6) === '도(높은음)') { pitchIdx = 12; consumed = 6; }
+        else if (noteMap.hasOwnProperty(c)) { pitchIdx = noteMap[c]; consumed = 1; }
+        if (pitchIdx !== null) {
+            i += consumed;
+            var dur = 1;
+            var dm = melodyMatchDurationParen(str, i);
+            if (dm) { dur = dm.units; i = dm.nextIndex; }
+            events.push({ type: 'note', idx: pitchIdx, units: dur });
+            continue;
+        }
+        if (c === '-') {
+            i++;
+            var dur2 = 1;
+            var dm2 = melodyMatchDurationParen(str, i);
+            if (dm2) { dur2 = dm2.units; i = dm2.nextIndex; }
+            if (events.length > 0 && events[events.length - 1].type === 'rest') {
+                events[events.length - 1].units += dur2;
+            } else {
+                events.push({ type: 'rest', units: dur2 });
+            }
+            continue;
+        }
         i++; // 공백 등 인식 안되는 글자는 무시
     }
-    var events = [];
-    beatTokens.forEach(function (t) {
-        if (t === 'SUSTAIN') {
-            if (events.length > 0 && events[events.length - 1].type === 'note') {
-                events[events.length - 1].beats++;
-            }
-        } else if (t === 'REST') {
-            if (events.length > 0 && events[events.length - 1].type === 'rest') {
-                events[events.length - 1].beats++;
-            } else {
-                events.push({ type: 'rest', beats: 1 });
-            }
-        } else {
-            events.push({ type: 'note', idx: t, beats: 1 });
-        }
-    });
-    var startBeat = 0;
+    var startUnit = 0;
     var noteEvents = [];
     events.forEach(function (e) {
-        e.startBeat = startBeat;
-        e.segIndex = Math.floor(startBeat / SEGMENT_BEATS);
-        startBeat += e.beats;
+        e.startUnit = startUnit;
+        e.segIndex = Math.floor(startUnit / SEGMENT_UNITS);
+        startUnit += e.units;
         if (e.type === 'note') { e.noteIndex = noteEvents.length; noteEvents.push(e); }
     });
-    return { events: events, noteEvents: noteEvents, totalBeats: startBeat };
+    return { events: events, noteEvents: noteEvents, totalUnits: startUnit };
 }
 function buildMelodySong(id, name, pattern) {
     var parsed = parseMelodyPattern(pattern);
-    return { id: id, name: name, events: parsed.events, noteEvents: parsed.noteEvents, totalBeats: parsed.totalBeats };
+    return { id: id, name: name, events: parsed.events, noteEvents: parsed.noteEvents, totalUnits: parsed.totalUnits };
 }
 
 var MELODY_SONGS = [
-    buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
-    buildMelodySong('butterfly', '나비야', '솔미미-파레레-도레미파솔솔솔-솔미미미파레레-도미솔솔미미미-레레레레레미파-미미미미미파솔-솔미미-파레레-도미솔솔미미미'),
-    buildMelodySong('schoolbell', '학교종', '솔솔라라솔솔미-솔솔미미레---솔솔라라솔솔미-솔미레미도--'),
-    buildMelodySong('bear', '곰세마리', '도~도도도-도-미~솔솔미미도-솔솔미-솔솔미-도-도-도---솔-솔-미-도-솔-솔-솔---솔-솔-미-도-솔-솔-솔---솔-솔-미-도-솔-솔라솔---도(높은음)-솔-도(높은음)-솔-미-레-도---')
+    buildMelodySong('twinkle', '작은별', '도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)'),
+    buildMelodySong('butterfly', '나비야', '솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)레(4)미(4)파(4)솔(4)솔(4)솔(4)-(4)솔(4)미(4)미(4)미(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)-(4)레(4)레(4)레(4)레(4)레(4)미(4)파(4)-(4)미(4)미(4)미(4)미(4)미(4)파(4)솔(4)-(4)솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)'),
+    buildMelodySong('schoolbell', '학교종', '솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)솔(4)미(4)미(4)레(4)-(4)-(4)-(4)솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)미(4)레(4)미(4)도(4)-(4)-(4)'),
+    buildMelodySong('bear', '곰세마리', '도-도도도-도-미-솔-미-도-솔솔미-솔솔미-도-도-도---솔-솔-미-도-솔-솔-솔---솔-솔-미-도-솔-솔-솔---솔-솔-미-도-솔-솔라솔---도-솔-도-솔-미-레-도---')
 ];
 
 var melodyKeys = null;
@@ -124,53 +146,71 @@ function getVisibleEvents() {
     if (melodyState.mode === 'full') return melodyState.song.events;
     return melodyState.song.events.filter(function (e) { return e.segIndex === melodyState.segIndex; });
 }
-function getBeatOffset() { return melodyState.mode === 'full' ? 0 : melodyState.segIndex * SEGMENT_BEATS; }
+function getUnitOffset() { return melodyState.mode === 'full' ? 0 : melodyState.segIndex * SEGMENT_UNITS; }
 
 // ---- 오선보 렌더링: 화면 폭에 따라 한 줄(태블릿) / 두 줄(모바일)로 자동 분배 ----
 function isMelodyWideScreen() { return window.innerWidth >= 700; }
 
-function renderMelodyStaffLines(events, beatOffset) {
-    var lineBeats = isMelodyWideScreen() ? 16 : 8;
-    var beatPx = isMelodyWideScreen() ? 42 : 34;
+function renderMelodyStaffLines(events, unitOffset) {
+    var lineUnits = isMelodyWideScreen() ? 32 : 16;
+    var unitPx = isMelodyWideScreen() ? 24 : 18;
     var groups = {};
     events.forEach(function (ev) {
-        var rel = ev.startBeat - beatOffset;
-        var lineIdx = Math.floor(rel / lineBeats);
+        var rel = ev.startUnit - unitOffset;
+        var lineIdx = Math.floor(rel / lineUnits);
         if (!groups[lineIdx]) groups[lineIdx] = [];
         groups[lineIdx].push(ev);
     });
     var lineIdxs = Object.keys(groups).map(function (k) { return parseInt(k, 10); }).sort(function (a, b) { return a - b; });
     var html = '<div style="margin-bottom:0.8rem;">';
     lineIdxs.forEach(function (li) {
-        var lineOffset = beatOffset + li * lineBeats;
-        html += renderMelodyStaffSvg(groups[li], lineOffset, lineBeats, beatPx);
+        var lineOffset = unitOffset + li * lineUnits;
+        html += renderMelodyStaffSvg(groups[li], lineOffset, lineUnits, unitPx);
     });
     html += '</div>';
     return html;
 }
 
-// 실제 악보 표기에 맞는 쉼표 기호 (1박=4분쉼표, 2박=2분쉼표, 3박=점2분쉼표, 4박 이상=온쉼표)
-function renderMelodyRestGlyph(cx, staffTop, beats, fill) {
-    var midY = staffTop + 28;  // 가운데줄(3번째 줄)
-    var line4Y = staffTop + 14; // 위에서 두번째 줄
-    if (beats === 1) {
-        return '<text x="' + cx + '" y="' + (midY + 10) + '" font-size="30" fill="' + fill + '" text-anchor="middle">𝄽</text>';
+// 음표 길이(유닛)에 따른 그리기 스타일 결정 (1=8분,2=4분,3=점4분,4=2분,6=점2분,8+=온음표)
+function classifyMelodyDuration(u) {
+    if (u <= 1) return { hollow: false, stem: true, flag: true, dot: false };
+    if (u === 2) return { hollow: false, stem: true, flag: false, dot: false };
+    if (u === 3) return { hollow: false, stem: true, flag: false, dot: true };
+    if (u === 4) return { hollow: true, stem: true, flag: false, dot: false };
+    if (u === 6) return { hollow: true, stem: true, flag: false, dot: true };
+    if (u >= 8) return { hollow: true, stem: false, flag: false, dot: false };
+    return { hollow: u >= 4, stem: true, flag: false, dot: false };
+}
+// 쉼표 기호 (1=8분쉼표,2=4분쉼표,3=점4분쉼표,4=2분쉼표,6=점2분쉼표,8+=온쉼표)
+function renderMelodyRestGlyph(cx, staffTop, units, fill) {
+    var midY = staffTop + 28;
+    var line4Y = staffTop + 14;
+    if (units <= 1) {
+        return '<text x="' + cx + '" y="' + (midY + 10) + '" font-size="24" fill="' + fill + '" text-anchor="middle">𝄾</text>';
     }
-    if (beats === 2) {
+    if (units === 2) {
+        return '<text x="' + cx + '" y="' + (midY + 10) + '" font-size="28" fill="' + fill + '" text-anchor="middle">𝄽</text>';
+    }
+    if (units === 3) {
+        var h = '<text x="' + cx + '" y="' + (midY + 10) + '" font-size="28" fill="' + fill + '" text-anchor="middle">𝄽</text>';
+        h += '<circle cx="' + (cx + 12) + '" cy="' + (midY - 4) + '" r="1.6" fill="' + fill + '" />';
+        return h;
+    }
+    if (units === 4) {
         return '<rect x="' + (cx - 6) + '" y="' + (midY - 5) + '" width="12" height="5" fill="' + fill + '" />';
     }
-    if (beats === 3) {
-        var html = '<rect x="' + (cx - 6) + '" y="' + (midY - 5) + '" width="12" height="5" fill="' + fill + '" />';
-        html += '<circle cx="' + (cx + 11) + '" cy="' + (midY - 2) + '" r="1.6" fill="' + fill + '" />';
-        return html;
+    if (units === 6) {
+        var h2 = '<rect x="' + (cx - 6) + '" y="' + (midY - 5) + '" width="12" height="5" fill="' + fill + '" />';
+        h2 += '<circle cx="' + (cx + 11) + '" cy="' + (midY - 2) + '" r="1.6" fill="' + fill + '" />';
+        return h2;
     }
     return '<rect x="' + (cx - 6) + '" y="' + line4Y + '" width="12" height="5" fill="' + fill + '" />';
 }
 
-function renderMelodyStaffSvg(events, beatOffset, widthBeats, beatPx) {
+function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
     var leftPad = 46;
     var staffTop = 15;
-    var svgWidth = leftPad + widthBeats * beatPx + 24;
+    var svgWidth = leftPad + widthUnits * unitPx + 24;
     var svgHeight = 100;
     var html = '<div style="background:#fff; border:2px solid #1f2937; border-radius:0.6rem; padding:0.6rem 0.4rem; margin-bottom:0.5rem; overflow-x:auto;">';
     html += '<svg width="' + svgWidth + '" height="' + svgHeight + '" viewBox="0 0 ' + svgWidth + ' ' + svgHeight + '" style="display:block; max-width:100%;">';
@@ -179,10 +219,10 @@ function renderMelodyStaffSvg(events, beatOffset, widthBeats, beatPx) {
     });
     html += '<text x="6" y="' + (staffTop + 52) + '" font-size="46" fill="#1f2937">𝄞</text>';
     events.forEach(function (ev) {
-        var relBeat = ev.startBeat - beatOffset;
-        var cx = leftPad + relBeat * beatPx + (ev.beats * beatPx) / 2 + 14;
+        var relUnit = ev.startUnit - unitOffset;
+        var cx = leftPad + relUnit * unitPx + (ev.units * unitPx) / 2 + 14;
         if (ev.type === 'rest') {
-            html += renderMelodyRestGlyph(cx, staffTop, ev.beats, '#9ca3af');
+            html += renderMelodyRestGlyph(cx, staffTop, ev.units, '#9ca3af');
             return;
         }
         var meta = MELODY_NOTE_META[ev.idx];
@@ -190,22 +230,26 @@ function renderMelodyStaffSvg(events, beatOffset, widthBeats, beatPx) {
         var isCurrent = ev.noteIndex === melodyState.pos;
         var isPast = ev.noteIndex < melodyState.pos;
         var fill = isCurrent ? '#f59e0b' : (isPast ? '#9ca3af' : '#1f2937');
-        var hollow = ev.beats >= 2;
+        var d = classifyMelodyDuration(ev.units);
         if (meta.ledger) {
             html += '<line x1="' + (cx - 14) + '" y1="' + cy + '" x2="' + (cx + 14) + '" y2="' + cy + '" stroke="#1f2937" stroke-width="1.5" />';
         }
         if (meta.sharp) {
             html += '<text x="' + (cx - 20) + '" y="' + (cy + 6) + '" font-size="16" fill="' + fill + '">♯</text>';
         }
-        if (hollow) {
+        if (d.hollow) {
             html += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="7" ry="5.5" fill="#fff" stroke="' + fill + '" stroke-width="2" transform="rotate(-20 ' + cx + ' ' + cy + ')" />';
         } else {
             html += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="7" ry="5.5" fill="' + fill + '" transform="rotate(-20 ' + cx + ' ' + cy + ')" />';
         }
-        if (ev.beats < 4) {
-            html += '<line x1="' + (cx + 6.5) + '" y1="' + cy + '" x2="' + (cx + 6.5) + '" y2="' + (cy - 30) + '" stroke="' + fill + '" stroke-width="1.5" />';
+        if (d.stem) {
+            var stemX = cx + 6.5, stemTopY = cy - 30;
+            html += '<line x1="' + stemX + '" y1="' + cy + '" x2="' + stemX + '" y2="' + stemTopY + '" stroke="' + fill + '" stroke-width="1.5" />';
+            if (d.flag) {
+                html += '<path d="M ' + stemX + ' ' + stemTopY + ' C ' + (stemX + 9) + ' ' + (stemTopY + 3) + ', ' + (stemX + 10) + ' ' + (stemTopY + 12) + ', ' + (stemX + 2) + ' ' + (stemTopY + 16) + '" stroke="' + fill + '" stroke-width="1.8" fill="none" stroke-linecap="round" />';
+            }
         }
-        if (ev.beats === 3) {
+        if (d.dot) {
             html += '<circle cx="' + (cx + 12) + '" cy="' + (cy - 2) + '" r="1.6" fill="' + fill + '" />';
         }
         html += '<text x="' + cx + '" y="' + (staffTop + 82) + '" font-size="12" fill="#6b7280" text-anchor="middle">' + meta.name + '</text>';
@@ -243,7 +287,7 @@ function renderMelodyGame() {
     var html = '<div class="game-title-box">🎼 멜로디 연주하기 · ' + song.name + (isFull ? ' (전체곡)' : '') + '</div>';
     html += '<div class="game-sub-desc">주황색 음표를 순서대로 건반으로 눌러보세요!</div>';
     html += '<div class="status-row"><div>' + melodyState.pos + ' / ' + totalNotes + '음 연주함</div><div>맞은 음: ' + melodyState.hits + '</div></div>';
-    html += renderMelodyStaffLines(getVisibleEvents(), getBeatOffset());
+    html += renderMelodyStaffLines(getVisibleEvents(), getUnitOffset());
     html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="playMelodySegmentDemo()">🔊 ' + (isFull ? '전체' : '이 구간') + ' 다시 듣기</button>';
     html += renderMelodyKeyboard();
     document.getElementById('mainArea').innerHTML = html;
@@ -270,7 +314,7 @@ function playMelodyEventsDemo(events) {
     function step() {
         if (i >= events.length) return;
         var ev = events[i];
-        var durMs = ev.beats * MELODY_BEAT_MS;
+        var durMs = ev.units * MELODY_UNIT_MS;
         if (ev.type === 'note') {
             var key = melodyState.keys[ev.idx];
             playMelodyTone(key.freq, Math.min(durMs * 0.92, 1600));
