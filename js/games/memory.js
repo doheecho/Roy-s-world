@@ -448,7 +448,7 @@ function playPianoIntroScale(callback) {
         }, 320);
         activeTimers.push(t1);
     }
-    var t0 = setTimeout(step, 400);
+    var t0 = setTimeout(step, 1000);
     activeTimers.push(t0);
 }
 function pianoSeqToNoteString(seq) {
