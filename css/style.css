@@ -267,6 +267,46 @@ h1 { font-size: 1.1rem; margin: 0; text-align: left; }
 /* 코딩: 명령/재료 팔레트 (햄버거 만들기, 블록코딩, 변수 점수 만들기 공용) */
 .palette-row { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem; }
 
+/* 코딩: 햄버거 만들기 - 좌(포장지)/우(후라이팬) 2분할 장면, 재료 원본은 전부 가로 677px 기준 */
+.burger-scene { display: flex; align-items: flex-end; justify-content: center; gap: 0.6rem; margin-bottom: 0.6rem; min-height: 40px; --iw: clamp(84px, 38vw, 150px); --ih: calc(var(--iw) * 200 / 677); --ph: calc(var(--iw) * 260 / 677); }
+.burger-col { flex: 1 1 0; min-width: 0; height: calc(var(--ph) * 2.5); display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.burger-ing-img { display: block; margin: 0 auto; width: var(--iw); height: auto; }
+/* 재료가 위에서 아래로 떨어지며 자리를 잡음(굽기 재료가 팬에 떨어질 때도 동일하게 사용) */
+@keyframes burgerLayerDrop {
+    0% { opacity: 0; transform: translateY(-90px); }
+    70% { opacity: 1; transform: translateY(3px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+.burger-layer-pop { animation: burgerLayerDrop 0.5s ease-in; }
+/* 생재료 -> 구운 재료로 자연스럽게 스왑 + 살짝 지글거림 */
+@keyframes burgerPanSwap {
+    0% { opacity: 0.2; filter: brightness(1.4); transform: scale(0.92); }
+    100% { opacity: 1; filter: brightness(1); transform: scale(1); }
+}
+@keyframes burgerPanSizzle {
+    0%, 100% { transform: rotate(-1.5deg); }
+    50% { transform: rotate(1.5deg); }
+}
+.burger-pan-item-cooked { animation: burgerPanSwap 0.3s ease-out forwards, burgerPanSizzle 0.25s ease-in-out 0.3s infinite; }
+/* 구운 재료가 살포시 위로 떠올라 왼쪽 버거 위로 올라감 */
+@keyframes burgerPanRiseAway {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-50px); }
+}
+.burger-pan-item-riseaway { animation: burgerPanRiseAway 0.6s ease-out forwards; }
+/* 서빙하기: 완성된 버거가 좌측에서 중앙으로 1.5초간 부드럽게 이동(후라이팬 쪽은 이 시점에 함께 사라짐) */
+@keyframes burgerServePop {
+    0% { opacity: 0.5; transform: translateX(-25%); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+.burger-serve-pop { animation: burgerServePop 1.5s cubic-bezier(0.22, 1, 0.36, 1); transform-origin: center bottom; }
+/* 중앙 이동이 끝난 뒤(1.5초 시점) 이어서 재료들이 꾹 눌려 압축됨 */
+@keyframes burgerSquish {
+    0% { height: var(--sq-h0); margin-top: var(--sq-m0); }
+    100% { height: var(--sq-h1); margin-top: var(--sq-m1); }
+}
+.burger-squish { animation: burgerSquish 0.45s ease-out 1.5s both; }
+
 /* ===== 패턴 매트릭스 ===== */
 .matrix-grid { display: grid; gap: 0.4rem; justify-content: center; margin-bottom: 1rem; }
 .matrix-cell { background: #f8fafc; border: 2px solid #d1d5db; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; width: 60px; height: 60px; }

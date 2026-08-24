@@ -580,33 +580,9 @@ function updateMelodyTop() {
 var MELODY_HARMONICS = [
     { mult: 1, gain: 1 }, { mult: 2, gain: 0.32 }, { mult: 3, gain: 0.15 }, { mult: 4, gain: 0.07 }
 ];
-function playMelodyTone(freq, ms) {
-    var ctx = getPianoAudioCtx();
-    if (!ctx) return;
-    var dur = ms / 1000;
-    var now = ctx.currentTime;
-    var peak = 0.26;
-    // 건반을 직접 눌렀을 때(playPianoTone)와 동일한 모양의 엔벨로프: 빠른 어택 -> 초반에 한 번 꺾이며 감쇠 -> 자연스러운 여운
-    // (음 길이에 비례해서 스케일링하므로 짧은 음도 뚝 끊기지 않고, 길이와 무관하게 같은 "피아노 소리"로 들림)
-    var attack = Math.min(0.01, dur * 0.15);
-    var midPoint = attack + (dur - attack) * 0.35;
-    var masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.0001, now);
-    masterGain.gain.exponentialRampToValueAtTime(peak, now + attack);
-    masterGain.gain.exponentialRampToValueAtTime(peak * 0.4, now + midPoint); // 피아노 특유의 초반 감쇠
-    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + dur); // 나머지 구간 자연스럽게 여운
-    masterGain.connect(ctx.destination);
-    MELODY_HARMONICS.forEach(function (h) {
-        var osc = ctx.createOscillator();
-        var hGain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq * h.mult;
-        hGain.gain.value = h.gain;
-        osc.connect(hGain);
-        hGain.connect(masterGain);
-        osc.start(now);
-        osc.stop(now + dur + 0.05);
-    });
+// 구간듣기/전체듣기 데모 재생도 건반을 직접 눌렀을 때(playPianoTone)와 완전히 같은 피아노 음색으로 들리게 함
+function playMelodyTone(freq) {
+    playPianoTone(freq);
 }
 // 건반을 직접 눌렀을 때 나는 소리 - memory.js의 playPianoTone을 피아노에 더 가까운 소리로 덮어씀
 // (memory.js보다 이 파일이 나중에 로드되므로 전역에서 이 정의가 최종 적용됨 - 기존 피아노 건반 게임에도 동일하게 적용됨)
@@ -646,7 +622,7 @@ function playMelodyEventsDemo(events, onComplete) {
         var durMs = (ev.units * MELODY_UNIT_MS) / melodySettings.playbackSpeed;
         if (ev.type === 'note') {
             melodyState.demoActiveEvent = ev;
-            playMelodyTone(getMelodyNoteFreq(ev.pitchClass, ev.octaveOffset), Math.min(durMs * 0.92, 1600));
+            playMelodyTone(getMelodyNoteFreq(ev.pitchClass, ev.octaveOffset));
         } else {
             melodyState.demoActiveEvent = null;
         }

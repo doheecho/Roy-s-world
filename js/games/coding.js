@@ -971,7 +971,7 @@ var HAMBURGER_RECIPES = [
 var GRILLABLE_ITEMS = ['🥩', '🥓'];
 var BURGER_ACTIONS_BASE = [
     { type: 'grill', label: '🔥 굽기' },
-    { type: 'serve', label: '🍽️ 서빙하기' }
+    { type: 'serve', label: '🍽️ 포장' }
 ];
 var BURGER_VISUAL = {
     '🍞': { color: '#e3a857', dark: '#c18a3d' },
@@ -985,6 +985,101 @@ var BURGER_VISUAL = {
     '🍯': { color: '#f4a825', dark: '#d68e12' },
     '🥑': { color: '#a8c256', dark: '#87a13c' }
 };
+// 실제 재료 사진(투명 배경 PNG, index.html과 같은 폴더에 있음)
+var HAMBURGER_IMG = {
+    bunBottom: '햄버거재료_아래빵.png',
+    bunTop: '햄버거재료_윗빵.png',
+    pattyRaw: '햄버거재료_생패티.png',
+    pattyCooked: '햄버거재료_구운패티.png',
+    baconRaw: '햄버거재료_생베이컨.png',
+    baconCooked: '햄버거재료_구운베이컨.png',
+    grillPan: '햄버거재료_굽기.png',
+    wrapPaper: '햄버거재료_포장지.png',
+    '🧀': '햄버거재료_치즈.png',
+    '🥬': '햄버거재료_상추.png',
+    '🍅': '햄버거재료_토마토.png',
+    '🧅': '햄버거재료_양파.png',
+    '🍯': '햄버거재료_시럽.png',
+    '🥑': '햄버거재료_아보카도.png',
+    '🥒': '햄버거재료_오이.png'
+};
+function hamburgerRawImg(item) { return item === '🥩' ? HAMBURGER_IMG.pattyRaw : HAMBURGER_IMG.baconRaw; }
+function hamburgerCookedImg(item) { return item === '🥩' ? HAMBURGER_IMG.pattyCooked : HAMBURGER_IMG.baconCooked; }
+// 빵 이미지는 위치가 아니라 "선택 순서"로 결정: 먼저 고른 빵 = 아래빵, 나중에 고른 빵 = 윗빵
+function getBurgerIngredientImg(item, idx, firstBunIdx) {
+    if (item === '🍞') return idx === firstBunIdx ? HAMBURGER_IMG.bunBottom : HAMBURGER_IMG.bunTop;
+    if (GRILLABLE_ITEMS.indexOf(item) > -1) return hamburgerCookedImg(item);
+    return HAMBURGER_IMG[item] || null;
+}
+// 이미지 한 장을 그림: marginTopExpr로 바로 아래 이미지의 세로 50% 지점에 겹치도록 하고,
+// z-index는 쌓인 순서(나중에 놓을수록 앞으로) 그대로 사용
+function renderBurgerImgHtml(src, marginTopExpr, zIndex, animClass, styleExtra) {
+    return '<img src="' + src + '" class="burger-ing-img ' + animClass + '" style="position:relative; margin-top:' + marginTopExpr + '; z-index:' + zIndex + ';' + (styleExtra || '') + '" alt="">';
+}
+function renderBurgerFallbackHtml(item, marginTopExpr, zIndex, animClass, styleExtra) {
+    var vv = BURGER_VISUAL[item] || { color: '#cccccc', dark: '#999999' };
+    return '<div class="burger-ing-img ' + animClass + '" style="position:relative; margin-top:' + marginTopExpr + '; z-index:' + zIndex + '; width:var(--iw); height:var(--ih); border-radius:40%; background:' + vv.color + '; border:2px solid ' + vv.dark + '; display:flex; align-items:center; justify-content:center; font-size:0.95rem;' + (styleExtra || '') + '">' + item + '</div>';
+}
+// 왼쪽: 포장지(맨 아래, 고정) 위에 지금까지 쌓은 재료가 순서대로 겹쳐 올라감
+// 화면에는 [맨 나중에 놓은 재료, ..., 맨 처음 놓은 재료(아래빵), 포장지] 순서로 그려지는데(위->아래),
+// CSS margin-top은 항상 "바로 위(먼저 그려진) 요소"와의 간격을 줄이는 것이므로, 매 요소는 자기 자신의
+// 높이의 -50%를 margin-top으로 가져야 "다음 요소가 내 높이의 50% 지점까지 파고든다"가 성립한다.
+// (포장지도 마찬가지: 포장지의 -50%*ph가 있어야 그 위의 첫 재료가 포장지 세로 50% 지점에 놓인다)
+// 맨 위(가장 나중에 놓인 재료)만 위에 겹칠 대상이 없으므로 margin-top 0.
+// - 방금 새로 놓인 재료만 위에서 떨어지는 애니메이션을 재생하고, 이미 쌓여있던 재료는 다시 움직이지 않음
+// 포장 후(burgerState.served): 전 층을 눌러 찌그러뜨린다.
+// - 아래빵/위빵(맨 아래·맨 위): 높이는 20%만 축소(80% 유지), 자기 높이(축소분 반영) 기준 -70% 지점까지 파고듦
+// - 가운데 재료: 높이 50%로 축소, 마찬가지로 자기 높이 기준 -70% 지점까지 파고듦
+// (좌측->중앙 이동 애니메이션이 끝나는 1.5초 시점에 이어서 부드럽게 재생되도록 CSS에서 딜레이를 맞춰둠)
+function renderBurgerLeftColumnHtml(extraColClass) {
+    var built = burgerState.built;
+    var firstBunIdx = built.indexOf('🍞');
+    var squish = burgerState.served;
+    var html = '<div class="burger-col' + (extraColClass ? ' ' + extraColClass : '') + '">';
+    for (var i = built.length - 1; i >= 0; i--) {
+        var item = built[i];
+        var src = getBurgerIngredientImg(item, i, firstBunIdx);
+        var isTopmost = i === built.length - 1;
+        var marginExpr = isTopmost ? '0' : 'calc(var(--ih) * -0.5)';
+        var animClass = i === burgerState.justAddedIdx ? 'burger-layer-pop' : '';
+        var styleExtra = '';
+        if (squish) {
+            var isBunEdge = isTopmost || i === 0;
+            var h1 = isBunEdge ? 'calc(var(--ih) * 0.8)' : 'calc(var(--ih) * 0.5)';
+            var m1 = isBunEdge ? 'calc(var(--ih) * -0.56)' : 'calc(var(--ih) * -0.35)';
+            styleExtra = '--sq-h0:var(--ih); --sq-m0:' + marginExpr + '; --sq-h1:' + h1 + '; --sq-m1:' + m1 + ';';
+            animClass = (animClass ? animClass + ' ' : '') + 'burger-squish';
+        }
+        html += src ? renderBurgerImgHtml(src, marginExpr, i + 1, animClass, styleExtra) : renderBurgerFallbackHtml(item, marginExpr, i + 1, animClass, styleExtra);
+    }
+    var paperMargin = built.length === 0 ? '0' : 'calc(var(--ph) * -1.8)';
+    html += renderBurgerImgHtml(HAMBURGER_IMG.wrapPaper, paperMargin, 0, '');
+    html += '</div>';
+    return html;
+}
+// 오른쪽: 후라이팬(맨 아래, 고정) 위에 굽는 중인 생/구운 패티·베이컨이 얹힘 (왼쪽과 동일한 margin 규칙)
+function renderBurgerRightColumnHtml() {
+    var html = '<div class="burger-col">';
+    var hasItem = !!burgerState.panItem;
+    if (hasItem) {
+        var itemSrc = (burgerState.panPhase === 'raw') ? hamburgerRawImg(burgerState.panItem) : hamburgerCookedImg(burgerState.panItem);
+        var animClass = burgerState.panPhase === 'raw' ? 'burger-layer-pop' : (burgerState.panPhase === 'cooked' ? 'burger-pan-item-cooked' : 'burger-pan-item-riseaway');
+        html += renderBurgerImgHtml(itemSrc, '0', 1, animClass);
+    }
+    html += renderBurgerImgHtml(HAMBURGER_IMG.grillPan, hasItem ? 'calc(var(--ih) * -0.5)' : '0', 0, '');
+    html += '</div>';
+    return html;
+}
+// 실행을 누르면 좌: 포장지, 우: 후라이팬이 항상 깔려있는 2분할 장면
+// 포장하기가 실행되면: 아래빵은 그대로 두고 나머지 재료들이 이미 50% 겹침 규칙대로 압축되어 있는 상태 그대로,
+// 화면 중앙 1단 레이아웃으로 전환하고(후라이팬 쪽은 사라짐) 완성 팝 애니메이션을 한 번 재생
+function renderBurgerSceneHtml() {
+    if (burgerState.served) {
+        var popClass = burgerState.justServed ? 'burger-serve-pop' : '';
+        return '<div class="burger-scene">' + renderBurgerLeftColumnHtml(popClass) + '</div>';
+    }
+    return '<div class="burger-scene">' + renderBurgerLeftColumnHtml() + renderBurgerRightColumnHtml() + '</div>';
+}
 function buildBurgerSVG(layers) {
     var width = 220;
     var layerH = 34;
@@ -1019,7 +1114,7 @@ function generateHamburgerRound() {
     var uniqueIngredients = recipe.layers.filter(function (v, i, arr) { return arr.indexOf(v) === i; });
     var addActions = shuffleArray(uniqueIngredients.map(function (ing) { return { type: 'add', item: ing, label: ing + ' 담기' }; }));
     var palette = shuffleArray(BURGER_ACTIONS_BASE.concat(addActions));
-    burgerState = { recipe: recipe, palette: palette, program: [], running: false, solved: false, animIndex: 0, built: [], grilled: false, served: false, lastMsg: '' };
+    burgerState = { recipe: recipe, palette: palette, program: [], running: false, solved: false, animIndex: 0, built: [], grilled: false, served: false, lastMsg: '', panPhase: null, panItem: null, justAddedIdx: -1, justServed: false };
     renderHamburger();
 }
 function addBurgerAction(idx) {
@@ -1042,9 +1137,52 @@ function runHamburger() {
     burgerState.grilled = false;
     burgerState.served = false;
     burgerState.lastMsg = '';
+    burgerState.panPhase = null;
+    burgerState.panItem = null;
+    burgerState.justAddedIdx = -1;
+    burgerState.justServed = false;
     renderHamburger();
     var t = setTimeout(stepHamburgerAnim, 1000);
     activeTimers.push(t);
+}
+function scheduleHamburgerStep(delay) {
+    var t = setTimeout(stepHamburgerAnim, delay);
+    activeTimers.push(t);
+}
+function advanceHamburgerStep() {
+    burgerState.animIndex++;
+    if (burgerState.animIndex >= burgerState.program.length) { finishHamburgerCheck(); return; }
+    scheduleHamburgerStep(900);
+}
+// 패티/베이컨을 굽는 연출: 후라이팬에 생재료가 들어가서 → 지글지글 익고 → 완성된 재료가 버거 위로 올라감
+function runGrillAddAnimation(item) {
+    burgerState.panItem = item;
+    burgerState.panPhase = 'raw';
+    burgerState.lastMsg = item + '를 후라이팬에 올렸어요!';
+    renderHamburger();
+    var t1 = setTimeout(function () {
+        burgerState.panPhase = 'cooked';
+        burgerState.lastMsg = '🔥 지글지글~ 다 익었어요!';
+        vibrateShort();
+        renderHamburger();
+        var t2 = setTimeout(function () {
+            burgerState.panPhase = 'flyup';
+            renderHamburger();
+            var t3 = setTimeout(function () {
+                burgerState.panPhase = null;
+                burgerState.panItem = null;
+                burgerState.built.push(item);
+                burgerState.justAddedIdx = burgerState.built.length - 1;
+                burgerState.lastMsg = item + '를 버거 위에 올렸어요!';
+                renderHamburger();
+                burgerState.justAddedIdx = -1;
+                advanceHamburgerStep();
+            }, 480);
+            activeTimers.push(t3);
+        }, 650);
+        activeTimers.push(t2);
+    }, 650);
+    activeTimers.push(t1);
 }
 function stepHamburgerAnim() {
     if (burgerState.animIndex >= burgerState.program.length) {
@@ -1055,7 +1193,12 @@ function stepHamburgerAnim() {
     vibrateShort();
     if (action.type === 'grill') {
         burgerState.grilled = true;
-        burgerState.lastMsg = '🔥 지글지글... 고기/베이컨을 굽고 있어요!';
+        burgerState.panPhase = 'appear';
+        burgerState.panItem = null;
+        burgerState.lastMsg = '🔥 후라이팬을 달구고 있어요!';
+        renderHamburger();
+        advanceHamburgerStep();
+        return;
     } else if (action.type === 'add') {
         var isGrillable = GRILLABLE_ITEMS.indexOf(action.item) > -1;
         if (isGrillable && !burgerState.grilled) {
@@ -1072,20 +1215,26 @@ function stepHamburgerAnim() {
             renderHamburger();
             var msg2 = document.getElementById('burgerMsg');
             msg2.className = 'msg-box bad'; msg2.style.display = 'block';
-            msg2.innerText = '🐛 이미 서빙했는데 재료를 더 넣었어요! "서빙하기"는 맨 마지막이어야 해요.';
+            msg2.innerText = '🐛 이미 포장했는데 재료를 더 넣었어요! "포장"은 맨 마지막에 해야해요.';
             document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" onclick="retryHamburgerRound()">다시 실행하기 🔁</button>');
             return;
         }
+        if (isGrillable) {
+            runGrillAddAnimation(action.item);
+            return;
+        }
         burgerState.built.push(action.item);
+        burgerState.justAddedIdx = burgerState.built.length - 1;
         burgerState.lastMsg = action.item + '를 올렸어요!';
     } else if (action.type === 'serve') {
         burgerState.served = true;
-        burgerState.lastMsg = '🍽️ 서빙 완료!';
+        burgerState.justServed = true;
+        burgerState.lastMsg = '🍽️ 포장 완료!';
     }
-    burgerState.animIndex++;
     renderHamburger();
-    var t = setTimeout(stepHamburgerAnim, 1000);
-    activeTimers.push(t);
+    burgerState.justAddedIdx = -1;
+    burgerState.justServed = false;
+    advanceHamburgerStep();
 }
 function finishHamburgerCheck() {
     burgerState.running = false;
@@ -1099,7 +1248,7 @@ function finishHamburgerCheck() {
         msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 완벽해요! "' + burgerState.recipe.name + '" 완성!';
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextHamburgerRound()', 'retryHamburgerFresh()', 'initHamburger()'));
     } else if (!burgerState.served) {
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아직 서빙을 안 했어요! "🍽️ 서빙하기"를 프로그램 맨 끝에 추가해보세요.';
+        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아직 포장을 안 했어요! "🍽️ 포장"을 프로그램 맨 끝에 추가해보세요.';
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" onclick="retryHamburgerRound()">다시 실행하기 🔁</button>');
     } else {
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '순서가 달라요! 주문서를 다시 보고 순서를 고쳐보세요.';
@@ -1112,6 +1261,10 @@ function retryHamburgerRound() {
     burgerState.grilled = false;
     burgerState.served = false;
     burgerState.lastMsg = '';
+    burgerState.panPhase = null;
+    burgerState.panItem = null;
+    burgerState.justAddedIdx = -1;
+    burgerState.justServed = false;
     renderHamburger();
 }
 function nextHamburgerRound() { burgerRound++; generateHamburgerRound(); }
@@ -1124,6 +1277,10 @@ function retryHamburgerFresh() {
     burgerState.grilled = false;
     burgerState.served = false;
     burgerState.lastMsg = '';
+    burgerState.panPhase = null;
+    burgerState.panItem = null;
+    burgerState.justAddedIdx = -1;
+    burgerState.justServed = false;
     renderHamburger();
 }
 function renderHamburger() {
@@ -1134,9 +1291,7 @@ function renderHamburger() {
     burgerState.recipe.layers.forEach(function (l) { html += '<div class="row-box">' + l + '</div>'; });
     html += '</div>';
     html += '<div class="row-label">🍔 지금 만들어진 상태</div>';
-    html += '<div style="display:flex; flex-direction:column-reverse; align-items:center; gap:2px; min-height:' + (burgerState.recipe.layers.length * 44 + 20) + 'px; margin-bottom:0.4rem;">';
-    burgerState.built.forEach(function (l) { html += '<div class="row-box" style="font-size:1.6rem;">' + l + '</div>'; });
-    html += '</div>';
+    html += renderBurgerSceneHtml();
     if (burgerState.lastMsg && burgerState.running) {
         html += '<div class="game-sub-desc" style="text-align:center; font-weight:800; color:var(--primary);">' + burgerState.lastMsg + '</div>';
     }
