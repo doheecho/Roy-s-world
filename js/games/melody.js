@@ -216,13 +216,13 @@ function renderOctaveKeyboardRow(keys, rowLabel, clickFnName) {
     var wSlot = 0;
     keys.forEach(function (k) {
         if (k.black) return;
-        html += '<button style="position:absolute; left:' + (wSlot * whitePct) + '%; top:0; width:' + whitePct + '%; height:' + rowH + 'px; background:#ffffff; border:2px solid #1f2937; border-radius:0 0 0.3rem 0.3rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.4rem; font-weight:800; font-size:0.85rem; color:#4b5563; box-shadow:0 3px 0 #cbd5e1; z-index:1;" onclick="' + clickFnName + '(' + k.octaveOffset + ',' + k.pitchClass + ')">' + k.name + '</button>';
+        html += '<button style="position:absolute; left:' + (wSlot * whitePct) + '%; top:0; width:' + whitePct + '%; height:' + rowH + 'px; background:#ffffff; border:2px solid #1f2937; border-radius:0 0 0.3rem 0.3rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.4rem; font-weight:800; font-size:0.85rem; color:#4b5563; box-shadow:0 3px 0 #cbd5e1; z-index:1; transition:background 0.08s, transform 0.08s;" onclick="' + clickFnName + '(this,' + k.octaveOffset + ',' + k.pitchClass + ')">' + k.name + '</button>';
         wSlot++;
     });
     keys.forEach(function (k) {
         if (!k.black) return;
         var leftPct = (k.whiteSlot + 1) * whitePct - blackPct / 2;
-        html += '<button style="position:absolute; left:' + leftPct + '%; top:0; width:' + blackPct + '%; height:' + (rowH * 0.6) + 'px; background:#1f2937; border:2px solid #000; border-radius:0 0 0.25rem 0.25rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.3rem; font-weight:800; font-size:0.68rem; color:#fff; z-index:2;" onclick="' + clickFnName + '(' + k.octaveOffset + ',' + k.pitchClass + ')">' + k.name + '</button>';
+        html += '<button style="position:absolute; left:' + leftPct + '%; top:0; width:' + blackPct + '%; height:' + (rowH * 0.6) + 'px; background:#1f2937; border:2px solid #000; border-radius:0 0 0.25rem 0.25rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.3rem; font-weight:800; font-size:0.68rem; color:#fff; z-index:2; transition:background 0.08s, transform 0.08s;" onclick="' + clickFnName + '(this,' + k.octaveOffset + ',' + k.pitchClass + ')">' + k.name + '</button>';
     });
     html += '</div>';
     return html;
@@ -238,14 +238,28 @@ function renderFreePlayGame() {
     var html = '<div class="game-title-box">🎹 자유 연주 (' + n + '옥타브)</div>';
     html += '<div class="game-sub-desc">건반을 눌러 자유롭게 연주해보세요!</div>';
     for (var i = n - 1; i >= 0; i--) {
-        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(i, i === n - 1), (i + 1) + '옥타브', 'freePlayKeyClick');
+        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(i, true), (i + 1) + '옥타브', 'freePlayKeyClick');
     }
     html += '<button class="action-btn secondary" style="width:100%; margin-top:0.6rem;" onclick="renderMelodySetup()">설정으로 돌아가기 ⏮</button>';
     document.getElementById('mainArea').innerHTML = html;
 }
-function freePlayKeyClick(octaveOffset, pitchClass) {
+// 건반을 누르면 색을 바꾸고 살짝 눌리는 효과를 줌 (흰/검 건반 색 자동 구분)
+function flashKeyPress(btn) {
+    if (!btn) return;
+    var isBlackKey = btn.style.background.indexOf('31, 41, 55') > -1 || btn.style.background === '#1f2937' || btn.style.background === 'rgb(31, 41, 55)';
+    var origBg = btn.style.background;
+    btn.style.background = isBlackKey ? '#eab308' : '#fde68a';
+    btn.style.transform = 'translateY(2px)';
+    var t = setTimeout(function () {
+        btn.style.background = origBg;
+        btn.style.transform = '';
+    }, 150);
+    activeTimers.push(t);
+}
+function freePlayKeyClick(btn, octaveOffset, pitchClass) {
     playPianoTone(getMelodyNoteFreq(pitchClass, octaveOffset));
     vibrateShort();
+    flashKeyPress(btn);
 }
 
 // ===================== 노래 연습 세션 =====================
@@ -421,7 +435,7 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
         if (d.dot) {
             html += '<circle cx="' + (cx + 12) + '" cy="' + (cy - 2) + '" r="1.6" fill="' + fill + '" />';
         }
-        html += '<text x="' + cx + '" y="' + (staffTop + 70) + '" font-size="12" fill="' + (isDemoActive ? '#a16207' : '#6b7280') + '" font-weight="' + (isDemoActive ? '800' : '400') + '" text-anchor="middle">' + meta.name + '</text>';
+        html += '<text x="' + cx + '" y="' + (staffTop + maxY + 14) + '" font-size="12" fill="' + (isDemoActive ? '#a16207' : '#6b7280') + '" font-weight="' + (isDemoActive ? '800' : '400') + '" text-anchor="middle">' + meta.name + '</text>';
     });
     html += '</svg></div>';
     return html;
@@ -429,11 +443,10 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
 
 function renderMelodyKeyboard() {
     var offsets = getSongOctaveOffsets(melodyState.song);
-    var top = offsets[0];
     var html = '';
     offsets.forEach(function (off) {
         var label = offsets.length > 1 ? (off === 0 ? '기본 옥타브' : (off > 0 ? '+1옥타브 (높은음)' : '-1옥타브 (낮은음)')) : null;
-        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(off, off === top), label, 'melodyKeyClick');
+        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(off, true), label, 'melodyKeyClick');
     });
     return html;
 }
@@ -492,10 +505,11 @@ function playMelodyEventsDemo(events, onComplete) {
     activeTimers.push(t0);
 }
 
-function melodyKeyClick(octaveOffset, pitchClass) {
+function melodyKeyClick(btn, octaveOffset, pitchClass) {
     if (melodyState.finished) return;
     playPianoTone(getMelodyNoteFreq(pitchClass, octaveOffset));
     vibrateShort();
+    flashKeyPress(btn);
     var noteEvents = melodyState.song.noteEvents;
     var expectedEvent = noteEvents[melodyState.pos];
     if (pitchClass === expectedEvent.pitchClass && octaveOffset === expectedEvent.octaveOffset) melodyState.hits++;
