@@ -584,16 +584,17 @@ function playMelodyTone(freq, ms) {
     var ctx = getPianoAudioCtx();
     if (!ctx) return;
     var dur = ms / 1000;
-    var peak = 0.26;
-    var attack = Math.min(0.012, dur * 0.2); // 짧은 어택(클릭 노이즈 방지)
-    var release = Math.min(0.09, dur * 0.4); // 끝부분만 짧게 릴리즈
-    var sustainEnd = Math.max(attack, dur - release);
     var now = ctx.currentTime;
+    var peak = 0.26;
+    // 건반을 직접 눌렀을 때(playPianoTone)와 동일한 모양의 엔벨로프: 빠른 어택 -> 초반에 한 번 꺾이며 감쇠 -> 자연스러운 여운
+    // (음 길이에 비례해서 스케일링하므로 짧은 음도 뚝 끊기지 않고, 길이와 무관하게 같은 "피아노 소리"로 들림)
+    var attack = Math.min(0.01, dur * 0.15);
+    var midPoint = attack + (dur - attack) * 0.35;
     var masterGain = ctx.createGain();
     masterGain.gain.setValueAtTime(0.0001, now);
     masterGain.gain.exponentialRampToValueAtTime(peak, now + attack);
-    masterGain.gain.setValueAtTime(peak, now + sustainEnd); // 음 길이 대부분을 일정한 크기로 유지 -> 눌린 느낌
-    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    masterGain.gain.exponentialRampToValueAtTime(peak * 0.4, now + midPoint); // 피아노 특유의 초반 감쇠
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + dur); // 나머지 구간 자연스럽게 여운
     masterGain.connect(ctx.destination);
     MELODY_HARMONICS.forEach(function (h) {
         var osc = ctx.createOscillator();
