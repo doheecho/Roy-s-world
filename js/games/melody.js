@@ -457,7 +457,10 @@ function renderMelodyStaffSvg(events, unitPx, song, showTimeSig) {
     for (var mb = firstBoundary; mb <= unitOffset + widthUnits; mb += song.measureUnits) {
         if (mb >= unitOffset) {
             var barX = leftPad + (mb - unitOffset) * unitPx;
-            html += '<line x1="' + barX + '" y1="' + staffTop + '" x2="' + barX + '" y2="' + (staffTop + 56) + '" stroke="#1f2937" stroke-width="1.2" />';
+            var isPickupBoundary = (anacrusis > 0 && mb === anacrusis);
+            var barStroke = isPickupBoundary ? '#9ca3af' : '#1f2937';
+            var barDash = isPickupBoundary ? ' stroke-dasharray="4,3"' : '';
+            html += '<line x1="' + barX + '" y1="' + staffTop + '" x2="' + barX + '" y2="' + (staffTop + 56) + '" stroke="' + barStroke + '" stroke-width="1.2"' + barDash + ' />';
         }
     }
     html += '<text x="6" y="' + (staffTop + 52) + '" font-size="46" fill="#1f2937">𝄞</text>';
@@ -537,9 +540,10 @@ function renderMelodyTopHtml() {
     } else if (isFull) {
         html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="listenFullDemo()">🔊 다시 듣기</button>';
     } else {
-        html += '<div class="options-grid" style="margin-bottom:0.8rem;">';
+        html += '<div class="options-grid" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:0.8rem;">';
         html += '<button class="action-btn secondary" onclick="listenSegmentDemo()">🔊 구간 듣기</button>';
         html += '<button class="action-btn secondary" onclick="listenFullDemo()">🎬 전체 듣기</button>';
+        html += '<button class="action-btn secondary" onclick="renderMelodySetup()">⏮ 처음으로</button>';
         html += '</div>';
     }
     return html;
