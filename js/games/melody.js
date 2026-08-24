@@ -1,41 +1,58 @@
 // ===================== 기억력/연주: 멜로디 연주하기 (오선보 + 건반) =====================
-// 이 파일은 memory.js 의 buildPianoKeys()/playPianoTone()/getPianoAudioCtx()/PIANO_WHITE_NOTES 등을 재사용합니다.
-// (도~도 한 옥타브, 반음 포함 13건반: buildPianoKeys('mid') 결과와 인덱스가 1:1로 대응)
+// 이 파일은 memory.js 의 playPianoTone()/getPianoAudioCtx()/PIANO_WHITE_FREQ_BASE/PIANO_SHARP_FREQ_BASE 를 재사용합니다.
 //
 // ---- 노래 데이터 표기법 ----
 // 기본 단위는 4분음표입니다.
 //   도레미파솔라시      : 글자 하나 = 4분음표 1개 (기본, 괄호 없으면 무조건 4분음표)
-//   도(8) 도(16) 도(2) 도(1) : 괄호 안 숫자 = 음표의 "분모" (8=8분음표, 16=16분음표, 2=2분음표, 1=온음표)
+//   도(8) 도(16) 도(2) 도(1) : 괄호 안 숫자 = 음표의 "분모" (8=8분,16=16분,2=2분,1=온음표)
+//   u도 u레 ...        : 한 옥타브 위 (뒤에 (8) 등 길이 지정 가능, 예: u도(8))
+//   d도 d레 ...        : 한 옥타브 아래
 //   -                   : 4분쉼표 1개 (기본). -(8) 처럼 뒤에 숫자를 붙이면 그 길이만큼 쉼
 //   ~                   : 바로 앞 음을 16분음표 1개 분량 더 홀드(연장)
-//   도(높은음)           : 옥타브 위 도 (뒤에 (8) 등을 추가로 붙여 길이 지정 가능)
 // 연속된 쉼표(-)는 자동으로 합쳐져서 알맞은 쉼표 기호로 그려집니다.
 // 새 노래를 추가하려면 MELODY_SONGS 배열에 buildMelodySong(id, 이름, 패턴문자열)만 추가하면 됩니다.
 
 // 내부적으로는 16분음표 1개 = 1유닛(최소단위)로 계산합니다.
 // 4분음표=4유닛, 8분음표=2유닛, 2분음표=8유닛, 온음표=16유닛, 16분음표=1유닛
 var MELODY_DEFAULT_UNITS = 4; // 괄호 없을 때 기본값 = 4분음표
-var SEGMENT_UNITS = 64; // 구간(다시듣기 단위) = 4마디(4/4, 16분음표 64개)
+var MELODY_MEASURE_UNITS = 16; // 한 칸(마디, 4/4 기준 4분음표 4개) = 16유닛
+var SEGMENT_UNITS = MELODY_MEASURE_UNITS * 2; // 한 번에 2칸(마디)씩 듣고 따라하기
 var MELODY_UNIT_MS = 120; // 16분음표 1유닛의 재생 길이(ms) - 4분음표=480ms 기준
 var MELODY_FIRST_NOTE_DELAY_MS = 1000; // 오디오 컨텍스트가 완전히 켜질 시간을 주기 위한 첫 음 지연
 
-// 인덱스(0~12) = buildPianoKeys('mid') 의 keys 배열 인덱스와 동일
-// 0:도 1:도# 2:레 3:레# 4:미 5:파 6:파# 7:솔 8:솔# 9:라 10:라# 11:시 12:도(높은)
-var MELODY_NOTE_META = [
-    { name: '도', y: 70, ledger: true, sharp: false },
-    { name: '도#', y: 70, ledger: true, sharp: true },
-    { name: '레', y: 63, ledger: false, sharp: false },
-    { name: '레#', y: 63, ledger: false, sharp: true },
-    { name: '미', y: 56, ledger: false, sharp: false },
-    { name: '파', y: 49, ledger: false, sharp: false },
-    { name: '파#', y: 49, ledger: false, sharp: true },
-    { name: '솔', y: 42, ledger: false, sharp: false },
-    { name: '솔#', y: 42, ledger: false, sharp: true },
-    { name: '라', y: 35, ledger: false, sharp: false },
-    { name: '라#', y: 35, ledger: false, sharp: true },
-    { name: '시', y: 28, ledger: false, sharp: false },
-    { name: '도', y: 21, ledger: false, sharp: false }
+// 음이름(자연음 7개) - 크로매틱 인덱스(0~11)에서 sharp:false 인 자리와 대응
+var MELODY_PITCH_CLASSES = [
+    { name: '도', sharp: false }, { name: '도#', sharp: true },
+    { name: '레', sharp: false }, { name: '레#', sharp: true },
+    { name: '미', sharp: false },
+    { name: '파', sharp: false }, { name: '파#', sharp: true },
+    { name: '솔', sharp: false }, { name: '솔#', sharp: true },
+    { name: '라', sharp: false }, { name: '라#', sharp: true },
+    { name: '시', sharp: false }
 ];
+var MELODY_WHITE_NAMES = ['도', '레', '미', '파', '솔', '라', '시'];
+var MELODY_PC_TO_DIA = { 0: 0, 2: 1, 4: 2, 5: 3, 7: 4, 9: 5, 11: 6 }; // pitchClass -> 도레미파솔라시 순번(옥타브 내 계이름 순서)
+
+// 음/쉼표의 오선 상 세로 위치(계이름 한 칸 = 7). 옥타브오프셋까지 반영해 일반화된 y값을 계산.
+function melodyStaffY(pitchClass, octaveOffset) {
+    var dia = MELODY_PC_TO_DIA[pitchClass - (MELODY_PITCH_CLASSES[pitchClass].sharp ? 1 : 0)];
+    var step = octaveOffset * 7 + dia;
+    return 70 - step * 7;
+}
+function getMelodyNoteFreq(pitchClass, octaveOffset) {
+    var meta = MELODY_PITCH_CLASSES[pitchClass];
+    var dia = MELODY_PC_TO_DIA[pitchClass - (meta.sharp ? 1 : 0)];
+    var baseName = MELODY_WHITE_NAMES[dia];
+    var mult = Math.pow(2, octaveOffset);
+    return meta.sharp ? PIANO_SHARP_FREQ_BASE[baseName] * mult : PIANO_WHITE_FREQ_BASE[baseName] * mult;
+}
+// y가 오선(0~56) 밖일 때 필요한 덧줄 y좌표들을 계산
+function getLedgerLineYs(y) {
+    var ys = [];
+    if (y < 0) { for (var ly = -14; ly >= y; ly -= 14) { ys.push(ly); } }
+    else if (y > 56) { for (var ly2 = 70; ly2 <= y; ly2 += 14) { ys.push(ly2); } }
+    return ys;
+}
 
 // ---- 패턴 문자열 파서 ----
 function melodyMatchDurationParen(s, i) {
@@ -45,7 +62,7 @@ function melodyMatchDurationParen(s, i) {
     if (numStr === '' || s.charAt(j) !== ')') return null;
     var denom = parseInt(numStr, 10);
     if (!denom || denom <= 0) return null;
-    var units = Math.round(16 / denom); // 16분음표=1유닛 기준, N분음표 = 16/N 유닛
+    var units = Math.round(16 / denom); // 16분음표=1유닛 기준
     return { units: units, nextIndex: j + 1 };
 }
 function parseMelodyPattern(str) {
@@ -60,15 +77,18 @@ function parseMelodyPattern(str) {
             }
             i++; continue;
         }
-        var pitchIdx = null, consumed = 0;
-        if (str.substr(i, 6) === '도(높은음)') { pitchIdx = 12; consumed = 6; }
-        else if (noteMap.hasOwnProperty(c)) { pitchIdx = noteMap[c]; consumed = 1; }
-        if (pitchIdx !== null) {
-            i += consumed;
+        var octaveOffset = 0;
+        var checkIdx = i;
+        if (c === 'u') { octaveOffset = 1; checkIdx = i + 1; }
+        else if (c === 'd') { octaveOffset = -1; checkIdx = i + 1; }
+        var c2 = str.charAt(checkIdx);
+        if (noteMap.hasOwnProperty(c2)) {
+            var pitchClass = noteMap[c2];
+            i = checkIdx + 1;
             var dur = MELODY_DEFAULT_UNITS;
             var dm = melodyMatchDurationParen(str, i);
             if (dm) { dur = dm.units; i = dm.nextIndex; }
-            events.push({ type: 'note', idx: pitchIdx, units: dur });
+            events.push({ type: 'note', pitchClass: pitchClass, octaveOffset: octaveOffset, units: dur });
             continue;
         }
         if (c === '-') {
@@ -99,16 +119,21 @@ function buildMelodySong(id, name, pattern) {
     var parsed = parseMelodyPattern(pattern);
     return { id: id, name: name, events: parsed.events, noteEvents: parsed.noteEvents, totalUnits: parsed.totalUnits };
 }
+function getSongOctaveOffsets(song) {
+    var set = { 0: true };
+    song.noteEvents.forEach(function (e) { set[e.octaveOffset] = true; });
+    var offsets = Object.keys(set).map(function (k) { return parseInt(k, 10); });
+    offsets.sort(function (a, b) { return b - a; }); // 높은 옥타브가 위로
+    return offsets;
+}
 
 var MELODY_SONGS = [
     buildMelodySong('twinkle', '작은별', '도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)'),
     buildMelodySong('butterfly', '나비야', '솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)레(4)미(4)파(4)솔(4)솔(4)솔(4)-(4)솔(4)미(4)미(4)미(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)-(4)레(4)레(4)레(4)레(4)레(4)미(4)파(4)-(4)미(4)미(4)미(4)미(4)미(4)파(4)솔(4)-(4)솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)'),
     buildMelodySong('schoolbell', '학교종', '솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)솔(4)미(4)미(4)레(4)-(4)-(4)-(4)솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)미(4)레(4)미(4)도(4)-(4)-(4)'),
-    buildMelodySong('bear', '곰세마리', '도(8)-(8)도(8)도(8)도(8)-(8)도(8)-(8)미(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)솔(8)미(8)-(8)솔(8)솔(8)미(8)-(8)도(8)-(8)도(8)-(8)도(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)솔(8)-(8)솔(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)솔(8)-(8)솔(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)솔(8)라(8)솔(8)-(8)-(8)-(8)도(8)-(8)솔(8)-(8)도(8)-(8)솔(8)-(8)미(8)-(8)레(8)-(8)도(8)-(8)-(8)-(8)'),
-    buildMelodySong('shoes', '새신을신고', '솔미(8)레(8)도도도도(8)시(8)도(8)레(8)미미솔미(8)라(8)솔(8)파(8)미(8)레(8)미레도(4)')
+    buildMelodySong('bear', '곰세마리', '도(8)-(8)도(8)도(8)도(8)-(8)도(8)-(8)미(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)솔(8)미(8)-(8)솔(8)솔(8)미(8)-(8)도(8)-(8)도(8)-(8)도(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)솔(8)-(8)솔(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)솔(8)-(8)솔(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)u솔(8)라(8)솔(8)-(8)-(8)-(8)u도(8)-(8)솔(8)-(8)u도(8)-(8)솔(8)-(8)미(8)-(8)레(8)-(8)도(8)-(8)-(8)-(8)')
 ];
 
-var melodyKeys = null;
 var melodySettings = { songId: 'twinkle' };
 var melodyState = {};
 var melodyMode = 'song'; // 'song' | 'free'
@@ -152,71 +177,6 @@ function renderFreePlaySetupInner() {
     return html;
 }
 function setFreePlayOctaves(n) { freePlaySettings.octaves = n; renderMelodySetup(); }
-
-// ===================== 자유 연주 (옥타브 최대 3개, 세로로 쌓아서 표시) =====================
-function buildFreePlayOctaveKeys(octIndex) {
-    var mult = Math.pow(2, octIndex);
-    var keys = [];
-    var whiteSlot = 0;
-    PIANO_WHITE_NOTES.forEach(function (n) {
-        keys.push({ note: n, freq: PIANO_WHITE_FREQ_BASE[n] * mult, black: false, whiteSlot: whiteSlot });
-        whiteSlot++;
-        if (PIANO_SHARP_FREQ_BASE[n]) {
-            keys.push({ note: n + '#', freq: PIANO_SHARP_FREQ_BASE[n] * mult, black: true, whiteSlot: whiteSlot - 1 });
-        }
-    });
-    return keys;
-}
-
-function startFreePlaySession() {
-    var n = freePlaySettings.octaves;
-    var rows = [];
-    for (var i = n - 1; i >= 0; i--) { rows.push({ octIndex: i, keys: buildFreePlayOctaveKeys(i) }); }
-    freePlayState = { rows: rows, octaves: n };
-    renderFreePlayGame();
-}
-
-function renderFreePlayOctaveRow(keys, octIndex) {
-    var whiteCount = keys.filter(function (k) { return !k.black; }).length; // 7 (도~시)
-    var whitePct = 100 / whiteCount;
-    var blackPct = whitePct * 0.62;
-    var rowH = 110;
-    var html = '<div style="position:relative; width:100%; height:' + rowH + 'px; margin-bottom:0.5rem;">';
-    var wSlot = 0;
-    keys.forEach(function (k, idx) {
-        if (k.black) return;
-        html += '<button style="position:absolute; left:' + (wSlot * whitePct) + '%; top:0; width:' + whitePct + '%; height:' + rowH + 'px; background:#ffffff; border:2px solid #1f2937; border-radius:0 0 0.3rem 0.3rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.4rem; font-weight:800; font-size:0.85rem; color:#4b5563; box-shadow:0 3px 0 #cbd5e1; z-index:1;" onclick="freePlayKeyClick(' + octIndex + ',' + idx + ')">' + k.note + '</button>';
-        wSlot++;
-    });
-    keys.forEach(function (k, idx) {
-        if (!k.black) return;
-        var leftPct = (k.whiteSlot + 1) * whitePct - blackPct / 2;
-        html += '<button style="position:absolute; left:' + leftPct + '%; top:0; width:' + blackPct + '%; height:' + (rowH * 0.6) + 'px; background:#1f2937; border:2px solid #000; border-radius:0 0 0.25rem 0.25rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.3rem; font-weight:800; font-size:0.68rem; color:#fff; z-index:2;" onclick="freePlayKeyClick(' + octIndex + ',' + idx + ')">' + k.note + '</button>';
-    });
-    html += '</div>';
-    return html;
-}
-
-function renderFreePlayGame() {
-    var html = '<div class="game-title-box">🎹 자유 연주 (' + freePlayState.octaves + '옥타브)</div>';
-    html += '<div class="game-sub-desc">건반을 눌러 자유롭게 연주해보세요!</div>';
-    freePlayState.rows.forEach(function (row) {
-        html += '<div style="font-size:0.75rem; color:#6b7280; margin:0.3rem 0 0.15rem 0.2rem;">' + (row.octIndex + 1) + '옥타브</div>';
-        html += renderFreePlayOctaveRow(row.keys, row.octIndex);
-    });
-    html += '<button class="action-btn secondary" style="width:100%; margin-top:0.6rem;" onclick="renderMelodySetup()">설정으로 돌아가기 ⏮</button>';
-    document.getElementById('mainArea').innerHTML = html;
-}
-
-function freePlayKeyClick(octIndex, idx) {
-    var row = null;
-    freePlayState.rows.forEach(function (r) { if (r.octIndex === octIndex) row = r; });
-    if (!row) return;
-    var key = row.keys[idx];
-    playPianoTone(key.freq);
-    vibrateShort();
-}
-
 function setMelodySong(id) { melodySettings.songId = id; renderMelodySetup(); }
 function getMelodySong() {
     var found = null;
@@ -224,32 +184,112 @@ function getMelodySong() {
     return found || MELODY_SONGS[0];
 }
 
+// ===================== 건반 (도~시 12건반, 옥타브별로 세로로 쌓임) - 노래연습/자유연주 공용 =====================
+function buildMelodyKeyboardRow(octaveOffset) {
+    var keys = [];
+    var whiteSlot = 0;
+    for (var pc = 0; pc < 12; pc++) {
+        var meta = MELODY_PITCH_CLASSES[pc];
+        var freq = getMelodyNoteFreq(pc, octaveOffset);
+        if (!meta.sharp) {
+            keys.push({ pitchClass: pc, name: meta.name, freq: freq, black: false, whiteSlot: whiteSlot });
+            whiteSlot++;
+        } else {
+            keys.push({ pitchClass: pc, name: meta.name, freq: freq, black: true, whiteSlot: whiteSlot - 1 });
+        }
+    }
+    return keys;
+}
+function renderOctaveKeyboardRow(keys, rowLabel, clickFnName, extraArg) {
+    var whitePct = 100 / 7;
+    var blackPct = whitePct * 0.62;
+    var rowH = 110;
+    var html = '';
+    if (rowLabel) { html += '<div style="font-size:0.75rem; color:#6b7280; margin:0.3rem 0 0.15rem 0.2rem;">' + rowLabel + '</div>'; }
+    html += '<div style="position:relative; width:100%; height:' + rowH + 'px; margin-bottom:0.5rem;">';
+    var wSlot = 0;
+    keys.forEach(function (k, idx) {
+        if (k.black) return;
+        html += '<button style="position:absolute; left:' + (wSlot * whitePct) + '%; top:0; width:' + whitePct + '%; height:' + rowH + 'px; background:#ffffff; border:2px solid #1f2937; border-radius:0 0 0.3rem 0.3rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.4rem; font-weight:800; font-size:0.85rem; color:#4b5563; box-shadow:0 3px 0 #cbd5e1; z-index:1;" onclick="' + clickFnName + '(' + extraArg + ',' + idx + ')">' + k.name + '</button>';
+        wSlot++;
+    });
+    keys.forEach(function (k, idx) {
+        if (!k.black) return;
+        var leftPct = (k.whiteSlot + 1) * whitePct - blackPct / 2;
+        html += '<button style="position:absolute; left:' + leftPct + '%; top:0; width:' + blackPct + '%; height:' + (rowH * 0.6) + 'px; background:#1f2937; border:2px solid #000; border-radius:0 0 0.25rem 0.25rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.3rem; font-weight:800; font-size:0.68rem; color:#fff; z-index:2;" onclick="' + clickFnName + '(' + extraArg + ',' + idx + ')">' + k.name + '</button>';
+    });
+    html += '</div>';
+    return html;
+}
+
+// ===================== 자유 연주 (옥타브 최대 3개, 세로로 쌓아서 표시) =====================
+function startFreePlaySession() {
+    freePlayState = { octaves: freePlaySettings.octaves };
+    renderFreePlayGame();
+}
+function renderFreePlayGame() {
+    var n = freePlayState.octaves;
+    var html = '<div class="game-title-box">🎹 자유 연주 (' + n + '옥타브)</div>';
+    html += '<div class="game-sub-desc">건반을 눌러 자유롭게 연주해보세요!</div>';
+    for (var i = n - 1; i >= 0; i--) {
+        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(i), (i + 1) + '옥타브', 'freePlayKeyClick', i);
+    }
+    html += '<button class="action-btn secondary" style="width:100%; margin-top:0.6rem;" onclick="renderMelodySetup()">설정으로 돌아가기 ⏮</button>';
+    document.getElementById('mainArea').innerHTML = html;
+}
+function freePlayKeyClick(octaveOffset, pitchClass) {
+    playPianoTone(getMelodyNoteFreq(pitchClass, octaveOffset));
+    vibrateShort();
+}
+
+// ===================== 노래 연습 세션 =====================
 function startMelodySession(fullMode) {
-    if (!melodyKeys) melodyKeys = buildPianoKeys('mid');
     var song = getMelodySong();
     melodyState = {
-        song: song, keys: melodyKeys, pos: 0, hits: 0,
+        song: song, pos: 0, hits: 0,
         mode: fullMode ? 'full' : 'segment',
-        segIndex: 0, finished: false
+        segIndex: 0, finished: false, isPlaying: false
     };
     renderMelodyGame();
-    if (melodyState.mode === 'segment') { playMelodySegmentDemo(); }
+    startMelodyPlayback();
 }
 function retryMelodySong() { startMelodySession(melodyState.mode === 'full'); }
 
-// ---- 현재 보여줄 이벤트 범위 계산 ----
 function getVisibleEvents() {
     if (melodyState.mode === 'full') return melodyState.song.events;
     return melodyState.song.events.filter(function (e) { return e.segIndex === melodyState.segIndex; });
 }
 function getUnitOffset() { return melodyState.mode === 'full' ? 0 : melodyState.segIndex * SEGMENT_UNITS; }
 
+// ---- 재생 토글 (다시 듣기 <-> 멈추기) ----
+function updateMelodyPlaybackButton() {
+    var btn = document.getElementById('melodyPlaybackBtn');
+    if (!btn) return;
+    btn.textContent = melodyState.isPlaying ? '⏸ 멈추기' : '🔊 다시 듣기';
+}
+function toggleMelodyPlayback() {
+    if (melodyState.isPlaying) { stopMelodyPlayback(); } else { startMelodyPlayback(); }
+}
+function stopMelodyPlayback() {
+    clearAllGameTimers();
+    melodyState.isPlaying = false;
+    updateMelodyPlaybackButton();
+}
+function startMelodyPlayback() {
+    melodyState.isPlaying = true;
+    updateMelodyPlaybackButton();
+    playMelodyEventsDemo(getVisibleEvents(), function () {
+        melodyState.isPlaying = false;
+        updateMelodyPlaybackButton();
+    });
+}
+
 // ---- 오선보 렌더링: 화면 폭에 따라 한 줄(태블릿) / 두 줄(모바일)로 자동 분배 ----
 function isMelodyWideScreen() { return window.innerWidth >= 700; }
 
 function renderMelodyStaffLines(events, unitOffset) {
-    var lineUnits = isMelodyWideScreen() ? 64 : 32; // 4마디 : 2마디
-    var unitPx = isMelodyWideScreen() ? 12 : 9;
+    var lineUnits = isMelodyWideScreen() ? SEGMENT_UNITS : SEGMENT_UNITS / 2; // 넓으면 2칸 한줄, 좁으면 1칸씩 두줄
+    var unitPx = isMelodyWideScreen() ? 22 : 18;
     var groups = {};
     events.forEach(function (ev) {
         var rel = ev.startUnit - unitOffset;
@@ -267,8 +307,7 @@ function renderMelodyStaffLines(events, unitOffset) {
     return html;
 }
 
-// 음표 길이(유닛, 16분음표=1)에 따른 그리기 스타일 결정
-// 1=16분, 2=8분, 3=점8분, 4=4분(기본), 6=점4분, 8=2분, 12=점2분, 16+=온음표
+// 음표 길이(유닛, 16분음표=1)에 따른 그리기 스타일: 1=16분,2=8분,3=점8분,4=4분(기본),6=점4분,8=2분,12=점2분,16+=온음표
 function classifyMelodyDuration(u) {
     if (u <= 1) return { hollow: false, stem: true, flags: 2, dot: false };
     if (u === 2) return { hollow: false, stem: true, flags: 1, dot: false };
@@ -316,9 +355,17 @@ function renderMelodyRestGlyph(cx, staffTop, units, fill) {
 
 function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
     var leftPad = 46;
-    var staffTop = 15;
+    var minY = 0, maxY = 56;
+    events.forEach(function (ev) {
+        if (ev.type === 'rest') return;
+        var y = melodyStaffY(ev.pitchClass, ev.octaveOffset);
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+    });
+    var staffTop = Math.max(0, -minY) + 40;
+    var bottomMargin = Math.max(0, maxY - 56) + 30;
+    var svgHeight = staffTop + 56 + bottomMargin;
     var svgWidth = leftPad + widthUnits * unitPx + 24;
-    var svgHeight = 100;
     var html = '<div style="background:#fff; border:2px solid #1f2937; border-radius:0.6rem; padding:0.6rem 0.4rem; margin-bottom:0.5rem; overflow-x:auto;">';
     html += '<svg width="' + svgWidth + '" height="' + svgHeight + '" viewBox="0 0 ' + svgWidth + ' ' + svgHeight + '" style="display:block; max-width:100%;">';
     [0, 14, 28, 42, 56].forEach(function (ly) {
@@ -332,15 +379,16 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
             html += renderMelodyRestGlyph(cx, staffTop, ev.units, '#9ca3af');
             return;
         }
-        var meta = MELODY_NOTE_META[ev.idx];
-        var cy = staffTop + meta.y;
+        var meta = MELODY_PITCH_CLASSES[ev.pitchClass];
+        var y = melodyStaffY(ev.pitchClass, ev.octaveOffset);
+        var cy = staffTop + y;
         var isCurrent = ev.noteIndex === melodyState.pos;
         var isPast = ev.noteIndex < melodyState.pos;
         var fill = isCurrent ? '#f59e0b' : (isPast ? '#9ca3af' : '#1f2937');
         var d = classifyMelodyDuration(ev.units);
-        if (meta.ledger) {
-            html += '<line x1="' + (cx - 14) + '" y1="' + cy + '" x2="' + (cx + 14) + '" y2="' + cy + '" stroke="#1f2937" stroke-width="1.5" />';
-        }
+        getLedgerLineYs(y).forEach(function (ly) {
+            html += '<line x1="' + (cx - 14) + '" y1="' + (staffTop + ly) + '" x2="' + (cx + 14) + '" y2="' + (staffTop + ly) + '" stroke="#1f2937" stroke-width="1.5" />';
+        });
         if (meta.sharp) {
             html += '<text x="' + (cx - 20) + '" y="' + (cy + 6) + '" font-size="16" fill="' + fill + '">♯</text>';
         }
@@ -367,25 +415,13 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
     return html;
 }
 
-// ---- 건반 렌더링 (도~도, 반음 포함 13건반, 항상 노출) ----
 function renderMelodyKeyboard() {
-    var keys = melodyState.keys;
-    var whiteCount = keys.filter(function (k) { return !k.black; }).length;
-    var whitePct = 100 / whiteCount;
-    var blackPct = whitePct * 0.62;
-    var html = '<div style="position:relative; width:100%; height:150px; margin-bottom:0.6rem;">';
-    var wSlot = 0;
-    keys.forEach(function (k, idx) {
-        if (k.black) return;
-        html += '<button style="position:absolute; left:' + (wSlot * whitePct) + '%; top:0; width:' + whitePct + '%; height:150px; background:#ffffff; border:2px solid #1f2937; border-radius:0 0 0.3rem 0.3rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.5rem; font-weight:800; font-size:1rem; color:#4b5563; box-shadow:0 3px 0 #cbd5e1; z-index:1;" onclick="melodyKeyClick(' + idx + ')">' + k.note + '</button>';
-        wSlot++;
+    var offsets = getSongOctaveOffsets(melodyState.song);
+    var html = '';
+    offsets.forEach(function (off) {
+        var label = offsets.length > 1 ? (off === 0 ? '기본 옥타브' : (off > 0 ? '+1옥타브 (높은음)' : '-1옥타브 (낮은음)')) : null;
+        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(off), label, 'melodyKeyClick', off);
     });
-    keys.forEach(function (k, idx) {
-        if (!k.black) return;
-        var leftPct = (k.whiteSlot + 1) * whitePct - blackPct / 2;
-        html += '<button style="position:absolute; left:' + leftPct + '%; top:0; width:' + blackPct + '%; height:60%; background:#1f2937; border:2px solid #000; border-radius:0 0 0.25rem 0.25rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.4rem; font-weight:800; font-size:0.78rem; color:#fff; z-index:2;" onclick="melodyKeyClick(' + idx + ')">' + k.note + '</button>';
-    });
-    html += '</div>';
     return html;
 }
 
@@ -397,7 +433,7 @@ function renderMelodyGame() {
     html += '<div class="game-sub-desc">주황색 음표를 순서대로 건반으로 눌러보세요!</div>';
     html += '<div class="status-row"><div>' + melodyState.pos + ' / ' + totalNotes + '음 연주함</div><div>맞은 음: ' + melodyState.hits + '</div></div>';
     html += renderMelodyStaffLines(getVisibleEvents(), getUnitOffset());
-    html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="playMelodySegmentDemo()">🔊 ' + (isFull ? '전체' : '이 구간') + ' 다시 듣기</button>';
+    html += '<button id="melodyPlaybackBtn" class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="toggleMelodyPlayback()">' + (melodyState.isPlaying ? '⏸ 멈추기' : '🔊 다시 듣기') + '</button>';
     html += renderMelodyKeyboard();
     document.getElementById('mainArea').innerHTML = html;
 }
@@ -418,36 +454,33 @@ function playMelodyTone(freq, ms) {
     osc.start();
     osc.stop(ctx.currentTime + dur);
 }
-function playMelodyEventsDemo(events) {
+function playMelodyEventsDemo(events, onComplete) {
     var i = 0;
     function step() {
-        if (i >= events.length) return;
+        if (i >= events.length) { if (onComplete) onComplete(); return; }
         var ev = events[i];
         var durMs = ev.units * MELODY_UNIT_MS;
         if (ev.type === 'note') {
-            var key = melodyState.keys[ev.idx];
-            playMelodyTone(key.freq, Math.min(durMs * 0.92, 1600));
+            playMelodyTone(getMelodyNoteFreq(ev.pitchClass, ev.octaveOffset), Math.min(durMs * 0.92, 1600));
         }
         var t = setTimeout(function () { i++; step(); }, durMs);
         activeTimers.push(t);
     }
-    // 오디오 컨텍스트가 완전히 켜질 시간을 주기 위해 첫 음은 1초 뒤에 시작
     var t0 = setTimeout(step, MELODY_FIRST_NOTE_DELAY_MS);
     activeTimers.push(t0);
 }
-function playMelodySegmentDemo() { playMelodyEventsDemo(getVisibleEvents()); }
 
-function melodyKeyClick(idx) {
+function melodyKeyClick(octaveOffset, pitchClass) {
     if (melodyState.finished) return;
-    var key = melodyState.keys[idx];
-    playPianoTone(key.freq);
+    playPianoTone(getMelodyNoteFreq(pitchClass, octaveOffset));
     vibrateShort();
     var noteEvents = melodyState.song.noteEvents;
     var expectedEvent = noteEvents[melodyState.pos];
-    if (idx === expectedEvent.idx) melodyState.hits++;
+    if (pitchClass === expectedEvent.pitchClass && octaveOffset === expectedEvent.octaveOffset) melodyState.hits++;
     melodyState.pos++;
     if (melodyState.pos >= noteEvents.length) {
         melodyState.finished = true;
+        stopMelodyPlayback();
         renderMelodyResult();
         return;
     }
@@ -456,7 +489,7 @@ function melodyKeyClick(idx) {
         if (nextSeg !== melodyState.segIndex) {
             melodyState.segIndex = nextSeg;
             renderMelodyGame();
-            playMelodySegmentDemo();
+            startMelodyPlayback();
             return;
         }
     }
