@@ -123,11 +123,11 @@ function getSongOctaveOffsets(song) {
 }
 function melodySegIndexOf(ev) { return Math.floor(ev.startUnit / melodyState.segmentUnits); }
 
-var MELODY_SONGS = [    buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
-    buildMelodySong('butterfly', '나비야', '솔미미-파레레-도레미파솔솔솔-솔미미미파레레-도미솔미레미도-레레레레레미파-미미미미미파솔-솔미미미파레레레도미솔미레미도-'),
-    buildMelodySong('schoolbell', '학교종', '솔솔라라솔솔미-솔솔미미레---솔솔라라솔솔미-솔미레미도---'),
-    buildMelodySong('bear', '곰세마리', '도도(8)도(8)도도미솔미도솔(8)솔(8)미솔(8)솔(8)미도도도-솔솔미도솔솔솔-솔솔미도솔솔솔-솔솔미도솔(8)솔(8)솔(8)라(8)솔-도솔도솔미레도-'),
-    buildMelodySong('shoes', '새신을신고', '솔미(8)레(8)도도도(8)d시(8)도(8)레(8)미미솔미(8)라(8)솔(8)파(8)미(8)레(8)미레도(4)')
+var MELODY_SONGS = [
+    buildMelodySong('twinkle', '작은별', '도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)'),
+    buildMelodySong('butterfly', '나비야', '솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)레(4)미(4)파(4)솔(4)솔(4)솔(4)-(4)솔(4)미(4)미(4)미(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)-(4)레(4)레(4)레(4)레(4)레(4)미(4)파(4)-(4)미(4)미(4)미(4)미(4)미(4)파(4)솔(4)-(4)솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)'),
+    buildMelodySong('schoolbell', '학교종', '솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)솔(4)미(4)미(4)레(4)-(4)-(4)-(4)솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)미(4)레(4)미(4)도(4)-(4)-(4)'),
+    buildMelodySong('bear', '곰세마리', '도(8)-(8)도(8)도(8)도(8)-(8)도(8)-(8)미(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)솔(8)미(8)-(8)솔(8)솔(8)미(8)-(8)도(8)-(8)도(8)-(8)도(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)솔(8)-(8)솔(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)솔(8)-(8)솔(8)-(8)-(8)-(8)솔(8)-(8)솔(8)-(8)미(8)-(8)도(8)-(8)솔(8)-(8)u솔(8)라(8)솔(8)-(8)-(8)-(8)u도(8)-(8)솔(8)-(8)u도(8)-(8)솔(8)-(8)미(8)-(8)레(8)-(8)도(8)-(8)-(8)-(8)')
 ];
 
 var melodySettings = { songId: 'twinkle', segmentMeasures: 2 };
@@ -186,38 +186,43 @@ function getMelodySong() {
 }
 
 // ===================== 건반 (도~시 12건반, 옥타브별로 세로로 쌓임) - 노래연습/자유연주 공용 =====================
-function buildMelodyKeyboardRow(octaveOffset) {
+// includeTrailingDo=true 이면 다음 옥타브의 '도'를 마지막에 추가해서 "도~도"까지 표시
+function buildMelodyKeyboardRow(octaveOffset, includeTrailingDo) {
     var keys = [];
     var whiteSlot = 0;
     for (var pc = 0; pc < 12; pc++) {
         var meta = MELODY_PITCH_CLASSES[pc];
         var freq = getMelodyNoteFreq(pc, octaveOffset);
         if (!meta.sharp) {
-            keys.push({ pitchClass: pc, name: meta.name, freq: freq, black: false, whiteSlot: whiteSlot });
+            keys.push({ pitchClass: pc, octaveOffset: octaveOffset, name: meta.name, freq: freq, black: false, whiteSlot: whiteSlot });
             whiteSlot++;
         } else {
-            keys.push({ pitchClass: pc, name: meta.name, freq: freq, black: true, whiteSlot: whiteSlot - 1 });
+            keys.push({ pitchClass: pc, octaveOffset: octaveOffset, name: meta.name, freq: freq, black: true, whiteSlot: whiteSlot - 1 });
         }
+    }
+    if (includeTrailingDo) {
+        keys.push({ pitchClass: 0, octaveOffset: octaveOffset + 1, name: '도', freq: getMelodyNoteFreq(0, octaveOffset + 1), black: false, whiteSlot: whiteSlot });
     }
     return keys;
 }
-function renderOctaveKeyboardRow(keys, rowLabel, clickFnName, extraArg) {
-    var whitePct = 100 / 7;
+function renderOctaveKeyboardRow(keys, rowLabel, clickFnName) {
+    var whiteCount = keys.filter(function (k) { return !k.black; }).length;
+    var whitePct = 100 / whiteCount;
     var blackPct = whitePct * 0.62;
     var rowH = 110;
     var html = '';
     if (rowLabel) { html += '<div style="font-size:0.75rem; color:#6b7280; margin:0.3rem 0 0.15rem 0.2rem;">' + rowLabel + '</div>'; }
     html += '<div style="position:relative; width:100%; height:' + rowH + 'px; margin-bottom:0.5rem;">';
     var wSlot = 0;
-    keys.forEach(function (k, idx) {
+    keys.forEach(function (k) {
         if (k.black) return;
-        html += '<button style="position:absolute; left:' + (wSlot * whitePct) + '%; top:0; width:' + whitePct + '%; height:' + rowH + 'px; background:#ffffff; border:2px solid #1f2937; border-radius:0 0 0.3rem 0.3rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.4rem; font-weight:800; font-size:0.85rem; color:#4b5563; box-shadow:0 3px 0 #cbd5e1; z-index:1;" onclick="' + clickFnName + '(' + extraArg + ',' + idx + ')">' + k.name + '</button>';
+        html += '<button style="position:absolute; left:' + (wSlot * whitePct) + '%; top:0; width:' + whitePct + '%; height:' + rowH + 'px; background:#ffffff; border:2px solid #1f2937; border-radius:0 0 0.3rem 0.3rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.4rem; font-weight:800; font-size:0.85rem; color:#4b5563; box-shadow:0 3px 0 #cbd5e1; z-index:1;" onclick="' + clickFnName + '(' + k.octaveOffset + ',' + k.pitchClass + ')">' + k.name + '</button>';
         wSlot++;
     });
-    keys.forEach(function (k, idx) {
+    keys.forEach(function (k) {
         if (!k.black) return;
         var leftPct = (k.whiteSlot + 1) * whitePct - blackPct / 2;
-        html += '<button style="position:absolute; left:' + leftPct + '%; top:0; width:' + blackPct + '%; height:' + (rowH * 0.6) + 'px; background:#1f2937; border:2px solid #000; border-radius:0 0 0.25rem 0.25rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.3rem; font-weight:800; font-size:0.68rem; color:#fff; z-index:2;" onclick="' + clickFnName + '(' + extraArg + ',' + idx + ')">' + k.name + '</button>';
+        html += '<button style="position:absolute; left:' + leftPct + '%; top:0; width:' + blackPct + '%; height:' + (rowH * 0.6) + 'px; background:#1f2937; border:2px solid #000; border-radius:0 0 0.25rem 0.25rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.3rem; font-weight:800; font-size:0.68rem; color:#fff; z-index:2;" onclick="' + clickFnName + '(' + k.octaveOffset + ',' + k.pitchClass + ')">' + k.name + '</button>';
     });
     html += '</div>';
     return html;
@@ -233,7 +238,7 @@ function renderFreePlayGame() {
     var html = '<div class="game-title-box">🎹 자유 연주 (' + n + '옥타브)</div>';
     html += '<div class="game-sub-desc">건반을 눌러 자유롭게 연주해보세요!</div>';
     for (var i = n - 1; i >= 0; i--) {
-        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(i), (i + 1) + '옥타브', 'freePlayKeyClick', i);
+        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(i, i === n - 1), (i + 1) + '옥타브', 'freePlayKeyClick');
     }
     html += '<button class="action-btn secondary" style="width:100%; margin-top:0.6rem;" onclick="renderMelodySetup()">설정으로 돌아가기 ⏮</button>';
     document.getElementById('mainArea').innerHTML = html;
@@ -358,8 +363,9 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
         if (y < minY) minY = y;
         if (y > maxY) maxY = y;
     });
-    var staffTop = Math.max(0, -minY) + 40;
-    var bottomMargin = Math.max(0, maxY - 56) + 30;
+    // 여백 최소화: 위쪽은 (기둥 높이 + 여유), 아래쪽은 (계이름표 공간 + 여유)만큼만 확보 - 잘리지 않는 선에서 최대한 축소
+    var staffTop = Math.max(0, -minY) + 26;
+    var bottomMargin = Math.max(0, maxY - 56) + 20;
     var svgHeight = staffTop + 56 + bottomMargin;
     var svgWidth = leftPad + widthUnits * unitPx + 24;
     var html = '<div style="background:#fff; border:2px solid #1f2937; border-radius:0.6rem; padding:0.6rem 0.4rem; margin-bottom:0.5rem; overflow-x:auto;">';
@@ -367,6 +373,11 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
     [0, 14, 28, 42, 56].forEach(function (ly) {
         html += '<line x1="4" y1="' + (staffTop + ly) + '" x2="' + (svgWidth - 4) + '" y2="' + (staffTop + ly) + '" stroke="#1f2937" stroke-width="1.5" />';
     });
+    // 마디선: 4분음표 4개(=MELODY_MEASURE_UNITS)마다 세로 마디줄
+    for (var mb = MELODY_MEASURE_UNITS; mb <= widthUnits; mb += MELODY_MEASURE_UNITS) {
+        var barX = leftPad + mb * unitPx;
+        html += '<line x1="' + barX + '" y1="' + staffTop + '" x2="' + barX + '" y2="' + (staffTop + 56) + '" stroke="#1f2937" stroke-width="1.2" />';
+    }
     html += '<text x="6" y="' + (staffTop + 52) + '" font-size="46" fill="#1f2937">𝄞</text>';
     events.forEach(function (ev) {
         var relUnit = ev.startUnit - unitOffset;
@@ -399,7 +410,7 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
             html += '<ellipse cx="' + cx + '" cy="' + cy + '" rx="7" ry="5.5" fill="' + fill + '" transform="rotate(-20 ' + cx + ' ' + cy + ')" />';
         }
         if (d.stem) {
-            var stemX = cx + 6.5, stemTopY = cy - 30;
+            var stemX = cx + 6.5, stemTopY = cy - 22;
             html += '<line x1="' + stemX + '" y1="' + cy + '" x2="' + stemX + '" y2="' + stemTopY + '" stroke="' + fill + '" stroke-width="1.5" />';
             for (var fi = 0; fi < d.flags; fi++) {
                 var fy = stemTopY + fi * 8;
@@ -410,7 +421,7 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
         if (d.dot) {
             html += '<circle cx="' + (cx + 12) + '" cy="' + (cy - 2) + '" r="1.6" fill="' + fill + '" />';
         }
-        html += '<text x="' + cx + '" y="' + (staffTop + 82) + '" font-size="12" fill="' + (isDemoActive ? '#a16207' : '#6b7280') + '" font-weight="' + (isDemoActive ? '800' : '400') + '" text-anchor="middle">' + meta.name + '</text>';
+        html += '<text x="' + cx + '" y="' + (staffTop + 70) + '" font-size="12" fill="' + (isDemoActive ? '#a16207' : '#6b7280') + '" font-weight="' + (isDemoActive ? '800' : '400') + '" text-anchor="middle">' + meta.name + '</text>';
     });
     html += '</svg></div>';
     return html;
@@ -418,10 +429,11 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
 
 function renderMelodyKeyboard() {
     var offsets = getSongOctaveOffsets(melodyState.song);
+    var top = offsets[0];
     var html = '';
     offsets.forEach(function (off) {
         var label = offsets.length > 1 ? (off === 0 ? '기본 옥타브' : (off > 0 ? '+1옥타브 (높은음)' : '-1옥타브 (낮은음)')) : null;
-        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(off), label, 'melodyKeyClick', off);
+        html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(off, off === top), label, 'melodyKeyClick');
     });
     return html;
 }
