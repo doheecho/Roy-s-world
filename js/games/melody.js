@@ -7,14 +7,18 @@
 //   도(8) 도(16) 도(2) 도(1) : 괄호 안 숫자 = 음표의 "분모" (8=8분,16=16분,2=2분,1=온음표)
 //   u도 u레 ...        : 한 옥타브 위 (뒤에 (8) 등 길이 지정 가능, 예: u도(8))
 //   d도 d레 ...        : 한 옥타브 아래
+//   파# 도# ...        : 음이름 뒤에 #을 붙이면 반음 올림(샵)
 //   -                   : 4분쉼표 1개 (기본). -(8) 처럼 뒤에 숫자를 붙이면 그 길이만큼 쉼
 //   ~                   : 바로 앞 음을 16분음표 1개 분량 더 홀드(연장)
+//   /                   : 피크업(앞부분 딸림음) 구분자. 이 글자 앞부분은 정식 마디로 세지 않고,
+//                         이 지점부터 1마디가 시작되는 것으로 계산함(엘리제를 위하여처럼 짧은 도입부가 있는 곡에 사용)
 // 연속된 쉼표(-)는 자동으로 합쳐져서 알맞은 쉼표 기호로 그려집니다.
-// 새 노래를 추가하려면 MELODY_SONGS 배열에 buildMelodySong(id, 이름, 패턴문자열)만 추가하면 됩니다.
+// 새 노래를 추가하려면 MELODY_SONGS 배열에 buildMelodySong(id, 이름, 패턴문자열, 마디당유닛수(선택,기본16=4/4))만 추가하면 됩니다.
+// 마디당유닛수: 4/4=16(기본, 생략가능), 3/4=12, 2/4=8 등 (4분음표=4유닛 기준)
 
 // 내부적으로는 16분음표 1개 = 1유닛(최소단위)로 계산합니다.
 var MELODY_DEFAULT_UNITS = 4; // 괄호 없을 때 기본값 = 4분음표
-var MELODY_MEASURE_UNITS = 16; // 한 칸(마디, 4/4 기준 4분음표 4개) = 16유닛
+var MELODY_MEASURE_UNITS = 16; // 한 마디 기본값(4/4 기준 4분음표 4개) = 16유닛
 var MELODY_UNIT_MS = 120; // 16분음표 1유닛의 재생 길이(ms) - 4분음표=480ms 기준
 var MELODY_FIRST_NOTE_DELAY_MS = 1000; // 오디오 컨텍스트가 완전히 켜질 시간을 주기 위한 첫 음 지연
 
@@ -64,9 +68,11 @@ function melodyMatchDurationParen(s, i) {
 function parseMelodyPattern(str) {
     var noteMap = { '도': 0, '레': 2, '미': 4, '파': 5, '솔': 7, '라': 9, '시': 11 };
     var events = [];
+    var anacrusisMarkerIndex = null;
     var i = 0;
     while (i < str.length) {
         var c = str.charAt(i);
+        if (c === '/') { anacrusisMarkerIndex = events.length; i++; continue; }
         if (c === '~') {
             if (events.length > 0 && events[events.length - 1].type === 'note') {
                 events[events.length - 1].units += 1;
@@ -114,11 +120,20 @@ function parseMelodyPattern(str) {
         startUnit += e.units;
         if (e.type === 'note') { e.noteIndex = noteEvents.length; noteEvents.push(e); }
     });
-    return { events: events, noteEvents: noteEvents, totalUnits: startUnit };
+    var anacrusisUnits = 0;
+    if (anacrusisMarkerIndex !== null) {
+        anacrusisUnits = (anacrusisMarkerIndex < events.length) ? events[anacrusisMarkerIndex].startUnit : startUnit;
+    }
+    return { events: events, noteEvents: noteEvents, totalUnits: startUnit, anacrusisUnits: anacrusisUnits };
 }
-function buildMelodySong(id, name, pattern) {
+function buildMelodySong(id, name, pattern, measureUnits) {
     var parsed = parseMelodyPattern(pattern);
-    return { id: id, name: name, events: parsed.events, noteEvents: parsed.noteEvents, totalUnits: parsed.totalUnits };
+    var mUnits = measureUnits || MELODY_MEASURE_UNITS;
+    return {
+        id: id, name: name, events: parsed.events, noteEvents: parsed.noteEvents, totalUnits: parsed.totalUnits,
+        measureUnits: mUnits, anacrusisUnits: parsed.anacrusisUnits,
+        timeSigTop: Math.round(mUnits / 4), timeSigBottom: 4
+    };
 }
 function getSongOctaveOffsets(song) {
     var set = { 0: true };
@@ -127,7 +142,18 @@ function getSongOctaveOffsets(song) {
     offsets.sort(function (a, b) { return b - a; });
     return offsets;
 }
-function melodySegIndexOf(ev) { return Math.floor(ev.startUnit / melodyState.segmentUnits); }
+// 이벤트가 몇 번째 마디에 속하는지 (0 = 피크업 마디, 1부터 정식 마디)
+function melodyMeasureIndexOf(ev, song) {
+    var anacrusis = song.anacrusisUnits || 0;
+    if (ev.startUnit < anacrusis) return 0;
+    return 1 + Math.floor((ev.startUnit - anacrusis) / song.measureUnits);
+}
+// 이벤트가 몇 번째 연습 구간에 속하는지 (피크업은 항상 0번 구간에 포함)
+function melodySegIndexOf(ev) {
+    var mi = melodyMeasureIndexOf(ev, melodyState.song);
+    if (mi === 0) return 0;
+    return Math.floor((mi - 1) / melodySettings.segmentMeasures);
+}
 
 var MELODY_SONGS = [    buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
     buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
@@ -136,7 +162,7 @@ var MELODY_SONGS = [    buildMelodySong('twinkle', '작은별', '도도솔솔라
     buildMelodySong('bear', '곰세마리', '도도(8)도(8)도도미솔미도솔(8)솔(8)미솔(8)솔(8)미도도도-솔솔미도솔솔솔-솔솔미도솔솔솔-솔솔미도솔(8)솔(8)솔(8)라(8)솔-u도솔u도솔미레도-'),
     buildMelodySong('shoes', '새신을신고', '솔미(8)레(8)도도도(8)d시(8)도(8)레(8)미미솔미(8)라(8)솔(8)파(8)미(8)레(8)미레도(4)'),
     buildMelodySong('Die Forelle', '송어', '솔u도(3)u도(8)u미u미u도(2)솔(2)솔(3)솔(8)u레(8)u도(8)시(8)라(8)솔(2)-(3)솔u도(3)u도(8)u미u미u도(2)솔u도시라(8)시(8)u도파#솔(2)-(3)솔(8)시(3)시(8)u도(8)시(8)라(8)시(8)u도(2)솔u도시(3)시(8)시(8)u파(8)u레(8)시(8)u도(2)-u도라(3)라(8)라u도u도(2)솔(2)솔(3)솔(8)u레시u도(2)-(2)'),
-    buildMelodySong('Fur Elise', '엘리제를위하여', 'u미(8)u레#(8)u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)솔#(8)시(8)u도(3)미(8)u미(8)u레#(8)u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)u도(8)시(8)라(3)-(8)')
+    buildMelodySong('Fur Elise', '엘리제를위하여', 'u미(8)u레#(8)u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)솔#(8)시(8)u도(3)미(8)u미(8)u레#(8)u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)u도(8)시(8)라(3)-(8)', 12)
     ];
 
 var melodySettings = { songId: 'twinkle', segmentMeasures: 2 };
@@ -277,7 +303,6 @@ function startMelodySession(fullMode) {
     melodyState = {
         song: song, pos: 0, hits: 0,
         mode: fullMode ? 'full' : 'segment',
-        segmentUnits: MELODY_MEASURE_UNITS * melodySettings.segmentMeasures,
         segIndex: 0, finished: false, isPlaying: false, demoActiveEvent: null,
         displayFull: false
     };
@@ -288,10 +313,6 @@ function retryMelodySong() { startMelodySession(melodyState.mode === 'full'); }
 function getVisibleEvents() {
     if (melodyState.mode === 'full' || melodyState.displayFull) return melodyState.song.events;
     return melodyState.song.events.filter(function (e) { return melodySegIndexOf(e) === melodyState.segIndex; });
-}
-function getUnitOffset() {
-    if (melodyState.mode === 'full' || melodyState.displayFull) return 0;
-    return melodyState.segIndex * melodyState.segmentUnits;
 }
 
 // ---- 재생 컨트롤: 구간 듣기 / 전체 듣기 / 중단하기 ----
@@ -327,24 +348,36 @@ function startMelodyPlaybackWith(events) {
 function startMelodyPlayback() { startMelodyPlaybackWith(getVisibleEvents()); }
 
 
-// ---- 오선보 렌더링 ----
+// ---- 오선보 렌더링: 마디 단위로 그룹화, 화면 폭에 따라 한 줄/두 줄 자동 분배 ----
 function isMelodyWideScreen() { return window.innerWidth >= 700; }
 
-function renderMelodyStaffLines(events, unitOffset) {
-    var lineUnits = isMelodyWideScreen() ? melodyState.segmentUnits : melodyState.segmentUnits / 2;
-    var unitPx = isMelodyWideScreen() ? 22 : 18;
-    var groups = {};
+function renderMelodyStaffLines(events) {
+    var song = melodyState.song;
+    var byMeasure = {};
     events.forEach(function (ev) {
-        var rel = ev.startUnit - unitOffset;
-        var lineIdx = Math.floor(rel / lineUnits);
-        if (!groups[lineIdx]) groups[lineIdx] = [];
-        groups[lineIdx].push(ev);
+        var mi = melodyMeasureIndexOf(ev, song);
+        if (!byMeasure[mi]) byMeasure[mi] = [];
+        byMeasure[mi].push(ev);
     });
-    var lineIdxs = Object.keys(groups).map(function (k) { return parseInt(k, 10); }).sort(function (a, b) { return a - b; });
+    var measureIdxs = Object.keys(byMeasure).map(function (k) { return parseInt(k, 10); }).sort(function (a, b) { return a - b; });
+    var wide = isMelodyWideScreen();
+    var measuresPerLine = wide ? melodySettings.segmentMeasures : Math.max(1, Math.ceil(melodySettings.segmentMeasures / 2));
+    var lines = [];
+    var cur = [];
+    var curCount = 0;
+    measureIdxs.forEach(function (mi) {
+        if (mi === 0) { cur = cur.concat(byMeasure[mi]); return; } // 피크업 마디는 세지 않고 현재 줄에 포함
+        if (curCount >= measuresPerLine) { lines.push(cur); cur = []; curCount = 0; }
+        cur = cur.concat(byMeasure[mi]);
+        curCount++;
+    });
+    if (cur.length > 0) lines.push(cur);
+
+    var unitPx = wide ? 22 : 18;
     var html = '<div style="margin-bottom:0.8rem;">';
-    lineIdxs.forEach(function (li) {
-        var lineOffset = unitOffset + li * lineUnits;
-        html += renderMelodyStaffSvg(groups[li], lineOffset, lineUnits, unitPx);
+    lines.forEach(function (lineEvents) {
+        var showTimeSig = lineEvents.length > 0 && lineEvents[0].startUnit === 0;
+        html += renderMelodyStaffSvg(lineEvents, unitPx, song, showTimeSig);
     });
     html += '</div>';
     return html;
@@ -394,16 +427,21 @@ function renderMelodyRestGlyph(cx, staffTop, units, fill) {
     return '<rect x="' + (cx - 6) + '" y="' + line4Y + '" width="12" height="5" fill="' + fill + '" />';
 }
 
-function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
-    var leftPad = 46;
+// events: 한 줄에 표시할 이벤트 배열(이미 시간순 정렬됨). song: 마디/피크업 정보를 위해 필요. showTimeSig: 박자표 표시 여부(곡의 맨 처음 줄에서만 true)
+function renderMelodyStaffSvg(events, unitPx, song, showTimeSig) {
+    var leftPad = showTimeSig ? 70 : 46;
+    var unitOffset = events.length ? events[0].startUnit : 0;
     var minY = 0, maxY = 56;
+    var contentEnd = unitOffset;
     events.forEach(function (ev) {
+        var end = ev.startUnit + ev.units;
+        if (end > contentEnd) contentEnd = end;
         if (ev.type === 'rest') return;
         var y = melodyStaffY(ev.pitchClass, ev.octaveOffset);
         if (y < minY) minY = y;
         if (y > maxY) maxY = y;
     });
-    // 여백 최소화: 위쪽은 (기둥 높이 + 여유), 아래쪽은 (계이름표 공간 + 여유)만큼만 확보 - 잘리지 않는 선에서 최대한 축소
+    var widthUnits = Math.max(contentEnd - unitOffset, 1);
     var staffTop = Math.max(0, -minY) + 24;
     var bottomMargin = Math.max(0, maxY - 56) + 26;
     var svgHeight = staffTop + 56 + bottomMargin;
@@ -413,12 +451,20 @@ function renderMelodyStaffSvg(events, unitOffset, widthUnits, unitPx) {
     [0, 14, 28, 42, 56].forEach(function (ly) {
         html += '<line x1="4" y1="' + (staffTop + ly) + '" x2="' + (svgWidth - 4) + '" y2="' + (staffTop + ly) + '" stroke="#1f2937" stroke-width="1.5" />';
     });
-    // 마디선: 4분음표 4개(=MELODY_MEASURE_UNITS)마다 세로 마디줄
-    for (var mb = MELODY_MEASURE_UNITS; mb <= widthUnits; mb += MELODY_MEASURE_UNITS) {
-        var barX = leftPad + mb * unitPx;
-        html += '<line x1="' + barX + '" y1="' + staffTop + '" x2="' + barX + '" y2="' + (staffTop + 56) + '" stroke="#1f2937" stroke-width="1.2" />';
+    // 마디선: 곡의 마디당 유닛수(song.measureUnits) 기준, 피크업이 있으면 그 지점부터 정식 마디 시작
+    var anacrusis = song.anacrusisUnits || 0;
+    var firstBoundary = anacrusis > 0 ? anacrusis : song.measureUnits;
+    for (var mb = firstBoundary; mb <= unitOffset + widthUnits; mb += song.measureUnits) {
+        if (mb >= unitOffset) {
+            var barX = leftPad + (mb - unitOffset) * unitPx;
+            html += '<line x1="' + barX + '" y1="' + staffTop + '" x2="' + barX + '" y2="' + (staffTop + 56) + '" stroke="#1f2937" stroke-width="1.2" />';
+        }
     }
     html += '<text x="6" y="' + (staffTop + 52) + '" font-size="46" fill="#1f2937">𝄞</text>';
+    if (showTimeSig) {
+        html += '<text x="34" y="' + (staffTop + 27) + '" font-size="22" font-weight="800" fill="#1f2937" text-anchor="middle">' + song.timeSigTop + '</text>';
+        html += '<text x="34" y="' + (staffTop + 55) + '" font-size="22" font-weight="800" fill="#1f2937" text-anchor="middle">' + song.timeSigBottom + '</text>';
+    }
     events.forEach(function (ev) {
         var relUnit = ev.startUnit - unitOffset;
         var cx = leftPad + relUnit * unitPx + (ev.units * unitPx) / 2 + 14;
@@ -485,7 +531,7 @@ function renderMelodyTopHtml() {
     html += '<div class="game-title-box">🎼 멜로디 연주하기 · ' + song.name + (isFull ? ' (전체곡)' : '') + '</div>';
     html += '<div class="game-sub-desc">주황색 음표를 순서대로 건반으로 눌러보세요! (연주 중 노란색으로 반짝이는 음이 지금 들리는 음이에요)</div>';
     html += '<div class="status-row"><div>' + melodyState.pos + ' / ' + totalNotes + '음 연주함</div><div>맞은 음: ' + melodyState.hits + '</div></div>';
-    html += renderMelodyStaffLines(getVisibleEvents(), getUnitOffset());
+    html += renderMelodyStaffLines(getVisibleEvents());
     if (melodyState.isPlaying) {
         html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="stopMelodyPlayback()">⏸ 중단하기</button>';
     } else if (isFull) {
