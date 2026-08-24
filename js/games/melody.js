@@ -98,30 +98,121 @@ function buildMelodySong(id, name, pattern) {
 }
 
 var MELODY_SONGS = [
-    buildMelodySong('twinkle', '작은별', '도도솔솔라라솔-파파미미레레도-솔솔파파미미레-솔솔파파미미레-도도솔솔라라솔-파파미미레레도-'),
-    buildMelodySong('butterfly', '나비야', '솔미미-파레레-도레미파솔솔솔-솔미미미파레레-도미솔솔미미미-레레레레레미파-미미미미미파솔-솔미미-파레레-도미솔미레미도-'),
-    buildMelodySong('schoolbell', '학교종', '솔솔라라솔솔미-솔솔미미레---솔솔라라솔솔미-솔미레미도---'),
+    buildMelodySong('twinkle', '작은별', '도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)솔(4)솔(4)파(4)파(4)미(4)미(4)레(4)-(4)도(4)도(4)솔(4)솔(4)라(4)라(4)솔(4)-(4)파(4)파(4)미(4)미(4)레(4)레(4)도(4)-(4)'),
+    buildMelodySong('butterfly', '나비야', '솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)레(4)미(4)파(4)솔(4)솔(4)솔(4)-(4)솔(4)미(4)미(4)미(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)-(4)레(4)레(4)레(4)레(4)레(4)미(4)파(4)-(4)미(4)미(4)미(4)미(4)미(4)파(4)솔(4)-(4)솔(4)미(4)미(4)-(4)파(4)레(4)레(4)-(4)도(4)미(4)솔(4)솔(4)미(4)미(4)미(4)'),
+    buildMelodySong('schoolbell', '학교종', '솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)솔(4)미(4)미(4)레(4)-(4)-(4)-(4)솔(4)솔(4)라(4)라(4)솔(4)솔(4)미(4)-(4)솔(4)미(4)레(4)미(4)도(4)-(4)-(4)'),
     buildMelodySong('bear', '곰세마리', '도-도도도-도-미-솔-미-도-솔솔미-솔솔미-도-도-도---솔-솔-미-도-솔-솔-솔---솔-솔-미-도-솔-솔-솔---솔-솔-미-도-솔-솔라솔---도-솔-도-솔-미-레-도---')
-
 ];
 
 var melodyKeys = null;
 var melodySettings = { songId: 'twinkle' };
 var melodyState = {};
+var melodyMode = 'song'; // 'song' | 'free'
+var freePlaySettings = { octaves: 1 };
+var freePlayState = {};
 
 function initMelodyGame() { renderMelodySetup(); }
 
+function setMelodyMode(m) { melodyMode = m; renderMelodySetup(); }
+
 function renderMelodySetup() {
     var html = '<div class="game-title-box">🎼 멜로디 연주하기</div>';
-    html += '<div class="game-sub-desc">악보를 보고 건반을 순서대로 눌러 연주해보세요! 틀려도 끝까지 연주할 수 있어요.</div>';
+    html += '<div class="setup-btn-group" style="margin-bottom:0.8rem;">';
+    html += '<button class="setup-btn' + (melodyMode === 'song' ? ' active' : '') + '" onclick="setMelodyMode(\'song\')">🎵 노래 연습</button>';
+    html += '<button class="setup-btn' + (melodyMode === 'free' ? ' active' : '') + '" onclick="setMelodyMode(\'free\')">🎹 자유 연주</button>';
+    html += '</div>';
+    html += melodyMode === 'free' ? renderFreePlaySetupInner() : renderSongSetupInner();
+    document.getElementById('mainArea').innerHTML = html;
+}
+
+function renderSongSetupInner() {
+    var html = '<div class="game-sub-desc">악보를 보고 건반을 순서대로 눌러 연주해보세요! 틀려도 끝까지 연주할 수 있어요.</div>';
     html += '<div class="setup-section-label">노래 선택</div><div class="setup-btn-group">';
     MELODY_SONGS.forEach(function (s) {
         html += '<button class="setup-btn' + (melodySettings.songId === s.id ? ' active' : '') + '" onclick="setMelodySong(\'' + s.id + '\')">' + s.name + '</button>';
     });
     html += '</div>';
     html += '<button class="action-btn" onclick="startMelodySession()">시작하기 🚀</button>';
+    return html;
+}
+
+function renderFreePlaySetupInner() {
+    var opts = [1, 2, 3];
+    var html = '<div class="game-sub-desc">정해진 곡 없이 건반을 자유롭게 눌러 연주해보세요!</div>';
+    html += '<div class="setup-section-label">옥타브 수</div><div class="setup-btn-group">';
+    opts.forEach(function (n) {
+        html += '<button class="setup-btn' + (freePlaySettings.octaves === n ? ' active' : '') + '" onclick="setFreePlayOctaves(' + n + ')">' + n + '옥타브</button>';
+    });
+    html += '</div>';
+    html += '<button class="action-btn" onclick="startFreePlaySession()">시작하기 🚀</button>';
+    return html;
+}
+function setFreePlayOctaves(n) { freePlaySettings.octaves = n; renderMelodySetup(); }
+
+// ===================== 자유 연주 (옥타브 최대 3개, 세로로 쌓아서 표시) =====================
+function buildFreePlayOctaveKeys(octIndex) {
+    var mult = Math.pow(2, octIndex);
+    var keys = [];
+    var whiteSlot = 0;
+    PIANO_WHITE_NOTES.forEach(function (n) {
+        keys.push({ note: n, freq: PIANO_WHITE_FREQ_BASE[n] * mult, black: false, whiteSlot: whiteSlot });
+        whiteSlot++;
+        if (PIANO_SHARP_FREQ_BASE[n]) {
+            keys.push({ note: n + '#', freq: PIANO_SHARP_FREQ_BASE[n] * mult, black: true, whiteSlot: whiteSlot - 1 });
+        }
+    });
+    return keys;
+}
+
+function startFreePlaySession() {
+    var n = freePlaySettings.octaves;
+    var rows = [];
+    for (var i = n - 1; i >= 0; i--) { rows.push({ octIndex: i, keys: buildFreePlayOctaveKeys(i) }); }
+    freePlayState = { rows: rows, octaves: n };
+    renderFreePlayGame();
+}
+
+function renderFreePlayOctaveRow(keys, octIndex) {
+    var whiteCount = keys.filter(function (k) { return !k.black; }).length; // 7 (도~시)
+    var whitePct = 100 / whiteCount;
+    var blackPct = whitePct * 0.62;
+    var rowH = 110;
+    var html = '<div style="position:relative; width:100%; height:' + rowH + 'px; margin-bottom:0.5rem;">';
+    var wSlot = 0;
+    keys.forEach(function (k, idx) {
+        if (k.black) return;
+        html += '<button style="position:absolute; left:' + (wSlot * whitePct) + '%; top:0; width:' + whitePct + '%; height:' + rowH + 'px; background:#ffffff; border:2px solid #1f2937; border-radius:0 0 0.3rem 0.3rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.4rem; font-weight:800; font-size:0.85rem; color:#4b5563; box-shadow:0 3px 0 #cbd5e1; z-index:1;" onclick="freePlayKeyClick(' + octIndex + ',' + idx + ')">' + k.note + '</button>';
+        wSlot++;
+    });
+    keys.forEach(function (k, idx) {
+        if (!k.black) return;
+        var leftPct = (k.whiteSlot + 1) * whitePct - blackPct / 2;
+        html += '<button style="position:absolute; left:' + leftPct + '%; top:0; width:' + blackPct + '%; height:' + (rowH * 0.6) + 'px; background:#1f2937; border:2px solid #000; border-radius:0 0 0.25rem 0.25rem; display:flex; align-items:flex-end; justify-content:center; padding-bottom:0.3rem; font-weight:800; font-size:0.68rem; color:#fff; z-index:2;" onclick="freePlayKeyClick(' + octIndex + ',' + idx + ')">' + k.note + '</button>';
+    });
+    html += '</div>';
+    return html;
+}
+
+function renderFreePlayGame() {
+    var html = '<div class="game-title-box">🎹 자유 연주 (' + freePlayState.octaves + '옥타브)</div>';
+    html += '<div class="game-sub-desc">건반을 눌러 자유롭게 연주해보세요!</div>';
+    freePlayState.rows.forEach(function (row) {
+        html += '<div style="font-size:0.75rem; color:#6b7280; margin:0.3rem 0 0.15rem 0.2rem;">' + (row.octIndex + 1) + '옥타브</div>';
+        html += renderFreePlayOctaveRow(row.keys, row.octIndex);
+    });
+    html += '<button class="action-btn secondary" style="width:100%; margin-top:0.6rem;" onclick="renderMelodySetup()">설정으로 돌아가기 ⏮</button>';
     document.getElementById('mainArea').innerHTML = html;
 }
+
+function freePlayKeyClick(octIndex, idx) {
+    var row = null;
+    freePlayState.rows.forEach(function (r) { if (r.octIndex === octIndex) row = r; });
+    if (!row) return;
+    var key = row.keys[idx];
+    playPianoTone(key.freq);
+    vibrateShort();
+}
+
 function setMelodySong(id) { melodySettings.songId = id; renderMelodySetup(); }
 function getMelodySong() {
     var found = null;
@@ -182,28 +273,39 @@ function classifyMelodyDuration(u) {
     if (u >= 8) return { hollow: true, stem: false, flag: false, dot: false };
     return { hollow: u >= 4, stem: true, flag: false, dot: false };
 }
-// 쉼표 기호 (1=8분쉼표,2=4분쉼표,3=점4분쉼표,4=2분쉼표,6=점2분쉼표,8+=온쉼표)
+// 쉼표 기호 (1=8분쉼표,2=4분쉼표,3=점4분쉼표,4=2분쉼표,6=점2분쉼표,8+=온쉼표) - 실제 악보 모양을 벡터로 직접 그림
+function renderQuarterRestPath(cx, midY, fill) {
+    var d = 'M ' + (cx - 4) + ' ' + (midY - 11) +
+        ' L ' + (cx + 4) + ' ' + (midY - 11) +
+        ' L ' + (cx - 4) + ' ' + (midY + 1) +
+        ' L ' + (cx + 4) + ' ' + (midY + 1) +
+        ' L ' + (cx - 2) + ' ' + (midY + 11);
+    return '<path d="' + d + '" stroke="' + fill + '" stroke-width="2.2" fill="none" stroke-linejoin="round" stroke-linecap="round" />';
+}
 function renderMelodyRestGlyph(cx, staffTop, units, fill) {
     var midY = staffTop + 28;
     var line4Y = staffTop + 14;
     if (units <= 1) {
-        return '<text x="' + cx + '" y="' + (midY + 10) + '" font-size="24" fill="' + fill + '" text-anchor="middle">𝄾</text>';
+        // 8분쉼표: 작은 고리 + 대각선 꼬리
+        var h1 = '<circle cx="' + (cx + 4) + '" cy="' + (midY - 6) + '" r="3" fill="' + fill + '" />';
+        h1 += '<line x1="' + (cx + 4) + '" y1="' + (midY - 6) + '" x2="' + (cx - 4) + '" y2="' + (midY + 9) + '" stroke="' + fill + '" stroke-width="2" stroke-linecap="round" />';
+        return h1;
     }
     if (units === 2) {
-        return '<text x="' + cx + '" y="' + (midY + 10) + '" font-size="28" fill="' + fill + '" text-anchor="middle">𝄽</text>';
+        return renderQuarterRestPath(cx, midY, fill);
     }
     if (units === 3) {
-        var h = '<text x="' + cx + '" y="' + (midY + 10) + '" font-size="28" fill="' + fill + '" text-anchor="middle">𝄽</text>';
-        h += '<circle cx="' + (cx + 12) + '" cy="' + (midY - 4) + '" r="1.6" fill="' + fill + '" />';
-        return h;
+        var h2 = renderQuarterRestPath(cx, midY, fill);
+        h2 += '<circle cx="' + (cx + 12) + '" cy="' + (midY - 4) + '" r="1.6" fill="' + fill + '" />';
+        return h2;
     }
     if (units === 4) {
         return '<rect x="' + (cx - 6) + '" y="' + (midY - 5) + '" width="12" height="5" fill="' + fill + '" />';
     }
     if (units === 6) {
-        var h2 = '<rect x="' + (cx - 6) + '" y="' + (midY - 5) + '" width="12" height="5" fill="' + fill + '" />';
-        h2 += '<circle cx="' + (cx + 11) + '" cy="' + (midY - 2) + '" r="1.6" fill="' + fill + '" />';
-        return h2;
+        var h3 = '<rect x="' + (cx - 6) + '" y="' + (midY - 5) + '" width="12" height="5" fill="' + fill + '" />';
+        h3 += '<circle cx="' + (cx + 11) + '" cy="' + (midY - 2) + '" r="1.6" fill="' + fill + '" />';
+        return h3;
     }
     return '<rect x="' + (cx - 6) + '" y="' + line4Y + '" width="12" height="5" fill="' + fill + '" />';
 }
