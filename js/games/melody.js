@@ -62,7 +62,10 @@ function melodyMatchDurationParen(s, i) {
     if (numStr === '' || s.charAt(j) !== ')') return null;
     var denom = parseInt(numStr, 10);
     if (!denom || denom <= 0) return null;
-    var units = Math.round(16 / denom);
+    var units;
+    if (denom === 3) { units = 12; }      // 점2분음표 (3박)
+    else if (denom === 6) { units = 6; }  // 점4분음표 (1박반)
+    else { units = Math.round(16 / denom); }
     return { units: units, nextIndex: j + 1 };
 }
 function parseMelodyPattern(str) {
@@ -162,7 +165,7 @@ var MELODY_SONGS = [    buildMelodySong('twinkle', '작은별', '도도솔솔라
     buildMelodySong('bear', '곰세마리', '도도(8)도(8)도도미솔미도솔(8)솔(8)미솔(8)솔(8)미도도도-솔솔미도솔솔솔-솔솔미도솔솔솔-솔솔미도솔(8)솔(8)솔(8)라(8)솔-u도솔u도솔미레도-'),
     buildMelodySong('shoes', '새신을신고', '솔미(8)레(8)도도도(8)d시(8)도(8)레(8)미미솔미(8)라(8)솔(8)파(8)미(8)레(8)미레도(4)'),
     buildMelodySong('Die Forelle', '송어', '솔u도(3)u도(8)u미u미u도(2)솔(2)솔(3)솔(8)u레(8)u도(8)시(8)라(8)솔(2)-(3)솔u도(3)u도(8)u미u미u도(2)솔u도시라(8)시(8)u도파#솔(2)-(3)솔(8)시(3)시(8)u도(8)시(8)라(8)시(8)u도(2)솔u도시(3)시(8)시(8)u파(8)u레(8)시(8)u도(2)-u도라(3)라(8)라u도u도(2)솔(2)솔(3)솔(8)u레시u도(2)-(2)'),
-    buildMelodySong('Fur Elise', '엘리제를위하여', 'u미(8)u레#(8)u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)솔#(8)시(8)u도(3)미(8)u미(8)u레#(8)u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)u도(8)시(8)라(3)-(8)', 12)
+    buildMelodySong('Fur Elise', '엘리제를위하여', 'u미(8)u레#(8)/u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)솔#(8)시(8)u도(3)미(8)u미(8)u레#(8)u미(8)u레#(8)u미(8)시(8)u레(8)u도(8)라(3)도(8)미(8)라(8)시(3)미(8)u도(8)시(8)라(3)-(8)', 12)
     ];
 
 var melodySettings = { songId: 'twinkle', segmentMeasures: 2 };
