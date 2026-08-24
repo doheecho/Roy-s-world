@@ -266,8 +266,8 @@ function renderHome() {
     hideMetaProgressBar();
     var html = '';
     html += '<div class="options-grid" style="margin-bottom:0.6rem;">';
-    html += '<button class="action-btn" onclick="startTodayGame()">🔥 오늘의 게임 시작하기</button>';
-    html += '<button class="action-btn secondary" onclick="renderRandomGamePicker()">🎲 무작위 게임 시작하기</button>';
+    html += '<button class="action-btn" onclick="startTodayGame()">🔥 오늘의 게임</button>';
+    html += '<button class="action-btn secondary" onclick="renderRandomGamePicker()">🎲 무작위 게임</button>';
     html += '</div>';
     html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">';
     html += '<div style="font-weight:800; color:var(--primary);">👋 ' + (currentUser || '플레이어') + '님</div>';
