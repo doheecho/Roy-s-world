@@ -12,6 +12,13 @@
 //   ~                   : 바로 앞 음을 16분음표 1개 분량 더 홀드(연장)
 //   /                   : 피크업(앞부분 딸림음) 구분자. 이 글자 앞부분은 정식 마디로 세지 않고,
 //                         이 지점부터 1마디가 시작되는 것으로 계산함(엘리제를 위하여처럼 짧은 도입부가 있는 곡에 사용)
+//   {음음음}(길이)      : 잇단음표(셋잇단음표 등) 그룹. 중괄호 안의 음표들이 괄호 안에 지정한 "길이"를
+//                         똑같이 나눠 가짐. 예) {도d라#d라}(4) = 도/낮은라#/낮은라 3개음이 4분음표 1개
+//                         분량(4유닛)을 정확히 3등분해서 나눠 연주(셋잇단음표). 그룹 안에서도 '-'(쉼표)를
+//                         쓸 수 있고, 음 뒤에 '~'를 붙이면 그 음이 다른 음보다 2배(또는 그 이상) 길게
+//                         차지하도록 비중을 늘릴 수 있음. 예) {도d라#d라~}(4) → 도:라#:라 = 1:1:2 비율로
+//                         4유닛을 나눔(도=1, 라#=1, 라=2유닛). 길이 괄호를 생략하면 음 개수만큼 4분음표
+//                         길이로 계산됨. 그룹이 끝난 뒤에는 평소처럼 다른 음표/쉼표/'~'를 이어서 쓸 수 있음.
 // 연속된 쉼표(-)는 자동으로 합쳐져서 알맞은 쉼표 기호로 그려집니다.
 // 새 노래를 추가하려면 MELODY_SONGS 배열에 buildMelodySong(id, 이름, 패턴문자열, 마디당유닛수(선택,기본16=4/4))만 추가하면 됩니다.
 // 마디당유닛수: 4/4=16(기본, 생략가능), 3/4=12, 2/4=8 등 (4분음표=4유닛 기준)
@@ -68,14 +75,74 @@ function melodyMatchDurationParen(s, i) {
     else { units = Math.round(16 / denom); }
     return { units: units, nextIndex: j + 1 };
 }
+var MELODY_NOTE_LETTER_MAP = { '도': 0, '레': 2, '미': 4, '파': 5, '솔': 7, '라': 9, '시': 11 };
+
+// 잇단음표 그룹 {...} 안쪽 문자열을 음/쉼표 토큰 배열로 파싱함.
+// 그룹 안에서는 개별 길이 괄호를 쓰지 않고, 대신 '~'로 직전 토큰의 비중(weight)을 1씩 늘릴 수 있음.
+function parseMelodyGroupTokens(inner) {
+    var tokens = [];
+    var i = 0;
+    while (i < inner.length) {
+        var c = inner.charAt(i);
+        if (c === '~') {
+            if (tokens.length > 0) { tokens[tokens.length - 1].weight += 1; }
+            i++; continue;
+        }
+        if (c === '-') { tokens.push({ type: 'rest', weight: 1 }); i++; continue; }
+        var octaveOffset = 0;
+        var checkIdx = i;
+        if (c === 'u') { octaveOffset = 1; checkIdx = i + 1; }
+        else if (c === 'd') { octaveOffset = -1; checkIdx = i + 1; }
+        var c2 = inner.charAt(checkIdx);
+        if (MELODY_NOTE_LETTER_MAP.hasOwnProperty(c2)) {
+            var pitchClass = MELODY_NOTE_LETTER_MAP[c2];
+            var afterNoteIdx = checkIdx + 1;
+            if (inner.charAt(afterNoteIdx) === '#') {
+                pitchClass += 1;
+                afterNoteIdx += 1;
+                if (pitchClass >= 12) { pitchClass -= 12; octaveOffset += 1; }
+            }
+            tokens.push({ type: 'note', pitchClass: pitchClass, octaveOffset: octaveOffset, weight: 1 });
+            i = afterNoteIdx;
+            continue;
+        }
+        i++; // 인식할 수 없는 글자는 건너뜀
+    }
+    return tokens;
+}
+
 function parseMelodyPattern(str) {
-    var noteMap = { '도': 0, '레': 2, '미': 4, '파': 5, '솔': 7, '라': 9, '시': 11 };
+    var noteMap = MELODY_NOTE_LETTER_MAP;
     var events = [];
     var anacrusisMarkerIndex = null;
     var i = 0;
     while (i < str.length) {
         var c = str.charAt(i);
         if (c === '/') { anacrusisMarkerIndex = events.length; i++; continue; }
+        if (c === '{') {
+            var closeIdx = str.indexOf('}', i + 1);
+            if (closeIdx === -1) { i++; continue; } // 닫는 괄호가 없으면 잘못된 문법 - 건너뜀
+            var groupTokens = parseMelodyGroupTokens(str.substring(i + 1, closeIdx));
+            var afterBrace = closeIdx + 1;
+            var groupTotalUnits = groupTokens.length * MELODY_DEFAULT_UNITS; // 길이 괄호 생략 시 기본값
+            var gdm = melodyMatchDurationParen(str, afterBrace);
+            if (gdm) { groupTotalUnits = gdm.units; afterBrace = gdm.nextIndex; }
+            var totalWeight = 0;
+            groupTokens.forEach(function (t) { totalWeight += t.weight; });
+            var perWeightUnit = totalWeight > 0 ? groupTotalUnits / totalWeight : 0;
+            groupTokens.forEach(function (t) {
+                var tUnits = perWeightUnit * t.weight;
+                if (t.type === 'note') {
+                    events.push({ type: 'note', pitchClass: t.pitchClass, octaveOffset: t.octaveOffset, units: tUnits });
+                } else if (events.length > 0 && events[events.length - 1].type === 'rest') {
+                    events[events.length - 1].units += tUnits;
+                } else {
+                    events.push({ type: 'rest', units: tUnits });
+                }
+            });
+            i = afterBrace;
+            continue;
+        }
         if (c === '~') {
             if (events.length > 0 && events[events.length - 1].type === 'note') {
                 events[events.length - 1].units += 1;
@@ -168,7 +235,7 @@ var MELODY_SONGS = [    buildMelodySong('twinkle', '작은별', '도도솔솔라
     buildMelodySong('Loved', '사랑했나봐', '도#(8)레(8)미(8)d라(8)파#(6)파#(8)미(8)레(8)도#(8)레(8)미(2)도#(8)미(8)미(8)파#(8)파#(6)d라(8)미(8)도#(16)미(8)파#(8)도#(2)',12 ),
     buildMelodySong('Love Scenario', '사랑을했다', '시(8)라(8)솔(8)/시(8)u레(6)-(8)시(8)라(8)솔(8)시(8)라(6)-(8)시(8)라(8)솔(8)라(8)솔솔(8)라(8)솔(16)라(8)시(8)-(8)미'),
     buildMelodySong('My home', '나비정원에가자', '레(16)레(16)라(4)-(8)솔(8)솔(8)솔(16)파(16)레(16)파(8)레-(4)레(16)레(16)라(4)-(8)솔(8)솔(8)솔(16)파(16)레(16)파(8)레-(4)u레(8)라(8)솔(16)솔(16)파(16)솔(8)파(8)레(8)레(16)레(16)u레(8)라(8)솔(16)솔(16)파(16)솔(8)라(4)-(8)레(16)레(16)라(4)-(8)솔(8)솔(8)솔(16)파(16)레(16)파(8)레(8)-(4)'),
-    buildMelodySong('Love Dive', 'Love Dive', '레(16)레(8)미(8)파(8)레(16)도#(16)도#(8)레(8)미(8)-(16)레(16)레(8)미(8)파(8)레(16)도#(8)-(8)라(16)솔(16)파(16)미(16)레(16)레(8)미(8)파(8)레(16)도#(16)도#(8)레(8)미(16)d라(8)도(16)d라#(16)d라(8)-(16)도(16)d라#(16)d라(8)-(16)라(16)솔(8)파(16)미(8)레(8)-(8)u레(8)라(8)라#(8)라(8)-(16)솔(16)솔(16)파(16)미(16)파(16)레(8)u레(8)라(8)라#(8)라(8)-(16)레(16)라(16)레(16)라(16)레(16)라(8)u레(8)라(8)라#(8)라(16)u도(16)u도(16)라(16)u도(16)u레(16)u레(8)-(8)-(16)u도(16)라(8)-(8)라(16)솔(8)파(16)미(8)레(8)-(8)' )
+    buildMelodySong('Love Dive', 'Love Dive', '레(16)레(8)미(8)파(8)레(16)도#(16)도#(8)레(8)미(8)-(16)레(16)레(8)미(8)파(8)레(16)도#(8)-(8)라(16)솔(16)파(16)미(16)레(16)레(8)미(8)파(8)레(16)도#(16)도#(8)레(8)미(8)-(16)d라(8){도d라#d라~}(4)-(8){도d라#d라~}(4)-(8)라(16)솔(8)파(16)미(8)레(8)-(8)u레(8)라(8)라#(8)라(8)-(16)솔(16)솔(16)파(16)미(16)파(16)레(8)u레(8)라(8)라#(8)라(8)-(16)레(16)라(16)레(16)라(16)레(16)라(8)u레(8)라(8)라#(8)라(8)u도(16)u도(16)라(16)u도(16)u레(16)u레(8)-(8)-(16)u도(16)라(8)-(8)라(16)솔(8)파(16)미(8)레(8)-(8)' )
                                    ];
 
 var melodySettings = { songId: 'twinkle', segmentMeasures: 2, playbackSpeed: 1 };
@@ -322,7 +389,7 @@ function getVisibleEvents() {
     return melodyState.song.events.filter(function (e) { return melodySegIndexOf(e) === melodyState.segIndex; });
 }
 
-// ---- 재생 컨트롤: 구간 듣기 / 전체 듣기 / 중단하기 ----
+// ---- 재생 컨트롤: 구간 듣기 / 전체 듣기 / 전체 악보보기 / 중단하기 ----
 function listenSegmentDemo() {
     melodyState.displayFull = false;
     startMelodyPlaybackWith(getVisibleEvents());
@@ -332,28 +399,37 @@ function listenFullDemo() {
     updateMelodyTop(); // 전체 악보로 화면 전환
     startMelodyPlaybackWith(melodyState.song.events);
 }
+// 재생 없이 전체 악보만 보기/구간 악보로 되돌리기 토글
+function toggleMelodyScoreView() {
+    melodyState.displayFull = !melodyState.displayFull;
+    updateMelodyTop();
+}
 function stopMelodyPlayback() {
     clearAllGameTimers();
     melodyState.isPlaying = false;
     melodyState.demoActiveEvent = null;
-    if (melodyState.displayFull && melodyState.mode !== 'full') {
-        melodyState.displayFull = false; // 전체듣기 중단하면 다시 구간 화면으로
-    }
     updateMelodyTop();
 }
 function startMelodyPlaybackWith(events) {
     getPianoAudioCtx(); // 오디오 컨텍스트를 버튼 누르는 즉시 생성/재개시켜서, 실제 재생 전 준비 시간을 확보
+    clearAllGameTimers(); // 기존에 재생 중이던 음이 있다면 멈추고 새로 시작
     melodyState.isPlaying = true;
+    melodyState.demoActiveEvent = null;
     updateMelodyTop();
     playMelodyEventsDemo(events, function () {
         melodyState.isPlaying = false;
         melodyState.demoActiveEvent = null;
-        if (melodyState.displayFull && melodyState.mode !== 'full') { melodyState.displayFull = false; }
         updateMelodyTop();
     });
 }
 // 구간이 바뀔 때(연주 중 다음 구간으로 넘어갈 때)는 그대로 자동으로 미리 들려줌
 function startMelodyPlayback() { startMelodyPlaybackWith(getVisibleEvents()); }
+// 악보의 특정 음/쉼표를 클릭하면: 재생 중이던 음악을 멈추고 그 지점부터 다시 재생
+function melodyScoreEventClick(startUnit) {
+    var events = getVisibleEvents().filter(function (e) { return e.startUnit >= startUnit; });
+    if (events.length === 0) return;
+    startMelodyPlaybackWith(events);
+}
 
 
 // ---- 오선보 렌더링: 마디 단위로 그룹화, 화면 폭에 따라 한 줄/두 줄 자동 분배 ----
@@ -479,8 +555,11 @@ function renderMelodyStaffSvg(events, unitPx, song, showTimeSig) {
     events.forEach(function (ev) {
         var relUnit = ev.startUnit - unitOffset;
         var cx = leftPad + relUnit * unitPx + (ev.units * unitPx) / 2 + 14;
+        html += '<g style="cursor:pointer;" onclick="melodyScoreEventClick(' + ev.startUnit + ')">';
+        html += '<rect x="' + (leftPad + relUnit * unitPx) + '" y="' + staffTop + '" width="' + (ev.units * unitPx) + '" height="56" fill="transparent" />';
         if (ev.type === 'rest') {
             html += renderMelodyRestGlyph(cx, staffTop, ev.units, '#9ca3af');
+            html += '</g>';
             return;
         }
         var meta = MELODY_PITCH_CLASSES[ev.pitchClass];
@@ -519,6 +598,7 @@ function renderMelodyStaffSvg(events, unitPx, song, showTimeSig) {
             html += '<circle cx="' + (cx + 12) + '" cy="' + (cy - 2) + '" r="1.6" fill="' + fill + '" />';
         }
         html += '<text x="' + cx + '" y="' + (staffTop + maxY + 20) + '" font-size="12" fill="' + (isDemoActive ? '#a16207' : '#6b7280') + '" font-weight="' + (isDemoActive ? '800' : '400') + '" text-anchor="middle">' + meta.name + '</text>';
+        html += '</g>';
     });
     html += '</svg></div>';
     return html;
@@ -540,7 +620,7 @@ function renderMelodyTopHtml() {
     var isFull = melodyState.mode === 'full';
     var html = '<style>@keyframes melodyPulse{0%,100%{opacity:0.2;}50%{opacity:0.75;}}.melody-pulse{animation:melodyPulse 0.5s ease-in-out infinite;}</style>';
     html += '<div class="game-title-box">🎼 멜로디 연주하기 · ' + song.name + (isFull ? ' (전체곡)' : '') + '</div>';
-    html += '<div class="game-sub-desc">주황색 음표를 순서대로 건반으로 눌러보세요! (연주 중 노란색으로 반짝이는 음이 지금 들리는 음이에요)</div>';
+    html += '<div class="game-sub-desc">주황색 음표를 순서대로 건반으로 눌러보세요! (연주 중 노란색으로 반짝이는 음이 지금 들리는 음이에요. 악보를 클릭하면 그 부분부터 들을 수 있어요)</div>';
     html += '<div class="status-row"><div>' + melodyState.pos + ' / ' + totalNotes + '음 연주함</div><div>맞은 음: ' + melodyState.hits + '</div></div>';
     html += renderMelodyStaffLines(getVisibleEvents());
     if (!melodyState.isPlaying) {
@@ -555,9 +635,10 @@ function renderMelodyTopHtml() {
     } else if (isFull) {
         html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="listenFullDemo()">🔊 다시 듣기</button>';
     } else {
-        html += '<div class="options-grid" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:0.8rem;">';
+        html += '<div class="options-grid" style="grid-template-columns:1fr 1fr; margin-bottom:0.8rem;">';
         html += '<button class="action-btn secondary" onclick="listenSegmentDemo()">🔊 구간 듣기</button>';
         html += '<button class="action-btn secondary" onclick="listenFullDemo()">🎬 전체 듣기</button>';
+        html += '<button class="action-btn secondary" onclick="toggleMelodyScoreView()">' + (melodyState.displayFull ? '📖 구간 악보로' : '📜 전체 악보보기') + '</button>';
         html += '<button class="action-btn secondary" onclick="renderMelodySetup()">⏮ 처음으로</button>';
         html += '</div>';
     }
