@@ -239,8 +239,17 @@ var MELODY_SONGS = [    buildMelodySong('twinkle', '작은별', '도도솔솔라
     buildMelodySong('Last Goodbye_Int', '오랜날 오랜밤(Int)',  '솔(4)미(8)파(8)솔(4)미(8)파(8)솔(8)d솔(8)d라(8)d시(8)도(8)레(8)미(8)파(8)미(4)도(8)레(8)미(4)d미(8)d파(8)d솔(8)d라(8)d솔(8)d파(8)d솔(4)-(4)d라(4)도(8)d시(8)도(4)d시(8)d라(8)d솔(8)d파(8)d미(8)d파(8)d솔(8)d라(8)d시(8)도(8)d라(4)도(8)d시(8)도(4)d시(8)d라(8)d시(8)d라(8)d시(8)도(8)레(8)도(8)레(8)미(8)파(4)-(2)-(4)' )
                    ];
 
-var melodySettings = { songId: 'twinkle', segmentMeasures: 2, playbackSpeed: 1 };
+var melodySettings = { songId: 'twinkle', segmentMeasures: 2, playbackSpeed: 1, octaveShift: 0 };
 function setMelodyPlaybackSpeed(sp) { melodySettings.playbackSpeed = sp; updateMelodyTop(); }
+function setMelodyOctaveShift(delta) {
+    var next = (melodySettings.octaveShift || 0) + delta;
+    if (next > 2) next = 2;
+    if (next < -2) next = -2;
+    if (next === melodySettings.octaveShift) return;
+    melodySettings.octaveShift = next;
+    updateMelodyKeyboardArea(); // 건반의 옥타브 구성/음높이가 바뀌므로 건반도 다시 그려야 함
+    updateMelodyTop(); // 악보의 음 높이 표시도 함께 갱신
+}
 var melodyState = {};
 var melodyMode = 'song';
 var freePlaySettings = { octaves: 1 };
@@ -514,6 +523,7 @@ function renderMelodyRestGlyph(cx, staffTop, units, fill) {
 
 // events: 한 줄에 표시할 이벤트 배열(이미 시간순 정렬됨). song: 마디/피크업 정보를 위해 필요. showTimeSig: 박자표 표시 여부(곡의 맨 처음 줄에서만 true)
 function renderMelodyStaffSvg(events, unitPx, song, showTimeSig) {
+    var octShift = melodySettings.octaveShift || 0;
     var leftPad = showTimeSig ? 70 : 46;
     var unitOffset = events.length ? events[0].startUnit : 0;
     var minY = 0, maxY = 56;
@@ -522,7 +532,7 @@ function renderMelodyStaffSvg(events, unitPx, song, showTimeSig) {
         var end = ev.startUnit + ev.units;
         if (end > contentEnd) contentEnd = end;
         if (ev.type === 'rest') return;
-        var y = melodyStaffY(ev.pitchClass, ev.octaveOffset);
+        var y = melodyStaffY(ev.pitchClass, ev.octaveOffset + octShift);
         if (y < minY) minY = y;
         if (y > maxY) maxY = y;
     });
@@ -564,7 +574,7 @@ function renderMelodyStaffSvg(events, unitPx, song, showTimeSig) {
             return;
         }
         var meta = MELODY_PITCH_CLASSES[ev.pitchClass];
-        var y = melodyStaffY(ev.pitchClass, ev.octaveOffset);
+        var y = melodyStaffY(ev.pitchClass, ev.octaveOffset + octShift);
         var cy = staffTop + y;
         var isCurrent = ev.noteIndex === melodyState.pos;
         var isPast = ev.noteIndex < melodyState.pos;
@@ -606,13 +616,19 @@ function renderMelodyStaffSvg(events, unitPx, song, showTimeSig) {
 }
 
 function renderMelodyKeyboard() {
-    var offsets = getSongOctaveOffsets(melodyState.song);
+    var shift = melodySettings.octaveShift || 0;
+    var offsets = getSongOctaveOffsets(melodyState.song).map(function (o) { return o + shift; });
     var html = '';
     offsets.forEach(function (off) {
-        var label = offsets.length > 1 ? (off === 0 ? '기본 옥타브' : (off > 0 ? '+1옥타브 (높은음)' : '-1옥타브 (낮은음)')) : null;
+        var label = offsets.length > 1 ? (off === 0 ? '기본 옥타브' : (off > 0 ? '+' + off + '옥타브 (높은음)' : off + '옥타브 (낮은음)')) : null;
         html += renderOctaveKeyboardRow(buildMelodyKeyboardRow(off, true), label, 'melodyKeyClick');
     });
     return html;
+}
+// 옥타브 조정 시 건반의 옥타브 구성/음높이가 바뀌므로 건반 영역만 별도로 다시 그림
+function updateMelodyKeyboardArea() {
+    var el = document.getElementById('melodyKeyboardArea');
+    if (el) { el.innerHTML = renderMelodyKeyboard(); }
 }
 
 function renderMelodyTopHtml() {
@@ -629,6 +645,12 @@ function renderMelodyTopHtml() {
         [0.5, 0.8, 1, 1.2].forEach(function (sp) {
             html += '<button class="setup-btn' + (melodySettings.playbackSpeed === sp ? ' active' : '') + '" onclick="setMelodyPlaybackSpeed(' + sp + ')">x' + sp + '</button>';
         });
+        html += '</div>';
+        var octShift = melodySettings.octaveShift || 0;
+        html += '<div class="setup-section-label">옥타브 조정</div><div class="setup-btn-group" style="margin-bottom:0.5rem; align-items:center;">';
+        html += '<button class="setup-btn" onclick="setMelodyOctaveShift(-1)"' + (octShift <= -2 ? ' disabled' : '') + '>옥타브 ⬇</button>';
+        html += '<span style="padding:0 0.7rem; font-weight:800; color:#1f2937;">' + (octShift > 0 ? '+' + octShift : octShift) + '</span>';
+        html += '<button class="setup-btn" onclick="setMelodyOctaveShift(1)"' + (octShift >= 2 ? ' disabled' : '') + '>옥타브 ⬆</button>';
         html += '</div>';
     }
     if (melodyState.isPlaying) {
@@ -648,6 +670,7 @@ function renderMelodyTopHtml() {
 // 건반은 세션 동안 절대 바뀌지 않으므로(같은 곡이면 옥타브 구성 고정) 한 번만 그리고,
 // 이후에는 melodyTopArea(악보/상태/재생버튼)만 갱신해서 건반 DOM이 계속 살아있게 함
 // -> 건반 눌림 효과(flashKeyPress)가 화면에 그려질 시간을 확보하기 위함
+// (단, 옥타브 조정 버튼을 누른 경우는 예외적으로 updateMelodyKeyboardArea()가 건반도 함께 다시 그림)
 function renderMelodyGame() {
     var html = '<div id="melodyTopArea">' + renderMelodyTopHtml() + '</div>';
     html += '<div id="melodyKeyboardArea">' + renderMelodyKeyboard() + '</div>';
@@ -695,6 +718,7 @@ function playPianoTone(freq) {
 }
 function playMelodyEventsDemo(events, onComplete) {
     var i = 0;
+    var octShift = melodySettings.octaveShift || 0;
     function step() {
         if (i >= events.length) {
             melodyState.demoActiveEvent = null;
@@ -705,7 +729,7 @@ function playMelodyEventsDemo(events, onComplete) {
         var durMs = (ev.units * MELODY_UNIT_MS) / melodySettings.playbackSpeed;
         if (ev.type === 'note') {
             melodyState.demoActiveEvent = ev;
-            playMelodyTone(getMelodyNoteFreq(ev.pitchClass, ev.octaveOffset));
+            playMelodyTone(getMelodyNoteFreq(ev.pitchClass, ev.octaveOffset + octShift));
         } else {
             melodyState.demoActiveEvent = null;
         }
@@ -724,7 +748,8 @@ function melodyKeyClick(btn, octaveOffset, pitchClass) {
     flashKeyPress(btn);
     var noteEvents = melodyState.song.noteEvents;
     var expectedEvent = noteEvents[melodyState.pos];
-    if (pitchClass === expectedEvent.pitchClass && octaveOffset === expectedEvent.octaveOffset) melodyState.hits++;
+    var octShift = melodySettings.octaveShift || 0;
+    if (pitchClass === expectedEvent.pitchClass && octaveOffset === expectedEvent.octaveOffset + octShift) melodyState.hits++;
     melodyState.pos++;
     if (melodyState.pos >= noteEvents.length) {
         melodyState.finished = true;
