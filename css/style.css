@@ -382,6 +382,11 @@ h1 { font-size: 1.1rem; margin: 0; text-align: left; }
 .cube3d-option-box.correct { border-color: #10b981; background: #d1fae5; }
 .cube3d-option-box.wrong { border-color: #ef4444; background: #fee2e2; }
 
+/* ===== 전개도 접어 상자 만들기: 정지된 3D 정육면체 미리보기(레벨2 보기, 레벨3 두 각도) ===== */
+.netfold-cube-scene { width: 120px; height: 120px; margin: 0 auto; perspective: 480px; position: relative; }
+.netfold-cube-group { position: absolute; top: 50%; left: 50%; width: 0; height: 0; transform-style: preserve-3d; }
+.netfold-cube-face { position: absolute; top: 50%; left: 50%; box-sizing: border-box; border: 1.5px solid rgba(0,0,0,0.25); background: #fff; display: flex; align-items: center; justify-content: center; backface-visibility: hidden; }
+
 /* ===== 방향 나침반 (문제 영역을 감싸는 모서리 라벨) ===== */
 .compass-frame {
     position: relative;
