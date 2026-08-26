@@ -985,23 +985,24 @@ var BURGER_VISUAL = {
     '🍯': { color: '#f4a825', dark: '#d68e12' },
     '🥑': { color: '#a8c256', dark: '#87a13c' }
 };
-// 실제 재료 사진(투명 배경 PNG, index.html과 같은 폴더에 있음)
+// 실제 재료 사진(투명 배경 PNG, images/hamburger 폴더에 있음)
+var HAMBURGER_IMG_BASE = 'images/hamburger/';
 var HAMBURGER_IMG = {
-    bunBottom: '햄버거재료_아래빵.png',
-    bunTop: '햄버거재료_윗빵.png',
-    pattyRaw: '햄버거재료_생패티.png',
-    pattyCooked: '햄버거재료_구운패티.png',
-    baconRaw: '햄버거재료_생베이컨.png',
-    baconCooked: '햄버거재료_구운베이컨.png',
-    grillPan: '햄버거재료_굽기.png',
-    wrapPaper: '햄버거재료_포장지.png',
-    '🧀': '햄버거재료_치즈.png',
-    '🥬': '햄버거재료_상추.png',
-    '🍅': '햄버거재료_토마토.png',
-    '🧅': '햄버거재료_양파.png',
-    '🍯': '햄버거재료_시럽.png',
-    '🥑': '햄버거재료_아보카도.png',
-    '🥒': '햄버거재료_오이.png'
+    bunBottom: HAMBURGER_IMG_BASE + '햄버거재료_아래빵.png',
+    bunTop: HAMBURGER_IMG_BASE + '햄버거재료_윗빵.png',
+    pattyRaw: HAMBURGER_IMG_BASE + '햄버거재료_생패티.png',
+    pattyCooked: HAMBURGER_IMG_BASE + '햄버거재료_구운패티.png',
+    baconRaw: HAMBURGER_IMG_BASE + '햄버거재료_생베이컨.png',
+    baconCooked: HAMBURGER_IMG_BASE + '햄버거재료_구운베이컨.png',
+    grillPan: HAMBURGER_IMG_BASE + '햄버거재료_굽기.png',
+    wrapPaper: HAMBURGER_IMG_BASE + '햄버거재료_포장지.png',
+    '🧀': HAMBURGER_IMG_BASE + '햄버거재료_치즈.png',
+    '🥬': HAMBURGER_IMG_BASE + '햄버거재료_상추.png',
+    '🍅': HAMBURGER_IMG_BASE + '햄버거재료_토마토.png',
+    '🧅': HAMBURGER_IMG_BASE + '햄버거재료_양파.png',
+    '🍯': HAMBURGER_IMG_BASE + '햄버거재료_시럽.png',
+    '🥑': HAMBURGER_IMG_BASE + '햄버거재료_아보카도.png',
+    '🥒': HAMBURGER_IMG_BASE + '햄버거재료_오이.png'
 };
 function hamburgerRawImg(item) { return item === '🥩' ? HAMBURGER_IMG.pattyRaw : HAMBURGER_IMG.baconRaw; }
 function hamburgerCookedImg(item) { return item === '🥩' ? HAMBURGER_IMG.pattyCooked : HAMBURGER_IMG.baconCooked; }
@@ -1285,7 +1286,7 @@ function retryHamburgerFresh() {
 }
 function renderHamburger() {
     var html = '<div class="game-title-box">🍔 햄버거 만들기</div>';
-    html += '<div class="game-sub-desc">명령을 순서대로 쌓아서 "' + burgerState.recipe.name + '"를 완성해보세요! <b style="color:var(--primary);">고기·베이컨은 먼저 구워야 담을 수 있어요.</b></div>';
+    html += '<div class="game-sub-desc">명령을 순서대로 쌓아서 <b style="color:#1d4ed8;">"' + burgerState.recipe.name + '"</b>를 완성해보세요! <b style="color:var(--primary);">고기·베이컨은 먼저 구워야 담을 수 있어요.</b></div>';
     html += '<div class="status-row"><div>' + burgerRound + '라운드</div><div>완성: ' + burgerSolved + '개</div></div>';
     html += '<div class="row-label">📋 주문서 (아래→위 순서)</div><div class="row-display">';
     burgerState.recipe.layers.forEach(function (l) { html += '<div class="row-box">' + l + '</div>'; });
@@ -1601,6 +1602,283 @@ function renderWaterPipe() {
     }
 }
 
+// ===================== 32. 코딩 사고: 청소 로봇 반복 대작전 (조건 반복문 - repeat until) =====================
+// 블록코딩 로봇(정해진 횟수 반복 🔁2/🔁3)과 다르게, 이 게임은 "몇 번"인지 모르는 상황에서
+// "먼지가 있는 동안(조건) 계속" 반복하는 조건-반복문(while/repeat-until) 개념을 다룸.
+// 복도는 시작칸(0) + 먼지칸(N개) 로 이어지고, 여러 복도를 이을 때는 그 사이에 "코너"(먼지 없음,
+// 반드시 🔄로 지나가야 함) 칸을 하나 둠 - 그래서 직선 구간마다 반복 블록을 "따로" 써야 한다는 것도 배움.
+var CLEANBOT_SEGMENT_COUNT = { low: 1, mid: 2, high: 3 };
+var CLEANBOT_BLOCKS_BASE = [
+    { type: 'forward', label: '➡️ 전진', shortLabel: '➡️' },
+    { type: 'repeatStart', label: '🔁 먼지가 있으면 반복', shortLabel: '🔁❓' },
+    { type: 'repeatEnd', label: '⏹ 반복 끝', shortLabel: '⏹' }
+];
+var CLEANBOT_TURN_BLOCK = { type: 'turnRight', label: '🔄 코너 돌기', shortLabel: '🔄' };
+var cleanbotSettings = { level: 'low' };
+var cleanbotState = {};
+var cleanbotRound = 1, cleanbotSolved = 0;
+function initCleanbot() { renderCleanbotSetup(); }
+function renderCleanbotSetup() {
+    var levels = [
+        { v: 'low', l: '하 (복도 1개)' },
+        { v: 'mid', l: '중 (복도 2개 + 코너 1번)' },
+        { v: 'high', l: '상 (복도 3개 + 코너 2번)' }
+    ];
+    var html = '<div class="game-title-box">🧹 청소 로봇 반복 대작전</div>';
+    html += '<div class="game-sub-desc">난이도를 골라 시작해보세요! 복도의 먼지 개수는 실행할 때마다 달라져요 — 그래서 "몇 번 반복"이 아니라 "먼지가 있으면 반복"이 필요해요.</div>';
+    html += '<div class="setup-section-label">난이도</div><div class="setup-btn-group">';
+    levels.forEach(function (t) {
+        html += '<button class="setup-btn' + (cleanbotSettings.level === t.v ? ' active' : '') + '" onclick="setCleanbotLevel(\'' + t.v + '\')">' + t.l + '</button>';
+    });
+    html += '</div>';
+    html += '<button class="action-btn" onclick="startCleanbotSession()">시작하기 🚀</button>';
+    document.getElementById('mainArea').innerHTML = html;
+}
+function setCleanbotLevel(v) { cleanbotSettings.level = v; renderCleanbotSetup(); }
+function startCleanbotSession() { cleanbotRound = 1; cleanbotSolved = 0; generateCleanbotRound(); }
+function cloneCleanbotCells(cells) { return cells.map(function (c) { return { dust: c.dust, corner: c.corner }; }); }
+function buildCleanbotWorld(segCount) {
+    var cells = [{ dust: false, corner: false }];
+    for (var s = 0; s < segCount; s++) {
+        var n = getRandomInt(3, 5);
+        for (var i = 0; i < n; i++) cells.push({ dust: true, corner: false });
+        if (s < segCount - 1) cells.push({ dust: false, corner: true });
+    }
+    return cells;
+}
+function getCleanbotPalette() {
+    var list = CLEANBOT_BLOCKS_BASE.slice();
+    if (cleanbotState.segCount > 1) list.push(CLEANBOT_TURN_BLOCK);
+    return list;
+}
+function generateCleanbotRound() {
+    var segCount = CLEANBOT_SEGMENT_COUNT[cleanbotSettings.level];
+    var blueprint = buildCleanbotWorld(segCount);
+    cleanbotState = {
+        segCount: segCount, blueprint: blueprint, cells: cloneCleanbotCells(blueprint),
+        pos: 0, pc: 0, curInstrIdx: null, guard: 0, jumps: null,
+        program: [], running: false, solved: false, lastMsg: ''
+    };
+    renderCleanbot();
+}
+function addCleanbotBlock(idx) {
+    if (cleanbotState.running || cleanbotState.solved) return;
+    vibrateShort();
+    cleanbotState.program.push(getCleanbotPalette()[idx]);
+    renderCleanbot();
+}
+function undoCleanbotBlock() {
+    if (cleanbotState.running || cleanbotState.solved) return;
+    vibrateShort();
+    cleanbotState.program.pop();
+    renderCleanbot();
+}
+// 🔁/⏹ 짝을 찾아 각 반복시작 인덱스 -> 반복끝 인덱스(및 역방향) 점프표를 만듦(중첩 반복은 아직 미지원)
+function cleanbotFindJumps(program) {
+    var stack = [];
+    var startToEnd = {}, endToStart = {};
+    var error = null;
+    for (var i = 0; i < program.length; i++) {
+        if (program[i].type === 'repeatStart') {
+            if (stack.length > 0) { error = '반복 블록 안에는 아직 또 다른 반복 블록을 넣을 수 없어요.'; break; }
+            stack.push(i);
+        } else if (program[i].type === 'repeatEnd') {
+            if (stack.length === 0) { error = '짝이 되는 "🔁 반복" 블록 없이 "⏹ 반복 끝"만 있어요.'; break; }
+            var s = stack.pop();
+            startToEnd[s] = i; endToStart[i] = s;
+        }
+    }
+    if (!error && stack.length > 0) error = '"🔁 반복" 블록에 짝이 되는 "⏹ 반복 끝" 블록이 없어요.';
+    return { startToEnd: startToEnd, endToStart: endToStart, error: error };
+}
+function cleanbotHasDustAhead(cells, pos) { return !!(cells[pos + 1] && cells[pos + 1].dust); }
+// 프로그램을 애니메이션 없이 끝까지 빠르게 실행해서 성공 여부만 계산(다른 길이의 복도로 일반화 검증할 때 사용)
+function cleanbotSimulate(program, jumps, segCount) {
+    var cells = buildCleanbotWorld(segCount);
+    var pos = 0, pc = 0, guard = 0;
+    while (pc < program.length) {
+        guard++;
+        if (guard > 500) return false;
+        var instr = program[pc];
+        if (instr.type === 'repeatStart') {
+            pc = cleanbotHasDustAhead(cells, pos) ? pc + 1 : jumps.startToEnd[pc] + 1;
+        } else if (instr.type === 'repeatEnd') {
+            pc = jumps.endToStart[pc];
+        } else if (instr.type === 'forward') {
+            if (!cells[pos + 1] || cells[pos + 1].corner) return false;
+            pos++; cells[pos].dust = false; pc++;
+        } else if (instr.type === 'turnRight') {
+            if (cells[pos + 1] && cells[pos + 1].corner) pos++;
+            pc++;
+        }
+    }
+    return pos === cells.length - 1 && cells.every(function (c) { return !c.dust; });
+}
+function runCleanbotProgram() {
+    if (cleanbotState.running || cleanbotState.solved) return;
+    var jumps = cleanbotFindJumps(cleanbotState.program);
+    var msg = document.getElementById('cleanbotMsg');
+    if (jumps.error) {
+        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '🚫 ' + jumps.error;
+        return;
+    }
+    if (cleanbotState.program.length === 0) {
+        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '먼저 명령 블록을 눌러서 프로그램을 만들어보세요!';
+        return;
+    }
+    cleanbotState.jumps = jumps;
+    cleanbotState.running = true;
+    cleanbotState.pos = 0;
+    cleanbotState.pc = 0;
+    cleanbotState.guard = 0;
+    cleanbotState.curInstrIdx = null;
+    cleanbotState.cells = cloneCleanbotCells(cleanbotState.blueprint);
+    cleanbotState.lastMsg = '';
+    renderCleanbot();
+    var t = setTimeout(stepCleanbotProgram, 500);
+    activeTimers.push(t);
+}
+function stepCleanbotProgram() {
+    var st = cleanbotState;
+    st.guard++;
+    if (st.guard > 300) {
+        st.running = false;
+        handleCleanbotFail('🐛 반복이 끝나지 않아요! (무한 반복에 빠졌어요) 반복 블록 안의 조건이나 명령을 다시 확인해보세요.');
+        return;
+    }
+    if (st.pc >= st.program.length) {
+        st.running = false;
+        var allClean = st.cells.every(function (c) { return !c.dust; });
+        if (st.pos === st.cells.length - 1 && allClean) { handleCleanbotSuccess(); }
+        else { handleCleanbotFail('아직 복도를 다 지나지 못했어요! 프로그램을 다시 살펴보세요.'); }
+        return;
+    }
+    var instr = st.program[st.pc];
+    var curPc = st.pc;
+    st.curInstrIdx = curPc;
+    if (instr.type === 'repeatStart') {
+        st.pc = cleanbotHasDustAhead(st.cells, st.pos) ? curPc + 1 : st.jumps.startToEnd[curPc] + 1;
+    } else if (instr.type === 'repeatEnd') {
+        st.pc = st.jumps.endToStart[curPc];
+    } else if (instr.type === 'forward') {
+        if (!st.cells[st.pos + 1]) {
+            st.running = false;
+            handleCleanbotFail('🐛 복도 끝 벽에 부딪혔어요! 더 이상 갈 곳이 없어요. 필요 없는 명령을 지워보세요.');
+            return;
+        }
+        if (st.cells[st.pos + 1].corner) {
+            st.running = false;
+            handleCleanbotFail('🐛 앞이 꺾인 코너예요! "🔄 코너 돌기"로 먼저 지나가야 해요.');
+            return;
+        }
+        st.pos++;
+        st.cells[st.pos].dust = false;
+        st.pc = curPc + 1;
+    } else if (instr.type === 'turnRight') {
+        if (st.cells[st.pos + 1] && st.cells[st.pos + 1].corner) { st.pos++; }
+        st.pc = curPc + 1;
+    }
+    renderCleanbot();
+    var t = setTimeout(stepCleanbotProgram, 480);
+    activeTimers.push(t);
+}
+function handleCleanbotFail(reason) {
+    renderCleanbot();
+    var msg = document.getElementById('cleanbotMsg');
+    msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = reason;
+    document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" onclick="retryCleanbotRound()">다시 실행하기 🔁</button>');
+}
+function handleCleanbotSuccess() {
+    renderCleanbot();
+    var msg = document.getElementById('cleanbotMsg');
+    msg.className = 'msg-box'; msg.style.display = 'block';
+    msg.innerText = '🎉 복도를 깨끗하게 청소했어요! 이 프로그램이 다른 길이의 복도에서도 통하는지 테스트해볼게요...';
+    var t = setTimeout(runCleanbotGeneralizationTest, 900);
+    activeTimers.push(t);
+}
+// 성공한 프로그램을, 같은 구조지만 먼지 개수가 다른 복도 3곳에 몰래 테스트해봄으로써
+// "정해진 횟수만큼 낱개로 나열"이 아니라 진짜 "조건 반복"을 썼는지 확인하는 일반화 검증 단계
+function runCleanbotGeneralizationTest() {
+    var trials = [];
+    for (var i = 0; i < 3; i++) { trials.push(cleanbotSimulate(cleanbotState.program, cleanbotState.jumps, cleanbotState.segCount)); }
+    var passCount = trials.filter(function (x) { return x; }).length;
+    var html = '<div class="msg-box" style="display:block; text-align:left; line-height:1.8;">';
+    html += '🧪 <b>다른 길이의 복도 3곳</b>에서도 테스트했어요: ' + trials.map(function (ok) { return ok ? '✅' : '❌'; }).join(' ') + '<br>';
+    if (passCount === 3) {
+        html += '<b style="color:#166534;">완벽해요! 이 프로그램은 복도 길이가 달라져도 항상 통해요 — 진짜 "반복"의 힘이에요! 🌟</b>';
+    } else {
+        html += '<b style="color:#991b1b;">앗, 방금 그 복도에서만 우연히 통했나봐요. "전진"을 낱개로 여러 번 눌러 만들지 않았는지 확인하고, "🔁 먼지가 있으면 반복" 블록으로 다시 만들어보세요!</b>';
+    }
+    html += '</div>';
+    document.getElementById('mainArea').insertAdjacentHTML('beforeend', html);
+    cleanbotRound++;
+    if (passCount === 3) {
+        cleanbotSolved++;
+        cleanbotState.solved = true;
+        document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextCleanbotRound()', 'retryCleanbotFresh()', 'renderCleanbotSetup()'));
+    } else {
+        document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" onclick="retryCleanbotFresh()">프로그램 다시 만들기 🔁</button>');
+    }
+}
+function retryCleanbotRound() {
+    cleanbotState.running = false;
+    cleanbotState.pos = 0; cleanbotState.pc = 0; cleanbotState.curInstrIdx = null;
+    cleanbotState.cells = cloneCleanbotCells(cleanbotState.blueprint);
+    cleanbotState.lastMsg = '';
+    renderCleanbot();
+}
+function nextCleanbotRound() { cleanbotRound++; generateCleanbotRound(); }
+function retryCleanbotFresh() {
+    cleanbotState.program = [];
+    cleanbotState.running = false;
+    cleanbotState.solved = false;
+    cleanbotState.pos = 0; cleanbotState.pc = 0; cleanbotState.curInstrIdx = null;
+    cleanbotState.cells = cloneCleanbotCells(cleanbotState.blueprint);
+    cleanbotState.lastMsg = '';
+    renderCleanbot();
+}
+function renderCleanbotStrip() {
+    var st = cleanbotState;
+    var cellPx = 34;
+    var html = '<div style="width:100%; overflow-x:auto;"><div style="display:flex; gap:2px; padding:0.5rem 0; margin:0 auto; width:max-content;">';
+    st.cells.forEach(function (c, i) {
+        var isRobot = i === st.pos;
+        var bg = c.corner ? '#fde68a' : (c.dust ? '#e7e5e4' : '#f8fafc');
+        var content = isRobot ? '🤖' : (c.corner ? '🔄' : (c.dust ? '🟤' : ''));
+        html += '<div style="width:' + cellPx + 'px; height:' + cellPx + 'px; background:' + bg + '; border:2px solid #d6d3d1; border-radius:0.3rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">' + content + '</div>';
+    });
+    html += '</div></div>';
+    return html;
+}
+function renderCleanbot() {
+    var st = cleanbotState;
+    var html = '<div class="game-title-box">🧹 청소 로봇 반복 대작전</div>';
+    html += '<div class="game-sub-desc">복도에 먼지가 <b style="color:var(--primary);">몇 개 있는지 몰라도</b> 청소할 수 있는 프로그램을 만들어보세요!</div>';
+    html += '<div class="status-row"><div>' + cleanbotRound + '라운드</div><div>완료: ' + cleanbotSolved + '개</div></div>';
+    html += renderCleanbotStrip();
+    html += '<div class="setup-section-label">명령 블록 (눌러서 추가)</div><div class="palette-row">';
+    getCleanbotPalette().forEach(function (bt, idx) {
+        html += '<button class="setup-btn" style="min-width:auto;" ' + (st.running || st.solved ? 'disabled' : '') + ' onclick="addCleanbotBlock(' + idx + ')">' + bt.label + '</button>';
+    });
+    html += '</div>';
+    html += '<div class="setup-section-label">내 프로그램 (' + st.program.length + '개)</div><div class="sequence-answer-row" style="flex-wrap:wrap;">';
+    if (st.program.length === 0) {
+        html += '<div class="game-sub-desc" style="margin:0;">아직 명령이 없어요. 위에서 블록을 눌러 추가해보세요!</div>';
+    } else {
+        st.program.forEach(function (blk, i) {
+            var isCurrent = st.running && st.curInstrIdx === i;
+            html += '<div class="sequence-answer-slot" style="width:auto; min-width:40px; padding:0 0.35rem; font-size:0.85rem; font-weight:800;' + (isCurrent ? 'background:#fef9c3;border-color:#eab308;' : '') + '">' + blk.shortLabel + '</div>';
+        });
+    }
+    html += '</div>';
+    html += '<div class="options-grid">';
+    html += '<button class="action-btn" ' + (st.running || st.solved ? 'disabled' : '') + ' onclick="runCleanbotProgram()">▶ 실행</button>';
+    html += '<button class="action-btn secondary" ' + (st.running || st.solved ? 'disabled' : '') + ' onclick="undoCleanbotBlock()">↩ 지우기</button>';
+    html += '</div>';
+    html += '<div id="cleanbotMsg" class="msg-box"></div>';
+    document.getElementById('mainArea').innerHTML = html;
+}
+
 // ===================== 게임 등록 =====================
 GAME_INIT_FNS.blockCoding = initBlockCoding;
 GAME_INIT_FNS.conditionalRobot = initConditionalRobot;
@@ -1611,3 +1889,4 @@ GAME_INIT_FNS.efficiencyGuess = initEfficiencyGuess;
 GAME_INIT_FNS.logicGate = initLogicGate;
 GAME_INIT_FNS.hamburgerMaker = initHamburger;
 GAME_INIT_FNS.waterPipe = initWaterPipe;
+GAME_INIT_FNS.cleanbot = initCleanbot;

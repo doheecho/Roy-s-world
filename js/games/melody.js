@@ -617,7 +617,7 @@ function renderMelodyStaffSvg(events, unitPx, song, showTimeSig) {
         var isCurrent = ev.noteIndex === melodyState.pos;
         var isPast = ev.noteIndex < melodyState.pos;
         var isDemoActive = ev === melodyState.demoActiveEvent;
-        var fill = isCurrent ? '#f59e0b' : (isPast ? '#9ca3af' : '#1f2937');
+        var fill = isCurrent ? '#3b82f6' : (isPast ? '#9ca3af' : '#1f2937');
         if (isDemoActive) { fill = '#eab308'; }
         var d = classifyMelodyDuration(ev.units);
         getLedgerLineYs(y).forEach(function (ly) {
@@ -675,20 +675,21 @@ function renderMelodyTopHtml() {
     var isFull = melodyState.mode === 'full';
     var html = '<style>@keyframes melodyPulse{0%,100%{opacity:0.2;}50%{opacity:0.75;}}.melody-pulse{animation:melodyPulse 0.5s ease-in-out infinite;}</style>';
     html += '<div class="game-title-box">🎼 멜로디 연주하기 · ' + song.name + (isFull ? ' (전체곡)' : '') + '</div>';
-    html += '<div class="game-sub-desc">주황색 음표를 순서대로 건반으로 눌러보세요! (연주 중 노란색으로 반짝이는 음이 지금 들리는 음이에요. 악보를 클릭하면 그 부분부터 들을 수 있어요)</div>';
+    html += '<div class="game-sub-desc">파란색 음표를 순서대로 건반으로 눌러보세요! (연주 중 노란색으로 반짝이는 음이 지금 들리는 음이에요. 악보를 클릭하면 그 부분부터 들을 수 있어요)</div>';
     html += '<div class="status-row"><div>' + melodyState.pos + ' / ' + totalNotes + '음 연주함</div><div>맞은 음: ' + melodyState.hits + '</div></div>';
     html += renderMelodyStaffLines(getVisibleEvents());
     if (!melodyState.isPlaying) {
-        html += '<div class="setup-section-label">재생 속도</div><div class="setup-btn-group" style="margin-bottom:0.5rem;">';
-        [0.5, 0.8, 1, 1.2].forEach(function (sp) {
-            html += '<button class="setup-btn' + (melodySettings.playbackSpeed === sp ? ' active' : '') + '" onclick="setMelodyPlaybackSpeed(' + sp + ')">x' + sp + '</button>';
-        });
-        html += '</div>';
         var octShift = melodySettings.octaveShift || 0;
-        html += '<div class="setup-section-label">옥타브 조정</div><div class="setup-btn-group" style="margin-bottom:0.5rem; align-items:center;">';
-        html += '<button class="setup-btn" onclick="setMelodyOctaveShift(-1)"' + (octShift <= -2 ? ' disabled' : '') + '>옥타브 ⬇</button>';
-        html += '<span style="padding:0 0.7rem; font-weight:800; color:#1f2937;">' + (octShift > 0 ? '+' + octShift : octShift) + '</span>';
-        html += '<button class="setup-btn" onclick="setMelodyOctaveShift(1)"' + (octShift >= 2 ? ' disabled' : '') + '>옥타브 ⬆</button>';
+        html += '<div style="display:flex; justify-content:space-between; align-items:baseline;">';
+        html += '<span class="setup-section-label">재생 속도</span>';
+        html += '<span class="setup-section-label">옥타브 조정 <span style="color:var(--primary);">' + (octShift > 0 ? '+' + octShift : octShift) + '</span></span>';
+        html += '</div>';
+        html += '<div class="setup-btn-group" style="margin-bottom:0.5rem; flex-wrap:nowrap; gap:0.3rem;">';
+        [0.5, 0.8, 1, 1.2].forEach(function (sp) {
+            html += '<button class="setup-btn' + (melodySettings.playbackSpeed === sp ? ' active' : '') + '" style="min-width:0; padding:0.6rem 0.2rem; font-size:0.82rem;" onclick="setMelodyPlaybackSpeed(' + sp + ')">x' + sp + '</button>';
+        });
+        html += '<button class="setup-btn" style="flex:0 0 2.4rem; min-width:0; padding:0.6rem 0;" onclick="setMelodyOctaveShift(-1)"' + (octShift <= -2 ? ' disabled' : '') + '>▼</button>';
+        html += '<button class="setup-btn" style="flex:0 0 2.4rem; min-width:0; padding:0.6rem 0;" onclick="setMelodyOctaveShift(1)"' + (octShift >= 2 ? ' disabled' : '') + '>▲</button>';
         html += '</div>';
     }
     if (melodyState.isPlaying) {
@@ -696,11 +697,11 @@ function renderMelodyTopHtml() {
     } else if (isFull) {
         html += '<button class="action-btn secondary" style="margin-bottom:0.8rem;" onclick="listenFullDemo()">🔊 다시 듣기</button>';
     } else {
-        html += '<div class="options-grid" style="grid-template-columns:1fr 1fr; margin-bottom:0.8rem;">';
-        html += '<button class="action-btn secondary" onclick="listenSegmentDemo()">🔊 구간 듣기</button>';
-        html += '<button class="action-btn secondary" onclick="listenFullDemo()">🎬 전체 듣기</button>';
-        html += '<button class="action-btn secondary" onclick="toggleMelodyScoreView()">' + (melodyState.displayFull ? '📖 구간 악보로' : '📜 전체 악보보기') + '</button>';
-        html += '<button class="action-btn secondary" onclick="renderMelodySetup()">⏮ 처음으로</button>';
+        html += '<div class="options-grid" style="grid-template-columns:repeat(4, 1fr); gap:0.35rem; margin-bottom:0.8rem;">';
+        html += '<button class="action-btn secondary" style="padding:0.6rem 0.3rem; font-size:0.85rem;" onclick="listenSegmentDemo()">구간 듣기</button>';
+        html += '<button class="action-btn secondary" style="padding:0.6rem 0.3rem; font-size:0.85rem;" onclick="listenFullDemo()">전체 듣기</button>';
+        html += '<button class="action-btn secondary" style="padding:0.6rem 0.3rem; font-size:0.85rem;" onclick="toggleMelodyScoreView()">' + (melodyState.displayFull ? '구간 악보로' : '전체 악보보기') + '</button>';
+        html += '<button class="action-btn secondary" style="padding:0.6rem 0.3rem; font-size:0.85rem;" onclick="renderMelodySetup()">처음으로</button>';
         html += '</div>';
     }
     return html;
