@@ -58,7 +58,8 @@ var GAME_LIST = [
         { id: "gearRotation", emoji: "⚙️", name: "톱니바퀴 회전 방향 맞추기", desc: "맞물린 톱니바퀴의 회전 방향을 추론해요", quickStart: "initGearRotation" },
         { id: "lightMirrorMaze", emoji: "🔆", name: "빛과 거울 미로", desc: "거울을 배치해 레이저를 별까지 반사시켜요", quickStart: "startLightMazeSession" },
         { id: "paperFold", emoji: "🧩", name: "접힌 종이 구멍 뚫기", desc: "종이를 접고 구멍을 뚫은 뒤 펼친 모양을 맞혀요", quickStart: "startPaperFoldSession" },
-        { id: "cheeseMaze", emoji: "🧀", name: "치즈 갉아먹기 미로", desc: "모든 칸을 한 번씩만 지나 구멍으로 탈출해요", quickStart: "startCheeseSession" }
+        { id: "cheeseMaze", emoji: "🧀", name: "치즈 갉아먹기 미로", desc: "모든 칸을 한 번씩만 지나 구멍으로 탈출해요", quickStart: "startCheeseSession" },
+        { id: "netFoldBox", emoji: "📦", name: "전개도 접어 상자 만들기", desc: "전개도가 접히는 모습을 보고 마주보는 면과 상자 모양을 추론해요", quickStart: "initNetFoldBox" }
     ]},
     { cat: "📝 언어 상식 퀴즈", games: [
         { id: "chosungQuiz", emoji: "🔤", name: "초성 퀴즈", desc: "초성 보고 소리내어 맞혀요", quickStart: "startChosungSession" },
@@ -96,7 +97,8 @@ var GAME_LIST = [
         { id: "logicGate", emoji: "💡", name: "AND OR 스위치 놀이", desc: "여러 조건을 AND(둘다)/OR(하나만)로 합쳐요", quickStart: "initLogicGate" },
         { id: "functionFinder", emoji: "📦", name: "나만의 명령 만들기", desc: "반복되는 부분을 함수 하나로 묶어 재사용해요", quickStart: "initFunctionFinder" },
         { id: "efficiencyGuess", emoji: "⚡", name: "최소 명령 개수 맞추기", desc: "같은 결과라도 더 효율적인 방법이 있어요", quickStart: "startEfficiencySession" },
-        { id: "waterPipe", emoji: "🔀", name: "논리 회로 물길 연결하기", desc: "파이프를 돌려 수도꼭지 물을 물탱크까지 연결해요", quickStart: "startWaterPipeSession" }
+        { id: "waterPipe", emoji: "🔀", name: "논리 회로 물길 연결하기", desc: "파이프를 돌려 수도꼭지 물을 물탱크까지 연결해요", quickStart: "startWaterPipeSession" },
+        { id: "cleanbot", emoji: "🧹", name: "청소 로봇 반복 대작전", desc: "먼지가 몇 개인지 몰라도 되는 '조건 반복' 블록으로 복도를 청소해요", quickStart: "initCleanbot" }
     ]}
 ];
 
