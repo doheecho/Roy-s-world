@@ -47,6 +47,7 @@ var GAME_LIST = [
         { id: "flashMemory", emoji: "⚡", name: "순간 기억하기", desc: "잠깐 보여준 걸 기억해요", quickStart: "startFlashSession" },
         { id: "pianoKeys", emoji: "🎹", name: "피아노 건반 누르기", desc: "건반이 눌리는 순서를 기억해서 따라 눌러요", quickStart: "startPianoSession" },
         { id: "melodyGame", emoji: "🎼", name: "멜로디 연주하기", desc: "악보를 보고 건반으로 멜로디를 연주해요", quickStart: "startMelodySession" },
+        { id: "memoryRoom", emoji: "🛋️", name: "기억의 방", desc: "물건들이 있던 자리를 기억해요", quickStart: "startRoomSession" }
     ]},
     { cat: "🧩 공간지각 게임", games: [
         { id: "mazeGame", emoji: "🐭", name: "미로 찾기", desc: "출구까지 길을 찾아가요", quickStart: "startMazeSession" },
@@ -59,9 +60,11 @@ var GAME_LIST = [
         { id: "lightMirrorMaze", emoji: "🔆", name: "빛과 거울 미로", desc: "거울을 배치해 레이저를 별까지 반사시켜요", quickStart: "startLightMazeSession" },
         { id: "paperFold", emoji: "🧩", name: "접힌 종이 구멍 뚫기", desc: "종이를 접고 구멍을 뚫은 뒤 펼친 모양을 맞혀요", quickStart: "startPaperFoldSession" },
         { id: "cheeseMaze", emoji: "🧀", name: "치즈 갉아먹기 미로", desc: "모든 칸을 한 번씩만 지나 구멍으로 탈출해요", quickStart: "startCheeseSession" },
-        { id: "netFoldBox", emoji: "📦", name: "전개도 접어 상자 만들기", desc: "전개도가 접히는 모습을 보고 마주보는 면과 상자 모양을 추론해요", quickStart: "initNetFoldBox" }
+        { id: "netFoldBox", emoji: "📦", name: "전개도 접어 상자 만들기", desc: "전개도가 접히는 모습을 보고 마주보는 면과 상자 모양을 추론해요", quickStart: "initNetFoldBox" },
+        { id: "mirrorSymmetry", emoji: "🪞", name: "거울 대칭 완성하기", desc: "거울처럼 똑같이 반대쪽을 완성해요", quickStart: "initMirrorSymmetry" },
+        { id: "waterPipe", emoji: "🔀", name: "파이프 연결하기", desc: "파이프를 돌려 수도꼭지 물을 물탱크까지 연결해요", quickStart: "startWaterPipeSession" }
     ]},
-    { cat: "📝 언어 상식 퀴즈", games: [
+    { cat: "📝 지식 퀴즈", games: [
         { id: "chosungQuiz", emoji: "🔤", name: "초성 퀴즈", desc: "초성 보고 소리내어 맞혀요", quickStart: "startChosungSession" },
         { id: "hanjaQuiz", emoji: "漢", name: "한자 공부", desc: "한자와 한자어의 뜻을 배우고 반대말도 찾아봐요", quickStart: "startHanjaSession" },
         { id: "proverbIdiom", emoji: "📜", name: "고사성어·속담 맞추기", desc: "뜻 설명을 읽고 알맞은 고사성어나 속담을 골라요", quickStart: "startProverbSession" },
@@ -70,23 +73,24 @@ var GAME_LIST = [
      { cat: "👀 관찰력 게임", games: [
         { id: "spotChange", emoji: "🔎", name: "무엇이 바뀌었을까", desc: "5초 안에 달라진 곳을 모두 찾아요", quickStart: "startSpotChangeGame" },
         { id: "numberRush", emoji: "🔢", name: "숫자야 나와라!", desc: "작은 수부터 순서대로 눌러요", quickStart: "startNumberRushSession" },
-        { id: "memoryRoom", emoji: "🛋️", name: "기억의 방", desc: "물건들이 있던 자리를 기억해요", quickStart: "startRoomSession" }
-     ]},,
+        { id: "flashCountSpot", emoji: "⚡", name: "순간 포착 세기", desc: "잠깐 나타난 물체 중 특정 색·모양이 몇 개였는지 맞혀요", quickStart: "startFlashCountSession" }
+     ]},
      { cat: "🎯 논리 사고 놀이", games: [
         { id: "patternMatrix", emoji: "🧩", name: "패턴 매트릭스", desc: "규칙을 찾아 빈칸을 채워요", quickStart: "startPatternSession" },
         { id: "sizeLogic", emoji: "📏", name: "크기 순서 추론", desc: "단서를 읽고 순서를 추론해요", quickStart: "initSizeLogic" },
-        { id: "mirrorSymmetry", emoji: "🪞", name: "거울 대칭 완성하기", desc: "거울처럼 똑같이 반대쪽을 완성해요", quickStart: "initMirrorSymmetry" },
         { id: "syllogism", emoji: "🧠", name: "참/거짓 명제 추론", desc: "단서를 보고 맞다/틀리다/모른다를 골라요", quickStart: "initSyllogism" },
-        { id: "numSeq", emoji: "🔢", name: "숫자 규칙 추리", desc: "규칙을 찾아 다음 숫자를 맞혀요", quickStart: "initNumSeq" },
-        { id: "weightScale", emoji: "⚖️", name: "무게 저울 추론하기", desc: "저울 단서를 보고 교환 비율을 추론해요", quickStart: "initWeightScale" },
         { id: "sudokuLite", emoji: "🧮", name: "스도쿠 퍼즐 라이트", desc: "가로·세로·상자 안에 같은 그림이 없게 채워요", quickStart: "startSudokuSession" },
-        { id: "suspectLogic", emoji: "🕵️", name: "범인을 찾아라!", desc: "단서를 보고 용의자를 소거해 범인을 찾아요", quickStart: "startSuspectSession" }
+        { id: "suspectLogic", emoji: "🕵️", name: "범인을 찾아라!", desc: "단서를 보고 용의자를 소거해 범인을 찾아요", quickStart: "startSuspectSession" },
+        { id: "truthLiarDetective", emoji: "🕵️‍♀️", name: "진실/거짓말 탐정", desc: "진실만/거짓만 말하는 캐릭터의 단서로 보물 문을 추론해요", quickStart: "startTruthLiarSession" },
+        { id: "oddRuleOut", emoji: "🔍", name: "규칙 벗어난 것 찾기", desc: "무리의 규칙을 찾아내고 벗어난 하나를 골라요", quickStart: "startOddRuleSession" }
     ]},
     { cat: "🔢 수학 놀이", games: [
         { id: "clockMatch", emoji: "🕐", name: "아날로그 시계 맞추기", desc: "바늘을 돌려 시각을 맞춰요", quickStart: "initClockMatch" },
         { id: "probabilityDraw", emoji: "🎲", name: "확률 저울 뽑기", desc: "구슬 개수를 보고 뽑힐 확률이 높은 색을 맞혀요", quickStart: "initProbabilityDraw" },
         { id: "changeCounter", emoji: "💰", name: "거스름돈 계산", desc: "물건을 스캔하고 정확한 거스름돈을 건네요", quickStart: "startChangeSession" },
-        { id: "mathAdventure", emoji: "➕", name: "수학 대모험", desc: "학년별 수학 문제를 풀며 계산력을 키워요", quickStart: "startMathAdvSession" }
+        { id: "mathAdventure", emoji: "➕", name: "수학 대모험", desc: "학년별 수학 문제를 풀며 계산력을 키워요", quickStart: "startMathAdvSession" },
+        { id: "numSeq", emoji: "🔢", name: "숫자 규칙 추리", desc: "규칙을 찾아 다음 숫자를 맞혀요", quickStart: "initNumSeq" },
+        { id: "weightScale", emoji: "⚖️", name: "무게 저울 추론하기", desc: "저울 단서를 보고 교환 비율을 추론해요", quickStart: "initWeightScale" }
     ]},
     { cat: "💻 코딩 사고 놀이", games: [
         { id: "hamburgerMaker", emoji: "🍔", name: "햄버거 만들기", desc: "순서가 결과를 바꿔요! 명령을 순서대로 쌓아 직접 실행해요", quickStart: "initHamburger" },
@@ -97,8 +101,15 @@ var GAME_LIST = [
         { id: "logicGate", emoji: "💡", name: "AND OR 스위치 놀이", desc: "여러 조건을 AND(둘다)/OR(하나만)로 합쳐요", quickStart: "initLogicGate" },
         { id: "functionFinder", emoji: "📦", name: "나만의 명령 만들기", desc: "반복되는 부분을 함수 하나로 묶어 재사용해요", quickStart: "initFunctionFinder" },
         { id: "efficiencyGuess", emoji: "⚡", name: "최소 명령 개수 맞추기", desc: "같은 결과라도 더 효율적인 방법이 있어요", quickStart: "startEfficiencySession" },
-        { id: "waterPipe", emoji: "🔀", name: "논리 회로 물길 연결하기", desc: "파이프를 돌려 수도꼭지 물을 물탱크까지 연결해요", quickStart: "startWaterPipeSession" },
-        { id: "cleanbot", emoji: "🧹", name: "청소 로봇 반복 대작전", desc: "먼지가 몇 개인지 몰라도 되는 '조건 반복' 블록으로 복도를 청소해요", quickStart: "initCleanbot" }
+        { id: "cleanbot", emoji: "🧹", name: "반복 청소 로봇", desc: "'조건 반복' 명령 블록으로 복도를 청소해요", quickStart: "initCleanbot" }
+    ]},
+    { cat: "🔤 영어 놀이", games: [
+        { id: "listenPickPicture", emoji: "🎧", name: "듣고 그림 찾기", desc: "영어 문장을 듣고 맞는 그림을 골라요", quickStart: "initListenPick" },
+        { id: "followInstructions", emoji: "🙋", name: "지시 따라하기", desc: "영어 지시를 듣고 조건에 맞는 것을 모두 찾아요", quickStart: "initFollowInstructions" },
+        { id: "sentenceScramble", emoji: "🧩", name: "문장 만들기", desc: "흩어진 단어 카드로 올바른 영어 문장을 만들어요", quickStart: "initSentenceScramble" },
+        { id: "fillInBlank", emoji: "✏️", name: "빈칸 채우기", desc: "그림을 보고 빈칸에 문법적으로 맞는 단어를 골라요", quickStart: "initFillInBlank" },
+        { id: "wordSort", emoji: "🗂️", name: "단어 분류하기", desc: "단어 카드를 뜻에 맞는 통에 분류해요", quickStart: "initWordSort" },
+        { id: "oppositeMatch", emoji: "🔄", name: "반대말·비슷한말 짝짓기", desc: "짝이 되는 반의어·동의어 카드를 맞춰요", quickStart: "initOppositeMatch" }
     ]}
 ];
 
