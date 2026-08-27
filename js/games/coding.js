@@ -371,23 +371,26 @@ function generateCondRobotRound() {
     var rules = colors.map(function (c, i) { return { symbol: c, action: actionsPool[i], delta: deltaMap[actionsPool[i]] }; });
     var path = [];
     for (var i = 0; i < n; i++) path.push(pickRandom(colors));
-    var pos = 0;
+    // 후진하면 0보다 뒤(-1, -2 …)로도 갈 수 있음 - 더 이상 0에서 막지 않음
+    var pos = 0, minPos = 0, maxPos = 0;
     path.forEach(function (c) {
         var rule = rules.filter(function (r) { return r.symbol === c; })[0];
         pos += rule.delta;
-        if (pos < 0) pos = 0;
+        if (pos < minPos) minPos = pos;
+        if (pos > maxPos) maxPos = pos;
     });
     var finalPos = pos;
     var candidates = [finalPos];
-    [1, -1, 2, -2].forEach(function (d) {
+    [1, -1, 2, -2, 3, -3].forEach(function (d) {
         var v = finalPos + d;
-        if (v >= 0 && candidates.indexOf(v) === -1 && candidates.length < 4) candidates.push(v);
+        if (candidates.indexOf(v) === -1 && candidates.length < 4) candidates.push(v);
     });
     while (candidates.length < 4) { candidates.push(candidates[candidates.length - 1] + 1); }
+    var trackHalf = Math.max(3, Math.abs(minPos) + 1, Math.abs(maxPos) + 1);
     condRobotState = {
-        rules: rules, path: path, finalPos: finalPos,
+        rules: rules, path: path, finalPos: finalPos, trackHalf: trackHalf,
         options: shuffleArray(candidates),
-        phase: 'predict', animIndex: 0, currentPos: 0,
+        phase: 'predict', animIndex: 0, execIndex: -1, currentPos: 0, lastDelta: null,
         chosenOption: null, answered: false
     };
     renderConditionalRobot();
@@ -397,7 +400,9 @@ function retryCondRobotRound() {
     condRobotState.answered = false;
     condRobotState.chosenOption = null;
     condRobotState.animIndex = 0;
+    condRobotState.execIndex = -1;
     condRobotState.currentPos = 0;
+    condRobotState.lastDelta = null;
     renderConditionalRobot();
 }
 function pickCondRobotGuess(idx) {
@@ -406,9 +411,11 @@ function pickCondRobotGuess(idx) {
     condRobotState.chosenOption = condRobotState.options[idx];
     condRobotState.phase = 'reveal';
     condRobotState.animIndex = 0;
+    condRobotState.execIndex = -1;
     condRobotState.currentPos = 0;
+    condRobotState.lastDelta = null;
     renderConditionalRobot();
-    var t = setTimeout(stepCondRobotAnim, 500);
+    var t = setTimeout(stepCondRobotAnim, 550);
     activeTimers.push(t);
 }
 function stepCondRobotAnim() {
@@ -419,11 +426,13 @@ function stepCondRobotAnim() {
     var c = condRobotState.path[condRobotState.animIndex];
     var rule = condRobotState.rules.filter(function (r) { return r.symbol === c; })[0];
     vibrateShort();
+    // 명령을 처리하는 그 순간에 로봇 위치도 바로 갱신(한 타임 지연 없음)
     condRobotState.currentPos += rule.delta;
-    if (condRobotState.currentPos < 0) condRobotState.currentPos = 0;
+    condRobotState.lastDelta = rule.delta;
+    condRobotState.execIndex = condRobotState.animIndex;
     condRobotState.animIndex++;
     renderConditionalRobot();
-    var t = setTimeout(stepCondRobotAnim, 500);
+    var t = setTimeout(stepCondRobotAnim, 650);
     activeTimers.push(t);
 }
 function finishCondRobotRound() {
@@ -434,17 +443,51 @@ function finishCondRobotRound() {
     if (correct) {
         condRobotCorrect++;
         msg.className = 'msg-box'; msg.style.display = 'block';
-        msg.innerText = '🎉 정답이에요! 로봇이 ' + condRobotState.finalPos + '번째 칸에 도착했어요.';
+        msg.innerText = '🎉 정답이에요! 로봇이 ' + condRobotState.finalPos + '번 칸에 도착했어요.';
     } else {
         msg.className = 'msg-box bad'; msg.style.display = 'block';
-        msg.innerText = '아쉬워요! 실제로는 ' + condRobotState.finalPos + '번째 칸에 도착했어요. (내 예측: ' + condRobotState.chosenOption + '번째)';
+        msg.innerText = '아쉬워요! 실제로는 ' + condRobotState.finalPos + '번 칸에 도착했어요. (내 예측: ' + condRobotState.chosenOption + '번 칸)';
     }
     condRobotRound++;
     document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('generateCondRobotRound()', 'retryCondRobotRound()', 'initConditionalRobot()'));
 }
+function renderCondRobotTrack() {
+    var half = condRobotState.trackHalf || 3;
+    var isReveal = condRobotState.phase === 'reveal';
+    var cur = isReveal ? condRobotState.currentPos : 0;
+    var delta = condRobotState.lastDelta;
+    var moving = isReveal && !condRobotState.answered && delta !== null && delta !== undefined;
+    var cellPx = 40, gapPx = 4;
+    var stepStyle = '';
+    if (moving) {
+        var fromX = delta > 0 ? -(cellPx + gapPx) : (delta < 0 ? (cellPx + gapPx) : 0);
+        stepStyle = ' class="robot-step-move" style="--stepFromX:' + fromX + 'px; --stepFromY:0px;"';
+    }
+    var html = '<div class="row-label">로봇이 움직이는 길 (🏁 0에서 앞으로 +1, 뒤로 -1)</div>';
+    html += '<div style="width:100%; overflow-x:auto;"><div style="display:flex; gap:' + gapPx + 'px; width:max-content; margin:0.4rem auto 0.2rem auto; padding:0.4rem 0.2rem;">';
+    for (var p = -half; p <= half; p++) {
+        var isHere = p === cur;
+        var isStart = p === 0;
+        var bg = isHere ? '#fef9c3' : (isStart ? '#e0f2fe' : '#f8fafc');
+        var border = isHere ? '#eab308' : (isStart ? '#7dd3fc' : '#cbd5e1');
+        var mark = '';
+        if (isHere) mark = '<span' + stepStyle + '>🤖</span>';
+        else if (isStart) mark = '<span style="opacity:0.55;">🏁</span>';
+        html += '<div style="position:relative; width:' + cellPx + 'px; height:48px; flex-shrink:0; background:' + bg +
+            '; border:2px solid ' + border + '; border-radius:0.4rem; display:flex; align-items:center; justify-content:center; font-size:1.4rem;">' + mark +
+            '<span style="position:absolute; bottom:1px; right:3px; font-size:0.58rem; color:#94a3b8; font-weight:800;">' + p + '</span></div>';
+    }
+    html += '</div></div>';
+    if (isReveal) {
+        var dirLabel = '';
+        if (moving) dirLabel = delta > 0 ? ' <span style="color:#eab308;">(전진 ▶)</span>' : (delta < 0 ? ' <span style="color:#eab308;">(◀ 후진)</span>' : ' <span style="color:#94a3b8;">(정지)</span>');
+        html += '<div class="game-sub-desc" style="text-align:center; font-size:1.25rem; font-weight:800; margin-bottom:0.6rem;">🤖 로봇 위치: <span style="color:var(--primary);">' + cur + '</span>번 칸' + dirLabel + '</div>';
+    }
+    return html;
+}
 function renderConditionalRobot() {
     var html = '<div class="game-title-box">🚦 조건문 로봇</div>';
-    html += '<div class="game-sub-desc">아래 규칙을 보고, 로봇이 이 길을 끝까지 가면 최종적으로 몇 번째 칸에 있을지 예측해보세요!</div>';
+    html += '<div class="game-sub-desc">아래 규칙을 보고, 로봇이 이 길을 끝까지 가면 최종적으로 몇 번 칸에 있을지 예측해보세요! (뒤로 가면 0보다 작은 칸으로도 갈 수 있어요)</div>';
     html += '<div class="status-row"><div>' + condRobotRound + '라운드</div><div>정답: ' + condRobotCorrect + ' / ' + (condRobotRound - 1) + '</div></div>';
     html += '<div class="msg-box" style="display:block; background:#f8fafc; border-color:#e5e7eb; color:#1f2937; text-align:left; line-height:1.9;">';
     condRobotState.rules.forEach(function (r) { html += '만약 ' + r.symbol + ' 이면 → <b>' + r.action + '</b><br>'; });
@@ -452,20 +495,18 @@ function renderConditionalRobot() {
     html += '<div class="row-label">처리할 명령 순서</div>';
     html += '<div class="row-display">';
     condRobotState.path.forEach(function (c, i) {
-        var isActive = condRobotState.phase === 'reveal' && !condRobotState.answered && condRobotState.animIndex === i;
-        var isPast = condRobotState.phase === 'reveal' && i < condRobotState.animIndex;
+        var isActive = condRobotState.phase === 'reveal' && !condRobotState.answered && condRobotState.execIndex === i;
+        var isPast = condRobotState.phase === 'reveal' && i < condRobotState.animIndex && !isActive;
         var style = isActive ? 'border-color:#eab308; background:#fef9c3;' : (isPast ? 'opacity:0.35;' : '');
         html += '<div class="row-box" style="' + style + '">' + c + '</div>';
     });
     html += '</div>';
-    if (condRobotState.phase === 'reveal') {
-        html += '<div class="game-sub-desc" style="text-align:center; font-size:1.3rem; font-weight:800;">🧑 로봇 위치: <span style="color:var(--primary);">' + condRobotState.currentPos + '</span>번째</div>';
-    }
+    html += renderCondRobotTrack();
     if (condRobotState.phase === 'predict') {
-        html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">로봇은 최종적으로 몇 번째 칸에 도착할까요?</div>';
+        html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">로봇은 최종적으로 몇 번 칸에 도착할까요?</div>';
         html += '<div class="options-grid">';
         condRobotState.options.forEach(function (opt, idx) {
-            html += '<button class="opt-btn text-opt" onclick="pickCondRobotGuess(' + idx + ')">' + opt + '번째</button>';
+            html += '<button class="opt-btn text-opt" onclick="pickCondRobotGuess(' + idx + ')">' + opt + '번 칸</button>';
         });
         html += '</div>';
     }
@@ -575,7 +616,8 @@ function generateCodeTraceRound() {
     codeTraceState = {
         size: size, program: program, finalPos: finalPos,
         options: shuffleArray(candidates),
-        phase: 'predict', chosen: null, animIndex: 0,
+        phase: 'predict', chosen: null, animIndex: 0, execIndex: -1,
+        lastMoveVec: null, lastTurnDeg: 0,
         pos: { x: 0, y: 0 }, facing: 0, answered: false
     };
     renderCodeTrace();
@@ -584,6 +626,9 @@ function retryCodeTraceRound() {
     codeTraceState.phase = 'predict';
     codeTraceState.chosen = null;
     codeTraceState.animIndex = 0;
+    codeTraceState.execIndex = -1;
+    codeTraceState.lastMoveVec = null;
+    codeTraceState.lastTurnDeg = 0;
     codeTraceState.pos = { x: 0, y: 0 };
     codeTraceState.facing = 0;
     codeTraceState.answered = false;
@@ -595,10 +640,13 @@ function pickCodeTraceGuess(idx) {
     codeTraceState.chosen = codeTraceState.options[idx];
     codeTraceState.phase = 'reveal';
     codeTraceState.animIndex = 0;
+    codeTraceState.execIndex = -1;
+    codeTraceState.lastMoveVec = null;
+    codeTraceState.lastTurnDeg = 0;
     codeTraceState.pos = { x: 0, y: 0 };
     codeTraceState.facing = 0;
     renderCodeTrace();
-    var t = setTimeout(stepCodeTraceAnim, 450);
+    var t = setTimeout(stepCodeTraceAnim, 500);
     activeTimers.push(t);
 }
 function stepCodeTraceAnim() {
@@ -608,15 +656,21 @@ function stepCodeTraceAnim() {
     }
     var cmd = codeTraceState.program[codeTraceState.animIndex];
     vibrateShort();
-    if (cmd === 'turnLeft') codeTraceState.facing = (codeTraceState.facing + 3) % 4;
-    else if (cmd === 'turnRight') codeTraceState.facing = (codeTraceState.facing + 1) % 4;
+    // 명령이 실행되는 그 순간에 아이콘이 그 방향으로 발을 내딛도록(시차 없음)
+    var moveVec = null, turnDeg = 0;
+    if (cmd === 'turnLeft') { codeTraceState.facing = (codeTraceState.facing + 3) % 4; turnDeg = -55; }
+    else if (cmd === 'turnRight') { codeTraceState.facing = (codeTraceState.facing + 1) % 4; turnDeg = 55; }
     else {
         var d = (cmd === 'forward') ? DIRS4[codeTraceState.facing] : DIRS4[(codeTraceState.facing + 2) % 4];
         codeTraceState.pos = { x: codeTraceState.pos.x + d.dx, y: codeTraceState.pos.y + d.dy };
+        moveVec = d;
     }
+    codeTraceState.execIndex = codeTraceState.animIndex;
+    codeTraceState.lastMoveVec = moveVec;
+    codeTraceState.lastTurnDeg = turnDeg;
     codeTraceState.animIndex++;
     renderCodeTrace();
-    var t = setTimeout(stepCodeTraceAnim, 450);
+    var t = setTimeout(stepCodeTraceAnim, 500);
     activeTimers.push(t);
 }
 function finishCodeTraceRound() {
@@ -641,12 +695,13 @@ function renderCodeTrace() {
     html += '<div class="status-row"><div>' + codeTraceRound + '라운드</div><div>정답: ' + codeTraceCorrect + ' / ' + (codeTraceRound - 1) + '</div></div>';
     html += '<div class="row-label">실행할 명령</div><div class="row-display" style="flex-wrap:wrap;">';
     codeTraceState.program.forEach(function (cmd, i) {
-        var isActive = codeTraceState.phase === 'reveal' && !codeTraceState.answered && codeTraceState.animIndex === i;
-        var isPast = codeTraceState.phase === 'reveal' && i < codeTraceState.animIndex;
+        var isActive = codeTraceState.phase === 'reveal' && !codeTraceState.answered && codeTraceState.execIndex === i;
+        var isPast = codeTraceState.phase === 'reveal' && i < codeTraceState.animIndex && !isActive;
         var style = isActive ? 'border-color:#eab308; background:#fef9c3;' : (isPast ? 'opacity:0.35;' : '');
         html += '<div class="row-box" style="width:auto; min-width:46px; padding:0 0.3rem; font-size:0.72rem; font-weight:800;' + style + '">' + CMD_WORD_MAP[cmd] + '</div>';
     });
     html += '</div>';
+    var ctMoving = codeTraceState.phase === 'reveal' && !codeTraceState.answered;
     html += '<div class="maze-wrap"><div class="maze-grid" style="grid-template-columns: repeat(' + codeTraceState.size + ', 32px);">';
     for (var y = 0; y < codeTraceState.size; y++) {
         for (var x = 0; x < codeTraceState.size; x++) {
@@ -655,7 +710,15 @@ function renderCodeTrace() {
             var showY = codeTraceState.phase === 'reveal' ? codeTraceState.pos.y : 0;
             var showFacing = codeTraceState.phase === 'reveal' ? codeTraceState.facing : 0;
             if (showX === x && showY === y) {
-                content = '<span style="position:relative; display:inline-block;">🧑<span style="position:absolute; bottom:-8px; right:-12px; font-size:0.85em; background:#fff; border-radius:50%; line-height:1;">' + DIRS4[showFacing].arrow + '</span></span>';
+                var stepCls = '', stepVar = '';
+                if (ctMoving && codeTraceState.lastMoveVec) {
+                    stepCls = ' robot-step-move';
+                    stepVar = '--stepFromX:' + (-(codeTraceState.lastMoveVec.dx) * 35) + 'px; --stepFromY:' + (-(codeTraceState.lastMoveVec.dy) * 35) + 'px;';
+                } else if (ctMoving && codeTraceState.lastTurnDeg) {
+                    stepCls = ' robot-turn-wiggle';
+                    stepVar = '--turnDeg:' + codeTraceState.lastTurnDeg + 'deg;';
+                }
+                content = '<span class="' + stepCls.trim() + '" style="position:relative; display:inline-block;' + stepVar + '">🧑<span style="position:absolute; bottom:-8px; right:-12px; font-size:0.85em; background:#fff; border-radius:50%; line-height:1;">' + DIRS4[showFacing].arrow + '</span></span>';
             }
             html += '<div class="maze-cell" style="border:1px solid #e2e8f0;">' + content + '</div>';
         }
@@ -1319,7 +1382,7 @@ function renderHamburger() {
     document.getElementById('mainArea').innerHTML = html;
 }
 
-// ===================== 31. 코딩 사고: 논리 회로 물길 연결하기 =====================
+// ===================== 31. 코딩 사고: 파이프 연결하기 =====================
 var waterPipeSettings = { size: 4, pipeMode: 'min', timeLimit: 0 };
 var waterPipeState = {};
 var waterPipeRound = 1, waterPipeSolved = 0;
@@ -1329,7 +1392,7 @@ function renderWaterPipeSetup() {
     var sizes = [{ v: 4, l: '4×4' }, { v: 6, l: '6×6' }, { v: 8, l: '8×8' }, { v: 'random', l: '무작위' }];
     var modes = [{ v: 'min', l: '최소' }, { v: 'mid', l: '중간' }, { v: 'max', l: '최대' }, { v: 'random', l: '무작위' }];
     var times = [{ v: 10, l: '10초' }, { v: 15, l: '15초' }, { v: 20, l: '20초' }, { v: 0, l: '무제한' }];
-    var html = '<div class="game-title-box">🔀 논리 회로 물길 연결하기</div>';
+    var html = '<div class="game-title-box">🔀 파이프 연결하기</div>';
     html += '<div class="game-sub-desc">타일 수, 파이프 수, 시간 제한을 골라 시작해보세요!</div>';
     html += '<div class="setup-section-label">타일 수</div><div class="setup-btn-group">';
     sizes.forEach(function (t) {
@@ -1537,7 +1600,7 @@ function renderPipeShape(sides, isFilled) {
     return '<div style="position:absolute; top:0; left:0; width:100%; height:100%;">' + segs + '</div>';
 }
 function renderWaterPipe() {
-    var html = '<div class="game-title-box">🔀 논리 회로 물길 연결하기</div>';
+    var html = '<div class="game-title-box">🔀 파이프 연결하기</div>';
     html += '<div class="game-sub-desc">파이프를 눌러 90도씩 돌려서, 🚰 수도꼭지의 물이 🪣 물탱크까지 이어지도록 연결해보세요!</div>';
     html += '<div class="status-row"><div>' + waterPipeRound + '라운드</div><div>성공: ' + waterPipeSolved + '개</div></div>';
     if (waterPipeState.timeLimit > 0 && !waterPipeState.fired && !waterPipeState.timedOut) {
@@ -1602,7 +1665,7 @@ function renderWaterPipe() {
     }
 }
 
-// ===================== 32. 코딩 사고: 청소 로봇 반복 대작전 (조건 반복문 - repeat until) =====================
+// ===================== 32. 코딩 사고: 반복 청소 로봇 (조건 반복문 - repeat until) =====================
 // 블록코딩 로봇(정해진 횟수 반복 🔁2/🔁3)과 다르게, 이 게임은 "몇 번"인지 모르는 상황에서
 // "먼지가 있는 동안(조건) 계속" 반복하는 조건-반복문(while/repeat-until) 개념을 다룸.
 // 복도는 시작칸(0) + 먼지칸(N개) 로 이어지고, 여러 복도를 이을 때는 그 사이에 "코너"(먼지 없음,
@@ -1624,8 +1687,8 @@ function renderCleanbotSetup() {
         { v: 'mid', l: '중 (복도 2개 + 코너 1번)' },
         { v: 'high', l: '상 (복도 3개 + 코너 2번)' }
     ];
-    var html = '<div class="game-title-box">🧹 청소 로봇 반복 대작전</div>';
-    html += '<div class="game-sub-desc">난이도를 골라 시작해보세요! 복도의 먼지 개수는 실행할 때마다 달라져요 — 그래서 "몇 번 반복"이 아니라 "먼지가 있으면 반복"이 필요해요.</div>';
+    var html = '<div class="game-title-box">🧹 반복 청소 로봇</div>';
+    html += '<div class="game-sub-desc">복도의 먼지 개수는 매번 달라져요. 청소를 "몇 번 반복" 시키는게 아니고 "먼지가 있으면 반복" 시키는게 필요해요.</div>';
     html += '<div class="setup-section-label">난이도</div><div class="setup-btn-group">';
     levels.forEach(function (t) {
         html += '<button class="setup-btn' + (cleanbotSettings.level === t.v ? ' active' : '') + '" onclick="setCleanbotLevel(\'' + t.v + '\')">' + t.l + '</button>';
@@ -1637,6 +1700,18 @@ function renderCleanbotSetup() {
 function setCleanbotLevel(v) { cleanbotSettings.level = v; renderCleanbotSetup(); }
 function startCleanbotSession() { cleanbotRound = 1; cleanbotSolved = 0; generateCleanbotRound(); }
 function cloneCleanbotCells(cells) { return cells.map(function (c) { return { dust: c.dust, corner: c.corner }; }); }
+// 1D 복도 배열을 실제 좌표 경로로 변환: 코너 칸마다 오른쪽으로 90도 꺾어, 전체 맵이 사각형(ㄱ/ㄷ 자)을 그리도록 함
+function layoutCleanbotCells(cells) {
+    var dirs = [{ dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 0, dy: -1 }];
+    var d = 0, x = 0, y = 0;
+    var coords = [];
+    for (var i = 0; i < cells.length; i++) {
+        coords.push({ x: x, y: y });
+        if (cells[i] && cells[i].corner) d = (d + 1) % 4;
+        x += dirs[d].dx; y += dirs[d].dy;
+    }
+    return coords;
+}
 function buildCleanbotWorld(segCount) {
     var cells = [{ dust: false, corner: false }];
     for (var s = 0; s < segCount; s++) {
@@ -1656,6 +1731,7 @@ function generateCleanbotRound() {
     var blueprint = buildCleanbotWorld(segCount);
     cleanbotState = {
         segCount: segCount, blueprint: blueprint, cells: cloneCleanbotCells(blueprint),
+        coords: layoutCleanbotCells(blueprint),
         pos: 0, pc: 0, curInstrIdx: null, guard: 0, jumps: null,
         program: [], running: false, solved: false, lastMsg: ''
     };
@@ -1839,21 +1915,37 @@ function retryCleanbotFresh() {
 }
 function renderCleanbotStrip() {
     var st = cleanbotState;
-    var cellPx = 34;
-    var html = '<div style="width:100%; overflow-x:auto;"><div style="display:flex; gap:2px; padding:0.5rem 0; margin:0 auto; width:max-content;">';
-    st.cells.forEach(function (c, i) {
-        var isRobot = i === st.pos;
-        var bg = c.corner ? '#fde68a' : (c.dust ? '#e7e5e4' : '#f8fafc');
-        var content = isRobot ? '🤖' : (c.corner ? '🔄' : (c.dust ? '🟤' : ''));
-        html += '<div style="width:' + cellPx + 'px; height:' + cellPx + 'px; background:' + bg + '; border:2px solid #d6d3d1; border-radius:0.3rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">' + content + '</div>';
+    var coords = st.coords || layoutCleanbotCells(st.cells);
+    var minX = 0, maxX = 0, minY = 0, maxY = 0;
+    coords.forEach(function (c) {
+        if (c.x < minX) minX = c.x;
+        if (c.x > maxX) maxX = c.x;
+        if (c.y < minY) minY = c.y;
+        if (c.y > maxY) maxY = c.y;
     });
+    var cols = maxX - minX + 1, rows = maxY - minY + 1;
+    var cellPx = 36;
+    var lookup = {};
+    coords.forEach(function (c, i) { lookup[(c.x - minX) + ',' + (c.y - minY)] = i; });
+    var html = '<div style="width:100%; overflow-x:auto;"><div style="display:grid; grid-template-columns: repeat(' + cols + ', ' + cellPx + 'px); grid-auto-rows:' + cellPx + 'px; gap:3px; width:max-content; margin:0.7rem auto; padding:0.3rem;">';
+    for (var r = 0; r < rows; r++) {
+        for (var cc = 0; cc < cols; cc++) {
+            var idx = lookup[cc + ',' + r];
+            if (idx === undefined) { html += '<div></div>'; continue; }
+            var cell = st.cells[idx];
+            var isRobot = idx === st.pos;
+            var bg = cell.corner ? '#fde68a' : (cell.dust ? '#e7e5e4' : '#f8fafc');
+            var content = isRobot ? '🤖' : (cell.corner ? '🔄' : (cell.dust ? '🟤' : ''));
+            html += '<div style="width:' + cellPx + 'px; height:' + cellPx + 'px; background:' + bg + '; border:2px solid #d6d3d1; border-radius:0.35rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">' + content + '</div>';
+        }
+    }
     html += '</div></div>';
     return html;
 }
 function renderCleanbot() {
     var st = cleanbotState;
-    var html = '<div class="game-title-box">🧹 청소 로봇 반복 대작전</div>';
-    html += '<div class="game-sub-desc">복도에 먼지가 <b style="color:var(--primary);">몇 개 있는지 몰라도</b> 청소할 수 있는 프로그램을 만들어보세요!</div>';
+    var html = '<div class="game-title-box">🧹 반복 청소 로봇</div>';
+    html += '<div class="game-sub-desc">복도가 <b style="color:var(--primary);">코너(🔄)에서 90도로 꺾여</b> 사각형을 이뤄요. 먼지가 <b style="color:var(--primary);">몇 개인지 몰라도</b> 청소할 수 있는 프로그램을 만들어보세요!</div>';
     html += '<div class="status-row"><div>' + cleanbotRound + '라운드</div><div>완료: ' + cleanbotSolved + '개</div></div>';
     html += renderCleanbotStrip();
     html += '<div class="setup-section-label">명령 블록 (눌러서 추가)</div><div class="palette-row">';

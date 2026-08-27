@@ -437,13 +437,53 @@ function retryNumSeqRound() { numSeqState.answered = false; renderNumSeq(); }
 var weightState = {};
 var weightRound = 1, weightCorrect = 0;
 function initWeightScale() { weightRound = 1; weightCorrect = 0; generateWeightRound(); }
-function renderWeightClueRow(iconLeft, iconRight, count) {
-    var html = '<div class="row-display" style="margin-bottom:0.6rem;">';
-    html += '<div class="row-box">' + iconLeft + '</div>';
-    html += '<div style="display:flex; align-items:center; font-weight:800; font-size:1.3rem;">=</div>';
-    for (var i = 0; i < count; i++) { html += '<div class="row-box">' + iconRight + '</div>'; }
-    html += '</div>';
+// 저울 하나를 그림. leftInner/rightInner = 접시 위 아이콘 HTML, tiltDeg = 저울대 기울기(+면 오른쪽이 아래),
+// W = 전체 폭, groupId = 기우는 저울대 그룹의 id(나중에 애니메이션으로 기울일 때 사용)
+function buildBalanceScale(leftInner, rightInner, tiltDeg, W, groupId) {
+    W = W || 200;
+    var H = 140;
+    var cx = W / 2;
+    var armX = Math.round(W * 0.30);
+    var panW = Math.round(W * 0.34);
+    var beamY = 46;
+    var t = tiltDeg || 0;
+    var html = '<div style="position:relative; width:' + W + 'px; height:' + H + 'px; flex:0 0 auto;">';
+    // 고정 받침대: 바닥 + 기둥 + 삼각형
+    html += '<div style="position:absolute; left:50%; bottom:0; width:' + Math.round(W * 0.32) + 'px; height:5px; background:#94a3b8; border-radius:3px; transform:translateX(-50%);"></div>';
+    html += '<div style="position:absolute; left:50%; bottom:3px; width:3px; height:' + (H - beamY - 8) + 'px; background:#94a3b8; transform:translateX(-50%);"></div>';
+    html += '<div style="position:absolute; left:50%; top:' + (beamY - 4) + 'px; width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:14px solid #64748b; transform:translateX(-50%);"></div>';
+    // 기우는 저울대 그룹 (기둥 꼭대기를 축으로 회전)
+    html += '<div ' + (groupId ? 'id="' + groupId + '" ' : '') + 'style="position:absolute; left:0; top:0; width:' + W + 'px; height:' + H + 'px; transform-origin:' + cx + 'px ' + beamY + 'px; transform:rotate(' + t + 'deg); transition:transform 0.7s cubic-bezier(.34,1.25,.64,1);">';
+    html += '<div style="position:absolute; left:' + (cx - armX - 6) + 'px; top:' + beamY + 'px; width:' + (2 * armX + 12) + 'px; height:5px; background:#64748b; border-radius:3px;"></div>';
+    html += '<div style="position:absolute; left:' + (cx - 6) + 'px; top:' + (beamY - 4) + 'px; width:12px; height:12px; background:#64748b; border-radius:50%;"></div>';
+    var iconAW = Math.min(panW + 52, 2 * armX - 8);   // 접시 위 아이콘 영역: 접시보다 넓게, 단 양쪽이 안 겹치게
+    [[cx - armX, leftInner], [cx + armX, rightInner]].forEach(function (p) {
+        var sx = p[0], inner = p[1];
+        html += '<div style="position:absolute; left:' + (sx - 1) + 'px; top:' + (beamY + 3) + 'px; width:2px; height:22px; background:#cbd5e1;"></div>';
+        html += '<div style="position:absolute; left:' + (sx - panW / 2) + 'px; top:' + (beamY + 24) + 'px; width:' + panW + 'px; height:8px; background:#e2e8f0; border:1px solid #94a3b8; border-radius:0 0 34px 34px / 0 0 11px 11px;"></div>';
+        html += '<div style="position:absolute; left:' + (sx - iconAW / 2) + 'px; top:' + (beamY - 24) + 'px; width:' + iconAW + 'px; height:48px; display:flex; align-items:flex-end; justify-content:center; flex-wrap:wrap;">' + inner + '</div>';
+    });
+    html += '</div></div>';
     return html;
+}
+// 접시에 올릴 아이콘 n개 (개수가 많으면 자동으로 작게)
+function weightIconPile(icon, n) {
+    var size = n >= 7 ? '1.05rem' : (n >= 5 ? '1.3rem' : (n >= 4 ? '1.55rem' : (n >= 3 ? '1.7rem' : '2.15rem')));
+    var html = '';
+    for (var i = 0; i < n; i++) html += '<span style="font-size:' + size + '; line-height:1; margin:0 -1px;">' + icon + '</span>';
+    return html;
+}
+function renderWeightQuestionScale() {
+    var s = weightState;
+    var leftInner = weightIconPile(s.items[0], 1);
+    var rightInner, tilt = 0;
+    if (!s.answered) {
+        rightInner = '<span style="font-size:2.3rem; line-height:1;">❓</span>';
+    } else {
+        rightInner = weightIconPile(s.items[2], s.chosen);
+        tilt = (s.chosen > s.answer) ? 10 : ((s.chosen < s.answer) ? -10 : 0);
+    }
+    return buildBalanceScale(leftInner, rightInner, tilt, 236, 'weightQScaleBeam');
 }
 function generateWeightRound() {
     var items = pickN(ICON_POOL, 3);
@@ -455,20 +495,30 @@ function generateWeightRound() {
         if (v > 0 && options.indexOf(v) === -1 && options.length < 4) options.push(v);
     });
     while (options.length < 4) { options.push(options[options.length - 1] + 1); }
-    weightState = { items: items, r1: r1, r2: r2, answer: answer, options: shuffleArray(options), answered: false };
+    weightState = { items: items, r1: r1, r2: r2, answer: answer, options: shuffleArray(options), answered: false, chosen: null };
     renderWeightScale();
 }
 function renderWeightScale() {
+    var s = weightState;
     var html = '<div class="game-title-box">⚖️ 무게 저울 추론하기</div>';
-    html += '<div class="game-sub-desc">저울이 수평을 이루는 단서 두 개를 보고, 물음표에 들어갈 개수를 추론해보세요!</div>';
+    html += '<div class="game-sub-desc">위 <b>단서 저울 2개</b>는 양쪽 무게가 똑같아요. 이걸 보고 아래 <b style="color:var(--primary);">문제 저울</b>의 ❓ 자리에 들어갈 개수를 맞혀보세요!</div>';
     html += '<div class="status-row"><div>' + weightRound + '라운드</div><div>정답: ' + weightCorrect + ' / ' + (weightRound - 1) + '</div></div>';
-    html += renderWeightClueRow(weightState.items[0], weightState.items[1], weightState.r1);
-    html += renderWeightClueRow(weightState.items[1], weightState.items[2], weightState.r2);
-    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">그렇다면 ' + weightState.items[0] + ' 1개는 ' + weightState.items[2] + ' 몇 개와 같을까요?</div>';
-    html += '<div class="options-grid">';
-    weightState.options.forEach(function (opt, idx) {
-        html += '<button class="opt-btn text-opt" onclick="checkWeightScale(this,' + idx + ')">' + weightState.items[2] + ' ' + opt + '개</button>';
-    });
+    html += '<div class="row-label">단서 저울</div>';
+    html += '<div style="width:100%; overflow-x:auto;"><div style="display:flex; justify-content:center; align-items:flex-start; gap:0.5rem; flex-wrap:wrap; min-width:min-content;">';
+    html += buildBalanceScale(weightIconPile(s.items[0], 1), weightIconPile(s.items[1], s.r1), 0, 210);
+    html += buildBalanceScale(weightIconPile(s.items[1], 1), weightIconPile(s.items[2], s.r2), 0, 210);
+    html += '</div></div>';
+    html += '<div class="row-label" style="margin-top:0.5rem;">문제 저울 &nbsp;—&nbsp; ' + s.items[0] + ' 1개 = ' + s.items[2] + ' ❓개</div>';
+    html += '<div id="weightQ" style="display:flex; justify-content:center;">' + renderWeightQuestionScale() + '</div>';
+    html += '<div id="weightOpts">';
+    if (!s.answered) {
+        html += '<div class="game-sub-desc" style="text-align:center; font-weight:800; margin-top:0.3rem;">' + s.items[0] + ' 1개는 ' + s.items[2] + ' 몇 개와 같을까요?</div>';
+        html += '<div class="options-grid">';
+        s.options.forEach(function (opt, idx) {
+            html += '<button class="opt-btn text-opt" onclick="checkWeightScale(this,' + idx + ')">' + s.items[2] + ' ' + opt + '개</button>';
+        });
+        html += '</div>';
+    }
     html += '</div>';
     html += '<div id="weightMsg" class="msg-box"></div>';
     document.getElementById('mainArea').innerHTML = html;
@@ -477,22 +527,37 @@ function checkWeightScale(btn, idx) {
     if (weightState.answered) return;
     weightState.answered = true;
     vibrateShort();
-    var buttons = document.querySelectorAll('.opt-btn');
-    var opt = weightState.options[idx];
-    var msg = document.getElementById('weightMsg');
-    if (opt === weightState.answer) {
-        btn.classList.add('correct');
-        weightCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요! ' + weightState.r1 + ' × ' + weightState.r2 + ' = ' + weightState.answer + '개예요.';
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(function (b, i) { if (weightState.options[i] === weightState.answer) b.classList.add('correct'); });
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 정답은 ' + weightState.answer + '개였어요. (' + weightState.r1 + ' × ' + weightState.r2 + ')';
-    }
+    var s = weightState;
+    s.chosen = s.options[idx];
+    var correct = s.chosen === s.answer;
+    var tilt = correct ? 0 : (s.chosen > s.answer ? 10 : -10);
+    if (correct) weightCorrect++;
     weightRound++;
+    var optsEl = document.getElementById('weightOpts');
+    if (optsEl) optsEl.innerHTML = '';
+    // 문제 저울에 내가 고른 개수만큼 아이콘을 올리고(처음엔 수평), 잠시 뒤 기울여 결과를 보여줌
+    var qEl = document.getElementById('weightQ');
+    if (qEl) qEl.innerHTML = buildBalanceScale(weightIconPile(s.items[0], 1), weightIconPile(s.items[2], s.chosen), 0, 236, 'weightQScaleBeam');
+    var t = setTimeout(function () {
+        var g = document.getElementById('weightQScaleBeam');
+        if (g) g.style.transform = 'rotate(' + tilt + 'deg)';
+    }, 110);
+    activeTimers.push(t);
+    var msg = document.getElementById('weightMsg');
+    msg.style.display = 'block';
+    if (correct) {
+        msg.className = 'msg-box';
+        msg.innerText = '🎉 정답이에요! ' + s.r1 + ' × ' + s.r2 + ' = ' + s.answer + '개 — 문제 저울이 딱 균형을 이뤘어요!';
+    } else {
+        msg.className = 'msg-box bad';
+        var dir = s.chosen > s.answer
+            ? ('내가 고른 ' + s.items[2] + ' ' + s.chosen + '개가 더 무거워서 그쪽으로 기울었어요 (너무 많아요)')
+            : (s.items[0] + ' 쪽이 더 무거워서 그쪽으로 기울었어요 (너무 적어요)');
+        msg.innerText = '아쉬워요! ' + dir + '. 정답은 ' + s.answer + '개였어요. (' + s.r1 + ' × ' + s.r2 + ')';
+    }
     document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('generateWeightRound()', 'retryWeightRound()', 'initWeightScale()'));
 }
-function retryWeightRound() { weightState.answered = false; renderWeightScale(); }
+function retryWeightRound() { weightState.answered = false; weightState.chosen = null; renderWeightScale(); }
 
 // ===================== 31. 논리: 스도쿠 퍼즐 라이트 =====================
 var SUDOKU_BASE = [[0, 1, 2, 3], [2, 3, 0, 1], [1, 0, 3, 2], [3, 2, 1, 0]];
@@ -930,7 +995,415 @@ function renderSuspectLogic() {
     }
 }
 
+// ===================== 33. 논리: 진실/거짓말 탐정 =====================
+// 항상 진실만 말하는 캐릭터(😇)와 항상 거짓만 말하는 캐릭터(😈)의 단서를 듣고 보물이 있는 문을 추론.
+// 라운드는 반드시 "모든 (문 위치 × 역할 조합)"을 브루트포스로 검사해 정답이 정확히 1개인 경우만 채택한다.
+function tld_starN(c, t) { var r = t > 0 ? c / t : 0; return r >= 0.9 ? 3 : (r >= 0.6 ? 2 : 1); }
+function tld_starStr(n) { return '⭐⭐⭐'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+var TLD_FACES = [
+    { e: '🦊', n: '여우' }, { e: '🐰', n: '토끼' }, { e: '🐻', n: '곰' }, { e: '🦉', n: '부엉이' }, { e: '🐼', n: '판다' }, { e: '🐯', n: '호랑이' }
+];
+var tldState = { level: 1 };
+var TLD_TOTAL = 8;
+function initTruthLiar() { clearAllGameTimers(); renderTruthLiarSetup(); }
+function renderTruthLiarSetup() {
+    if (!tldState.level) tldState.level = 1;
+    var html = '<div class="game-title-box">🕵️‍♀️ 진실/거짓말 탐정</div>';
+    html += '<div class="game-sub-desc">😇 는 <b>항상 진실</b>만, 😈 는 <b>항상 거짓</b>만 말해요. 단서를 잘 읽고 보물이 있는 문을 찾아요!</div>';
+    html += '<div class="setup-section-label">난이도</div><div class="setup-btn-group">';
+    [{ v: 1, l: '1단계 · 1명·정체 공개' }, { v: 2, l: '2단계 · 2명·정체 공개' }, { v: 3, l: '3단계 · 2명·정체 비밀' }].forEach(function (t) {
+        html += '<button class="setup-btn' + (tldState.level === t.v ? ' active' : '') + '" onclick="setTldLevel(' + t.v + ')">' + t.l + '</button>';
+    });
+    html += '</div>';
+    html += '<button class="action-btn" onclick="startTruthLiarSession()">시작하기 🚀</button>';
+    document.getElementById('mainArea').innerHTML = html;
+}
+function setTldLevel(v) { tldState.level = v; renderTruthLiarSetup(); }
+// 한 캐릭터의 진술이 "참"인지 판정 (가정: 보물 위치 tp, 역할 배열 roles)
+function tld_stmtTrue(clue, speakerIdx, tp, roles) {
+    if (clue.kind === 'in') return tp === clue.door;
+    if (clue.kind === 'notin') return tp !== clue.door;
+    if (clue.kind === 'iamtruth') return roles[speakerIdx] === 'truth';
+    if (clue.kind === 'otherTruth') return roles[clue.who] === 'truth';
+    if (clue.kind === 'otherLiar') return roles[clue.who] === 'liar';
+    if (clue.kind === 'atLeastOneLiar') return roles.filter(function (r) { return r === 'liar'; }).length >= 1;
+    if (clue.kind === 'bothLiars') return roles.every(function (r) { return r === 'liar'; });
+    return false;
+}
+function tld_consistent(chars, tp, roles) {
+    for (var i = 0; i < chars.length; i++) {
+        var st = tld_stmtTrue(chars[i].clue, i, tp, roles);
+        if (roles[i] === 'truth' && !st) return false;
+        if (roles[i] === 'liar' && st) return false;
+    }
+    return true;
+}
+// 정답 가능한 문 위치들(중복 제거)을 반환. fixedRoles=true면 주어진 역할만, 아니면 모든 역할 조합 탐색.
+function tld_solutions(doors, chars, fixedRoles) {
+    var roleCombos;
+    if (fixedRoles) { roleCombos = [chars.map(function (c) { return c.role; })]; }
+    else {
+        roleCombos = [];
+        for (var m = 0; m < (1 << chars.length); m++) {
+            var rc = [];
+            for (var b = 0; b < chars.length; b++) rc.push(((m >> b) & 1) ? 'liar' : 'truth');
+            roleCombos.push(rc);
+        }
+    }
+    var tps = [];
+    for (var tp = 0; tp < doors; tp++) {
+        for (var r = 0; r < roleCombos.length; r++) {
+            if (tld_consistent(chars, tp, roleCombos[r])) { if (tps.indexOf(tp) === -1) tps.push(tp); break; }
+        }
+    }
+    return tps;
+}
+function tld_clueText(clue, chars) {
+    if (clue.kind === 'in') return '보물은 ' + (clue.door + 1) + '번 문 뒤에 있어.';
+    if (clue.kind === 'notin') return '보물은 ' + (clue.door + 1) + '번 문 뒤에 없어.';
+    if (clue.kind === 'iamtruth') return '나는 진실만 말해.';
+    if (clue.kind === 'otherTruth') return chars[clue.who].face.n + '(은)는 진실만 말해.';
+    if (clue.kind === 'otherLiar') return chars[clue.who].face.n + '(은)는 거짓말쟁이야.';
+    if (clue.kind === 'atLeastOneLiar') return '우리 둘 중 적어도 한 명은 거짓말쟁이야.';
+    if (clue.kind === 'bothLiars') return '우리 둘 다 거짓말쟁이야.';
+    return '';
+}
+function genTruthLiarRound(level) {
+    if (level === 3) return genTruthLiarLevel3();
+    var doors = level === 1 ? 2 : 3;
+    var nChars = level === 1 ? 1 : 2;
+    for (var attempt = 0; attempt < 400; attempt++) {
+        var tp = getRandomInt(0, doors - 1);
+        var faces = pickN(TLD_FACES, nChars);
+        var chars = [];
+        for (var i = 0; i < nChars; i++) {
+            chars.push({ face: faces[i], role: pickRandom(['truth', 'liar']), clue: null });
+        }
+        for (var j = 0; j < nChars; j++) {
+            var kind = pickRandom(level === 1 ? ['in', 'notin'] : ['in', 'notin', 'notin']);
+            chars[j].clue = { kind: kind, door: getRandomInt(0, doors - 1) };
+        }
+        if (!tld_consistent(chars, tp, chars.map(function (c) { return c.role; }))) continue;
+        var sols = tld_solutions(doors, chars, true);
+        if (sols.length === 1 && sols[0] === tp) {
+            return { doors: doors, tp: tp, chars: chars, fixedRoles: true };
+        }
+    }
+    // 안전 폴백: 1명·진실·직접단서
+    var f = pickN(TLD_FACES, 1)[0];
+    return { doors: 2, tp: 0, chars: [{ face: f, role: 'truth', clue: { kind: 'in', door: 0 } }], fixedRoles: true };
+}
+// 3단계(정체 비공개): 한 캐릭터는 역할을 강제하는 자기참조 단서, 다른 캐릭터는 내용 단서 → 항상 유일해
+function genTruthLiarLevel3() {
+    for (var attempt = 0; attempt < 400; attempt++) {
+        var tp = getRandomInt(0, 1);
+        var faces = pickN(TLD_FACES, 2);
+        var forcing = pickRandom(['atLeastOneLiar', 'bothLiars']);
+        var r0 = forcing === 'atLeastOneLiar' ? 'truth' : 'liar';
+        var r1 = forcing === 'atLeastOneLiar' ? 'liar' : 'truth';
+        var chars = [
+            { face: faces[0], role: r0, clue: { kind: forcing } },
+            { face: faces[1], role: r1, clue: { kind: pickRandom(['in', 'notin']), door: getRandomInt(0, 1) } }
+        ];
+        if (!tld_consistent(chars, tp, [r0, r1])) continue;
+        var sols = tld_solutions(2, chars, false);
+        if (sols.length === 1 && sols[0] === tp) return { doors: 2, tp: tp, chars: chars, fixedRoles: false };
+    }
+    var f = pickN(TLD_FACES, 2);
+    return { doors: 2, tp: 1, chars: [{ face: f[0], role: 'truth', clue: { kind: 'atLeastOneLiar' } }, { face: f[1], role: 'liar', clue: { kind: 'notin', door: 1 } }], fixedRoles: false };
+}
+function startTruthLiarSession() {
+    if (!tldState.level) tldState.level = 1;
+    tldState.round = 0;
+    tldState.correct = 0;
+    tldState.hintUsed = 0;
+    nextTruthLiarRound();
+}
+function nextTruthLiarRound() {
+    tldState.round++;
+    if (tldState.round > TLD_TOTAL) { finishTruthLiarSession(); return; }
+    var r = genTruthLiarRound(tldState.level);
+    tldState.doors = r.doors;
+    tldState.tp = r.tp;
+    tldState.chars = r.chars;
+    tldState.fixedRoles = r.fixedRoles;
+    tldState.answered = false;
+    tldState.firstTry = true;
+    tldState.revealRole = -1;
+    renderTruthLiarRound();
+}
+function renderTruthLiarRound() {
+    var st = tldState;
+    var html = '<div class="game-title-box">🕵️‍♀️ 진실/거짓말 탐정</div>';
+    html += '<div class="status-row"><div>' + st.round + ' / ' + TLD_TOTAL + ' 라운드</div><div>정답: ' + st.correct + '</div></div>';
+    html += '<div class="eng-btn-row"><button class="eng-mini-btn" onclick="initTruthLiar()">⏮ 처음으로</button></div>';
+    html += '<div class="game-sub-desc" style="text-align:center;">😇 항상 진실 · 😈 항상 거짓' + (st.fixedRoles ? '' : ' — <b>이번엔 정체가 비밀!</b>') + '</div>';
+    html += '<div class="tld-char-row">';
+    st.chars.forEach(function (c, i) {
+        var roleShown = st.fixedRoles || st.revealRole === i;
+        var roleIcon = roleShown ? (c.role === 'truth' ? '😇 진실' : '😈 거짓') : '❓ 정체 비밀';
+        html += '<div class="tld-char"><div class="tld-char-face">' + c.face.e + ' ' + c.face.n + '</div>';
+        html += '<div class="tld-char-role">' + roleIcon + '</div>';
+        html += '<div class="tld-bubble">“' + tld_clueText(c.clue, st.chars) + '”</div></div>';
+    });
+    html += '</div>';
+    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">보물은 몇 번 문 뒤에 있을까요?</div>';
+    html += '<div class="tld-door-row">';
+    for (var d = 0; d < st.doors; d++) {
+        html += '<button class="tld-door" data-d="' + d + '" onclick="checkTruthLiar(' + d + ')">🚪<br>' + (d + 1) + '번</button>';
+    }
+    html += '</div>';
+    if (!st.fixedRoles && !st.answered && st.revealRole === -1) {
+        html += '<div style="text-align:center;"><button class="action-btn secondary" style="font-size:0.82rem; padding:0.45rem 0.9rem;" onclick="tldHint()">💡 힌트: 한 명의 정체 보기 (별 -1)</button></div>';
+    }
+    html += '<div id="tldMsg" class="msg-box"></div>';
+    document.getElementById('mainArea').innerHTML = html;
+}
+function tldHint() {
+    if (tldState.answered) return;
+    tldState.revealRole = 0;
+    tldState.hintUsed++;
+    renderTruthLiarRound();
+}
+function checkTruthLiar(d) {
+    var st = tldState;
+    if (st.answered) return;
+    var doors = document.querySelectorAll('.tld-door');
+    var msg = document.getElementById('tldMsg');
+    if (d === st.tp) {
+        st.answered = true;
+        vibrateShort();
+        doors[d].classList.add('correct');
+        if (st.firstTry && st.hintUsed === 0) st.correct++;
+        else if (st.firstTry) st.correct += 0.5;
+        msg.className = 'msg-box'; msg.style.display = 'block';
+        msg.innerText = '🎉 정답! 보물은 ' + (st.tp + 1) + '번 문 뒤에 있었어요.';
+        document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" style="width:100%;" onclick="nextTruthLiarRound()">다음 ▶</button>');
+    } else {
+        st.firstTry = false;
+        doors[d].classList.add('wrong');
+        var b = doors[d];
+        var tt = setTimeout(function () { b.classList.remove('wrong'); }, 500); activeTimers.push(tt);
+        // 해설: 각 캐릭터의 진술을 실제 정답 기준으로 해석
+        var expl = st.chars.map(function (c, i) {
+            var actuallyTrue = tld_stmtTrue(c.clue, i, st.tp, st.chars.map(function (x) { return x.role; }));
+            var roleTxt = c.role === 'truth' ? '진실쟁이' : '거짓말쟁이';
+            return c.face.n + '(' + roleTxt + ')의 말은 사실 ' + (actuallyTrue ? '맞는 말' : '틀린 말') + '이에요.';
+        }).join(' ');
+        msg.className = 'msg-box bad'; msg.style.display = 'block';
+        msg.innerText = '아쉬워요! ' + expl + ' 다시 생각해볼까요?';
+    }
+}
+function finishTruthLiarSession() {
+    var st = tldState;
+    var n = tld_starN(Math.round(st.correct), TLD_TOTAL);
+    var html = '<div class="game-title-box">🕵️‍♀️ 진실/거짓말 탐정 — 끝!</div>';
+    html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + tld_starStr(n) + '</div>';
+    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">' + TLD_TOTAL + '문제 중 <span style="color:var(--primary);">' + Math.round(st.correct) + '개</span> 정답!</div>';
+    html += buildStandardResultButtons('initTruthLiar()', 'startTruthLiarSession()', 'goHome()');
+    document.getElementById('mainArea').innerHTML = html;
+}
+
+// ===================== 34. 논리: 규칙 벗어난 것 찾기 =====================
+// 5~7개 아이템 무리에서 스스로 규칙을 찾고 예외 하나를 고른다. 규칙은 항상 문장으로 해설.
+function orr_starN(c, t) { var r = t > 0 ? c / t : 0; return r >= 0.9 ? 3 : (r >= 0.6 ? 2 : 1); }
+function orr_starStr(n) { return '⭐⭐⭐'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+var ORR_COLOR_EMO = {
+    circle: ['🔴', '🟠', '🟡', '🟢', '🔵', '🟣'],
+    square: ['🟥', '🟧', '🟨', '🟩', '🟦', '🟪'],
+    heart: ['❤️', '🧡', '💛', '💚', '💙', '💜']
+};
+var ORR_COLOR_KO = ['빨강', '주황', '노랑', '초록', '파랑', '보라'];
+var ORR_SHAPE_KO = { circle: '동그라미', square: '네모', heart: '하트' };
+var ORR_ANIMALS = ['🐶', '🐱', '🐰', '🐻', '🦁', '🐯', '🐸', '🐵', '🐨', '🐮', '🐷', '🐔'];
+var ORR_PLANTS = ['🌳', '🌵', '🌻', '🌷', '🍄', '🌲'];
+var ORR_VEHICLES = ['🚗', '🚌', '🚂', '✈️', '🚲', '🚀', '🛵', '🚁'];
+var ORR_FOODS = ['🍎', '🍌', '🍓', '🍕', '🍔', '🍞', '🍩', '🍪'];
+var ORR_ARROWS_R = ['➡️', '👉', '🕐'];
+var ORR_ARROWS_L = ['⬅️', '👈', '🕘'];
+var orrState = { level: 1 };
+var ORR_TOTAL = 10;
+function initOddRuleOut() { clearAllGameTimers(); renderOddRuleSetup(); }
+function renderOddRuleSetup() {
+    if (!orrState.level) orrState.level = 1;
+    var html = '<div class="game-title-box">🔍 규칙 벗어난 것 찾기</div>';
+    html += '<div class="game-sub-desc">아이템들이 지키는 규칙을 스스로 찾아내고, 그 규칙에서 <b>벗어난 하나</b>를 골라요.</div>';
+    html += '<div class="setup-section-label">난이도</div><div class="setup-btn-group">';
+    [{ v: 1, l: '1단계 · 눈에 바로 보임' }, { v: 2, l: '2단계 · 셈이 필요함' }, { v: 3, l: '3단계 · 색+모양 동시에' }].forEach(function (t) {
+        html += '<button class="setup-btn' + (orrState.level === t.v ? ' active' : '') + '" onclick="setOrrLevel(' + t.v + ')">' + t.l + '</button>';
+    });
+    html += '</div>';
+    html += '<button class="action-btn" onclick="startOddRuleSession()">시작하기 🚀</button>';
+    document.getElementById('mainArea').innerHTML = html;
+}
+function setOrrLevel(v) { orrState.level = v; renderOddRuleSetup(); }
+// 각 생성기는 { cells:[표시문자열], odd:정답인덱스, explain:'해설' } 반환
+function orr_genCategory() {
+    var sets = [
+        { normal: ORR_ANIMALS, odd: ORR_PLANTS, nk: '동물', ok: '식물' },
+        { normal: ORR_ANIMALS, odd: ORR_VEHICLES, nk: '동물', ok: '탈것' },
+        { normal: ORR_VEHICLES, odd: ORR_ANIMALS, nk: '탈것', ok: '동물' },
+        { normal: ORR_FOODS, odd: ORR_ANIMALS, nk: '먹는 것', ok: '동물' },
+        { normal: ORR_VEHICLES, odd: ORR_FOODS, nk: '탈것', ok: '먹는 것' }
+    ];
+    var s = pickRandom(sets);
+    var k = getRandomInt(5, 7);
+    var cells = pickN(s.normal, k - 1);
+    var oddEmo = pickRandom(s.odd.filter(function (e) { return cells.indexOf(e) === -1; }));
+    var oddIdx = getRandomInt(0, k - 1);
+    cells.splice(oddIdx, 0, oddEmo);
+    return { cells: cells, odd: oddIdx, explain: '나머지는 모두 ' + s.nk + '인데 ' + oddEmo + ' 만 ' + s.ok + '이에요.' };
+}
+function orr_genColor() {
+    var shape = pickRandom(['circle', 'square', 'heart']);
+    var c = getRandomInt(0, 5), c2 = getRandomInt(0, 5);
+    while (c2 === c) c2 = getRandomInt(0, 5);
+    var k = getRandomInt(5, 7);
+    var cells = [];
+    for (var i = 0; i < k; i++) cells.push(ORR_COLOR_EMO[shape][c]);
+    var oddIdx = getRandomInt(0, k - 1);
+    cells[oddIdx] = ORR_COLOR_EMO[shape][c2];
+    return { cells: cells, odd: oddIdx, explain: '나머지는 모두 ' + ORR_COLOR_KO[c] + '인데 하나만 ' + ORR_COLOR_KO[c2] + '이에요.' };
+}
+function orr_genDirection() {
+    var k = getRandomInt(5, 7);
+    var r = pickRandom(ORR_ARROWS_R), l = pickRandom(ORR_ARROWS_L);
+    var cells = [];
+    for (var i = 0; i < k; i++) cells.push(r);
+    var oddIdx = getRandomInt(0, k - 1);
+    cells[oddIdx] = l;
+    return { cells: cells, odd: oddIdx, explain: '나머지는 모두 오른쪽을 보는데 하나만 왼쪽을 봐요.' };
+}
+function orr_genMultiple() {
+    var base = pickRandom([2, 3, 4, 5]);
+    var k = getRandomInt(5, 6);
+    var used = {};
+    var nums = [];
+    while (nums.length < k - 1) {
+        var m = base * getRandomInt(2, 9);
+        if (!used[m] && m < 100) { used[m] = 1; nums.push(m); }
+    }
+    var bad;
+    do { bad = getRandomInt(2, 40); } while (bad % base === 0 || used[bad]);
+    var oddIdx = getRandomInt(0, k - 1);
+    nums.splice(oddIdx, 0, bad);
+    return { cells: nums.map(String), odd: oddIdx, explain: '정답은 ' + bad + '이에요. 나머지는 모두 ' + base + '의 배수인데 ' + bad + '만 아니에요.' };
+}
+function orr_genParity() {
+    var evenNormal = Math.random() < 0.5;
+    var k = getRandomInt(5, 6);
+    var used = {};
+    var nums = [];
+    while (nums.length < k - 1) {
+        var v = getRandomInt(1, 49) * 2 - (evenNormal ? 0 : 1);
+        if (!used[v] && v > 0 && v < 100) { used[v] = 1; nums.push(v); }
+    }
+    var bad;
+    do { bad = getRandomInt(1, 99); } while ((bad % 2 === 0) === evenNormal || used[bad]);
+    var oddIdx = getRandomInt(0, k - 1);
+    nums.splice(oddIdx, 0, bad);
+    return { cells: nums.map(String), odd: oddIdx, explain: '정답은 ' + bad + '이에요. 나머지는 모두 ' + (evenNormal ? '짝수' : '홀수') + '인데 ' + bad + '만 ' + (evenNormal ? '홀수' : '짝수') + '예요.' };
+}
+function orr_genDigits() {
+    var k = getRandomInt(5, 6);
+    var used = {};
+    var nums = [];
+    while (nums.length < k - 1) { var v = getRandomInt(10, 99); if (!used[v]) { used[v] = 1; nums.push(v); } }
+    var bad = getRandomInt(100, 999);
+    var oddIdx = getRandomInt(0, k - 1);
+    nums.splice(oddIdx, 0, bad);
+    return { cells: nums.map(String), odd: oddIdx, explain: '정답은 ' + bad + '이에요. 나머지는 모두 두 자리 수인데 ' + bad + '만 세 자리 수예요.' };
+}
+function orr_genColorShape() {
+    // 3단계: 색+모양. 정상은 모두 (색c, 모양s). 예외는 색만 다르거나 모양만 다름(정확히 한 속성만 깨짐).
+    var c = getRandomInt(0, 5);
+    var s = pickRandom(['circle', 'square', 'heart']);
+    var k = getRandomInt(5, 6);
+    var cells = [];
+    for (var i = 0; i < k; i++) cells.push(ORR_COLOR_EMO[s][c]);
+    var oddIdx = getRandomInt(0, k - 1);
+    var breakColor = Math.random() < 0.5;
+    var explain;
+    if (breakColor) {
+        var c2 = getRandomInt(0, 5); while (c2 === c) c2 = getRandomInt(0, 5);
+        cells[oddIdx] = ORR_COLOR_EMO[s][c2];
+        explain = '나머지는 모두 ' + ORR_COLOR_KO[c] + ' ' + ORR_SHAPE_KO[s] + '인데 이것만 색이 ' + ORR_COLOR_KO[c2] + '이에요.';
+    } else {
+        var shapes = ['circle', 'square', 'heart'].filter(function (x) { return x !== s; });
+        var s2 = pickRandom(shapes);
+        cells[oddIdx] = ORR_COLOR_EMO[s2][c];
+        explain = '나머지는 모두 ' + ORR_COLOR_KO[c] + ' ' + ORR_SHAPE_KO[s] + '인데 이것만 모양이 ' + ORR_SHAPE_KO[s2] + '예요.';
+    }
+    return { cells: cells, odd: oddIdx, explain: explain };
+}
+function genOddRuleRound(level) {
+    var gens;
+    if (level === 1) gens = [orr_genCategory, orr_genColor, orr_genDirection];
+    else if (level === 2) gens = [orr_genMultiple, orr_genParity, orr_genDigits];
+    else gens = [orr_genColorShape];
+    return pickRandom(gens)();
+}
+function startOddRuleSession() {
+    orrState.round = 0;
+    orrState.correct = 0;
+    nextOddRuleRound();
+}
+function nextOddRuleRound() {
+    orrState.round++;
+    if (orrState.round > ORR_TOTAL) { finishOddRuleSession(); return; }
+    var r = genOddRuleRound(orrState.level);
+    orrState.cells = r.cells;
+    orrState.odd = r.odd;
+    orrState.explain = r.explain;
+    orrState.answered = false;
+    orrState.firstTry = true;
+    renderOddRuleRound();
+}
+function renderOddRuleRound() {
+    var st = orrState;
+    var k = st.cells.length;
+    var cols = k <= 4 ? k : (k <= 6 ? 3 : 4);
+    var html = '<div class="game-title-box">🔍 규칙 벗어난 것 찾기</div>';
+    html += '<div class="status-row"><div>' + st.round + ' / ' + ORR_TOTAL + '</div><div>정답: ' + st.correct + '</div></div>';
+    html += '<div class="eng-btn-row"><button class="eng-mini-btn" onclick="initOddRuleOut()">⏮ 처음으로</button></div>';
+    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">규칙에서 벗어난 하나를 골라요!</div>';
+    html += '<div class="orr-grid" style="grid-template-columns:repeat(' + cols + ', 1fr);">';
+    st.cells.forEach(function (v, idx) {
+        html += '<button class="orr-item" data-i="' + idx + '" onclick="checkOddRule(' + idx + ')">' + v + '</button>';
+    });
+    html += '</div>';
+    html += '<div id="orrMsg" class="msg-box"></div>';
+    document.getElementById('mainArea').innerHTML = html;
+}
+function checkOddRule(idx) {
+    var st = orrState;
+    if (st.answered) return;
+    st.answered = true;
+    vibrateShort();
+    var btns = document.querySelectorAll('.orr-item');
+    var ok = idx === st.odd;
+    btns[st.odd].classList.add('correct');
+    if (!ok) btns[idx].classList.add('wrong');
+    if (ok && st.firstTry) st.correct++;
+    var msg = document.getElementById('orrMsg');
+    msg.style.display = 'block';
+    msg.className = ok ? 'msg-box' : 'msg-box bad';
+    msg.innerText = (ok ? '🎉 맞아요! ' : '아쉬워요! ') + st.explain;
+    document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" style="width:100%;" onclick="nextOddRuleRound()">다음 ▶</button>');
+}
+function finishOddRuleSession() {
+    var st = orrState;
+    var n = orr_starN(st.correct, ORR_TOTAL);
+    var html = '<div class="game-title-box">🔍 규칙 벗어난 것 찾기 — 끝!</div>';
+    html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + orr_starStr(n) + '</div>';
+    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">' + ORR_TOTAL + '문제 중 <span style="color:var(--primary);">' + st.correct + '개</span> 정답!</div>';
+    html += buildStandardResultButtons('initOddRuleOut()', 'startOddRuleSession()', 'goHome()');
+    document.getElementById('mainArea').innerHTML = html;
+}
+
 // ===================== 게임 등록 =====================
+GAME_INIT_FNS.truthLiarDetective = initTruthLiar;
+GAME_INIT_FNS.oddRuleOut = initOddRuleOut;
 GAME_INIT_FNS.patternMatrix = initPatternMatrix;
 GAME_INIT_FNS.sizeLogic = initSizeLogic;
 GAME_INIT_FNS.mirrorSymmetry = initMirrorSymmetry;

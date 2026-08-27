@@ -263,6 +263,197 @@ function clickNumberRush(btn, num) {
     }
 }
 
+// ===================== 7. 관찰력: 순간 포착 세기 =====================
+// 물체들이 잠깐 나타났다 사라진 뒤, 특정 속성(색/모양)을 가진 물체가 몇 개였는지 맞힌다.
+// 물체는 격자 셀당 하나씩 + 약간의 무작위 오프셋으로 배치해 겹치지 않게 한다.
+function fcs_starN(c, t) { var r = t > 0 ? c / t : 0; return r >= 0.9 ? 3 : (r >= 0.6 ? 2 : 1); }
+function fcs_starStr(n) { return '⭐⭐⭐'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+var FCS_COLORS = [
+    { k: 'red', hex: '#ef4444', ko: '빨간' },
+    { k: 'orange', hex: '#f97316', ko: '주황' },
+    { k: 'yellow', hex: '#eab308', ko: '노란' },
+    { k: 'green', hex: '#22c55e', ko: '초록' },
+    { k: 'blue', hex: '#3b82f6', ko: '파란' },
+    { k: 'purple', hex: '#a855f7', ko: '보라' }
+];
+var FCS_SHAPES = [
+    { k: 'circle', ko: '동그라미', css: 'border-radius:50%;' },
+    { k: 'square', ko: '네모', css: 'border-radius:5px;' },
+    { k: 'triangle', ko: '세모', css: 'clip-path:polygon(50% 0,100% 100%,0 100%);' }
+];
+var FCS_LEVELS = {
+    1: { min: 5, max: 6, expo: 3600, kinds: ['color'] },
+    2: { min: 8, max: 10, expo: 2400, kinds: ['color'] },
+    3: { min: 10, max: 12, expo: 1700, kinds: ['combo', 'compare'] }
+};
+var fcsState = { level: 1 };
+var FCS_TOTAL = 8;
+var FCS_STAGE_W = 320, FCS_STAGE_H = 220, FCS_OBJ = 34;
+function initFlashCount() { clearAllGameTimers(); renderFlashCountSetup(); }
+function renderFlashCountSetup() {
+    if (!fcsState.level) fcsState.level = 1;
+    var html = '<div class="game-title-box">⚡ 순간 포착 세기</div>';
+    html += '<div class="game-sub-desc">물체들이 <b>잠깐</b> 나타났다 사라져요. 질문에 맞는 물체가 몇 개였는지 기억해서 골라요!</div>';
+    html += '<div class="setup-section-label">난이도</div><div class="setup-btn-group">';
+    [{ v: 1, l: '1단계 · 5~6개·3.6초' }, { v: 2, l: '2단계 · 8~10개·2.4초' }, { v: 3, l: '3단계 · 10~12개·1.7초' }].forEach(function (t) {
+        html += '<button class="setup-btn' + (fcsState.level === t.v ? ' active' : '') + '" onclick="setFcsLevel(' + t.v + ')">' + t.l + '</button>';
+    });
+    html += '</div>';
+    html += '<button class="action-btn" onclick="startFlashCountSession()">시작하기 🚀</button>';
+    document.getElementById('mainArea').innerHTML = html;
+}
+function setFcsLevel(v) { fcsState.level = v; renderFlashCountSetup(); }
+function fcs_layout(n) {
+    var cols = Math.ceil(Math.sqrt(n * (FCS_STAGE_W / FCS_STAGE_H)));
+    var rows = Math.ceil(n / cols);
+    var cw = FCS_STAGE_W / cols, ch = FCS_STAGE_H / rows;
+    var cellIdx = shuffleArray(Array.from({ length: cols * rows }, function (_, i) { return i; })).slice(0, n);
+    return cellIdx.map(function (ci) {
+        var cx = ci % cols, cy = Math.floor(ci / cols);
+        var maxX = Math.max(0, cw - FCS_OBJ - 2), maxY = Math.max(0, ch - FCS_OBJ - 2);
+        return {
+            x: Math.round(cx * cw + 1 + Math.random() * maxX),
+            y: Math.round(cy * ch + 1 + Math.random() * maxY)
+        };
+    });
+}
+function genFlashCountRound(level) {
+    var cfg = FCS_LEVELS[level];
+    var n = getRandomInt(cfg.min, cfg.max);
+    var objs = [];
+    for (var i = 0; i < n; i++) {
+        objs.push({ color: getRandomInt(0, FCS_COLORS.length - 1), shape: getRandomInt(0, FCS_SHAPES.length - 1) });
+    }
+    var pos = fcs_layout(n);
+    objs.forEach(function (o, i) { o.x = pos[i].x; o.y = pos[i].y; });
+    var kind = pickRandom(cfg.kinds);
+    var q, answer, options, match;
+    if (kind === 'color') {
+        var ci = getRandomInt(0, FCS_COLORS.length - 1);
+        match = function (o) { return o.color === ci; };
+        answer = objs.filter(match).length;
+        q = FCS_COLORS[ci].ko + ' 물체가 몇 개였을까요?';
+        options = fcs_numOptions(answer, n);
+    } else if (kind === 'combo') {
+        var cc = getRandomInt(0, FCS_COLORS.length - 1), ss = getRandomInt(0, FCS_SHAPES.length - 1);
+        match = function (o) { return o.color === cc && o.shape === ss; };
+        answer = objs.filter(match).length;
+        q = FCS_COLORS[cc].ko + ' ' + FCS_SHAPES[ss].ko + '가 몇 개였을까요?';
+        options = fcs_numOptions(answer, n);
+    } else {
+        // compare: 두 색 중 어느 게 더 많았나
+        var a = getRandomInt(0, FCS_COLORS.length - 1), b = getRandomInt(0, FCS_COLORS.length - 1);
+        while (b === a) b = getRandomInt(0, FCS_COLORS.length - 1);
+        var ca = objs.filter(function (o) { return o.color === a; }).length;
+        var cb = objs.filter(function (o) { return o.color === b; }).length;
+        match = function (o) { return o.color === a || o.color === b; };
+        q = FCS_COLORS[a].ko + ' 물체와 ' + FCS_COLORS[b].ko + ' 물체 중 어느 게 더 많았을까요?';
+        options = [FCS_COLORS[a].ko + ' 물체', FCS_COLORS[b].ko + ' 물체', '같아요'];
+        answer = ca > cb ? 0 : (cb > ca ? 1 : 2);
+    }
+    return { objs: objs, kind: kind, q: q, answer: answer, options: options, match: match };
+}
+function fcs_numOptions(answer, n) {
+    var hi = Math.min(n, Math.max(answer + 1, 4));
+    var opts = [];
+    for (var v = 0; v <= hi; v++) opts.push(v);
+    return opts;
+}
+function startFlashCountSession() {
+    fcsState.round = 0;
+    fcsState.correct = 0;
+    nextFlashCountRound();
+}
+function nextFlashCountRound() {
+    fcsState.round++;
+    if (fcsState.round > FCS_TOTAL) { finishFlashCountSession(); return; }
+    var r = genFlashCountRound(fcsState.level);
+    fcsState.data = r;
+    fcsState.phase = 'ready';
+    fcsState.answered = false;
+    renderFlashCountReady();
+}
+function fcs_objHtml(o, hl) {
+    var col = FCS_COLORS[o.color], sh = FCS_SHAPES[o.shape];
+    return '<div class="fcs-obj' + (hl ? ' hl' : '') + '" style="left:' + o.x + 'px; top:' + o.y + 'px; width:' + FCS_OBJ + 'px; height:' + FCS_OBJ + 'px; background:' + col.hex + '; ' + sh.css + '"></div>';
+}
+function fcs_stageHtml(objs, hlFn) {
+    var h = '<div class="fcs-stage">';
+    objs.forEach(function (o) { h += fcs_objHtml(o, hlFn ? hlFn(o) : false); });
+    h += '</div>';
+    return h;
+}
+function renderFlashCountReady() {
+    var st = fcsState;
+    var html = '<div class="game-title-box">⚡ 순간 포착 세기</div>';
+    html += '<div class="status-row"><div>' + st.round + ' / ' + FCS_TOTAL + ' 라운드</div><div>정답: ' + st.correct + '</div></div>';
+    html += '<div class="eng-btn-row"><button class="eng-mini-btn" onclick="initFlashCount()">⏮ 처음으로</button></div>';
+    html += '<div class="fcs-stage"><div class="fcs-countdown" id="fcsCount">준비!</div></div>';
+    document.getElementById('mainArea').innerHTML = html;
+    var t1 = setTimeout(function () {
+        var el = document.getElementById('fcsCount'); if (el) el.innerText = '집중!';
+        var t2 = setTimeout(fcs_showObjects, 650);
+        activeTimers.push(t2);
+    }, 700);
+    activeTimers.push(t1);
+}
+function fcs_showObjects() {
+    var st = fcsState;
+    var html = '<div class="game-title-box">⚡ 순간 포착 세기</div>';
+    html += '<div class="status-row"><div>' + st.round + ' / ' + FCS_TOTAL + ' 라운드</div><div>정답: ' + st.correct + '</div></div>';
+    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">잘 보세요! 👀</div>';
+    html += fcs_stageHtml(st.data.objs, null);
+    document.getElementById('mainArea').innerHTML = html;
+    var t = setTimeout(fcs_askQuestion, FCS_LEVELS[st.level].expo);
+    activeTimers.push(t);
+}
+function fcs_askQuestion() {
+    var st = fcsState;
+    st.phase = 'ask';
+    var html = '<div class="game-title-box">⚡ 순간 포착 세기</div>';
+    html += '<div class="status-row"><div>' + st.round + ' / ' + FCS_TOTAL + ' 라운드</div><div>정답: ' + st.correct + '</div></div>';
+    html += '<div class="eng-btn-row"><button class="eng-mini-btn" onclick="initFlashCount()">⏮ 처음으로</button></div>';
+    html += '<div class="fcs-stage"><div class="fcs-countdown" style="font-size:1.3rem; color:#94a3b8;">❓</div></div>';
+    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800; font-size:1rem;">' + st.data.q + '</div>';
+    html += '<div class="options-grid"' + (st.data.options.length > 4 ? ' style="grid-template-columns:repeat(4,1fr);"' : '') + '>';
+    st.data.options.forEach(function (op, idx) {
+        html += '<button class="opt-btn" data-i="' + idx + '" onclick="checkFlashCount(' + idx + ')">' + op + '</button>';
+    });
+    html += '</div>';
+    html += '<div id="fcsMsg" class="msg-box"></div>';
+    document.getElementById('mainArea').innerHTML = html;
+}
+function checkFlashCount(idx) {
+    var st = fcsState;
+    if (st.answered) return;
+    st.answered = true;
+    vibrateShort();
+    var ok = idx === st.data.answer;
+    if (ok) st.correct++;
+    var btns = document.querySelectorAll('#mainArea .opt-btn');
+    btns[idx].classList.add(ok ? 'correct' : 'wrong');
+    if (!ok && btns[st.data.answer]) btns[st.data.answer].classList.add('correct');
+    // 물체 다시 보여주며 정답 대상 하이라이트
+    var stageWrap = document.querySelector('.fcs-stage');
+    if (stageWrap) stageWrap.outerHTML = fcs_stageHtml(st.data.objs, st.data.match);
+    var msg = document.getElementById('fcsMsg');
+    msg.style.display = 'block';
+    msg.className = ok ? 'msg-box' : 'msg-box bad';
+    var ansTxt = st.data.kind === 'compare' ? ('정답은 "' + st.data.options[st.data.answer] + '"') : ('정답은 ' + st.data.answer + '개');
+    msg.innerText = (ok ? '🎉 맞아요! ' : '아쉬워요! ') + ansTxt + '예요. (노란 테두리가 해당 물체)';
+    document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" style="width:100%;" onclick="nextFlashCountRound()">다음 ▶</button>');
+}
+function finishFlashCountSession() {
+    var st = fcsState;
+    var n = fcs_starN(st.correct, FCS_TOTAL);
+    var html = '<div class="game-title-box">⚡ 순간 포착 세기 — 끝!</div>';
+    html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + fcs_starStr(n) + '</div>';
+    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">' + FCS_TOTAL + '문제 중 <span style="color:var(--primary);">' + st.correct + '개</span> 정답!</div>';
+    html += buildStandardResultButtons('initFlashCount()', 'startFlashCountSession()', 'goHome()');
+    document.getElementById('mainArea').innerHTML = html;
+}
+
 // ===================== 게임 등록 =====================
 GAME_INIT_FNS.spotChange = initSpotChange;
 GAME_INIT_FNS.numberRush = initNumberRush;
+GAME_INIT_FNS.flashCountSpot = initFlashCount;
