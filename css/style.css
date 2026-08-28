@@ -467,3 +467,103 @@ h1 { font-size: 1.1rem; margin: 0; text-align: left; }
     background: var(--primary); color: #fff; border: none;
     padding: 0.55rem 1.2rem; border-radius: 0.4rem; font-weight: 700; cursor: pointer; font-size: 0.9rem;
 }
+
+/* ===== 영어 놀이 공통 ===== */
+.eng-speed-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; justify-content: center; margin-bottom: 0.9rem; }
+.eng-speed-label { font-size: 0.82rem; font-weight: 700; color: #6b7280; margin-right: 0.2rem; }
+.eng-speed-btn {
+    background: #ffffff;
+    border: 2px solid #d1d5db;
+    color: #4b5563;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+.eng-speed-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+.eng-btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-bottom: 0.6rem; }
+.eng-speak-btn, .eng-mini-btn {
+    background: #eef2ff;
+    border: 2px solid #c7d2fe;
+    color: var(--primary);
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+.eng-speak-btn:hover, .eng-mini-btn:hover { background: #e0e7ff; }
+
+@keyframes engShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+}
+.eng-shake { animation: engShake 0.4s ease; }
+
+/* 1. 듣고 그림 찾기 */
+.eng-pic-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
+.eng-pic-btn {
+    background: #f8fafc;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    font-size: 2.2rem;
+    cursor: pointer;
+}
+.eng-pic-btn:hover { border-color: var(--primary); background: #eef2ff; }
+.eng-pic-btn.eng-ok { background: #d1fae5; border-color: var(--good); }
+.eng-pic-btn.eng-no { background: #fee2e2; border-color: var(--bad); }
+
+/* 2. 지시 따라하기 */
+.eng-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 0.8rem; }
+.eng-board-item {
+    background: #f8fafc;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 0.9rem;
+    font-size: 2.1rem;
+    cursor: pointer;
+}
+.eng-board-item:hover { border-color: var(--primary); background: #eef2ff; }
+.eng-board-item.eng-ok { background: #d1fae5; border-color: var(--good); cursor: default; }
+.eng-board-item.eng-no { background: #fee2e2; border-color: var(--bad); }
+
+/* 3. 문장 만들기 */
+.eng-slot-row { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem; }
+.eng-slot {
+    min-width: 60px;
+    height: 46px;
+    padding: 0 0.6rem;
+    background: #f8fafc;
+    border: 2px dashed #cbd5e1;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: default;
+}
+.eng-slot.filled { border-style: solid; border-color: var(--primary); background: #eef2ff; cursor: pointer; }
+
+.eng-wordpool { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-bottom: 0.8rem; }
+.eng-word-card {
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.eng-word-card:hover { border-color: var(--primary); background: #eef2ff; }
+.eng-word-card.used { opacity: 0.3; cursor: default; }
+
+/* 4. 빈칸 채우기 */
+.eng-blank-sentence {
+    font-size: 1.05rem;
+    font-weight: 700;
+    background: #f8fafc;
+    border: 2px dashed var(--primary);
+    border-radius: 0.6rem;
+   
