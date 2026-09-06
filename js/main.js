@@ -304,10 +304,30 @@ function renderHome() {
     html += '<button class="action-btn" onclick="startTodayGame()">🔥 오늘의 게임</button>';
     html += '<button class="action-btn secondary" onclick="renderRandomGamePicker()">🎲 무작위 게임</button>';
     html += '</div>';
-    html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">';
     html += '<div style="font-weight:800; color:var(--primary);">👋 ' + escapeHtml(currentUser || '플레이어') + '님</div>';
     html += '<button class="action-btn secondary" style="padding:0.4rem 0.7rem; font-size:0.78rem;" onclick="renderHistory()">📜 게임 기록</button>';
     html += '</div>';
+    // 스티커 / 연속 출석 스트립
+    var _streak = getStreak();
+    var _stCount = Object.keys(getStickers()).filter(function (k) { return !!findGame(k); }).length;
+    html += '<div style="display:flex; gap:0.5rem; margin-bottom:0.8rem;">';
+    html += '<button class="action-btn secondary" style="flex:1; padding:0.5rem; font-size:0.82rem;" onclick="renderStickers()">🎟️ 스티커 ' + _stCount + ' / ' + totalGameCount() + '</button>';
+    if (_streak.count > 0) {
+        html += '<div style="flex:1; display:flex; align-items:center; justify-content:center; font-weight:800; color:#b45309; background:#fffbeb; border:2px solid #fde68a; border-radius:0.6rem; font-size:0.85rem;">🔥 ' + _streak.count + '일 연속</div>';
+    }
+    html += '</div>';
+    // 최근에 한 게임
+    var _recent = getRecentGameIds(6);
+    if (_recent.length > 0) {
+        html += '<div class="category-block"><div class="category-title">🕘 최근에 한 게임</div><div class="tile-row">';
+        _recent.forEach(function (id) {
+            var rg = findGame(id);
+            if (!rg) return;
+            html += '<div class="game-tile" onclick="startGame(\'' + id + '\')"><span class="tile-emoji">' + rg.emoji + '</span><div class="tile-name">' + rg.name + '</div></div>';
+        });
+        html += '</div></div>';
+    }
     var bests = getGameBests();
     GAME_LIST.forEach(function (block) {
         html += '<div class="category-block">';
@@ -402,6 +422,74 @@ function bumpGameBest(id, round) {
     } catch (e) { }
 }
 
+// ===================== 스티커 모으기 + 연속 출석 =====================
+function _dayStr(d) { d = d || new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function getStickers() {
+    try { return JSON.parse(localStorage.getItem('gameStickers') || '{}') || {}; } catch (e) { return {}; }
+}
+function getStreak() {
+    try { return JSON.parse(localStorage.getItem('playStreak') || '{}') || {}; } catch (e) { return {}; }
+}
+function totalGameCount() {
+    var n = 0;
+    GAME_LIST.forEach(function (b) { n += b.games.length; });
+    return n;
+}
+function findGame(id) {
+    var found = null;
+    GAME_LIST.forEach(function (b) { b.games.forEach(function (g) { if (g.id === id) found = g; }); });
+    return found;
+}
+function getRecentGameIds(n) {
+    var list = [];
+    try { list = JSON.parse(localStorage.getItem('gameHistory') || '[]'); } catch (e) { }
+    var seen = {}, out = [];
+    for (var i = list.length - 1; i >= 0 && out.length < n; i--) {
+        var id = list[i] && list[i].gameId;
+        if (id && !seen[id] && findGame(id)) { seen[id] = 1; out.push(id); }
+    }
+    return out;
+}
+// 게임을 한 판 하면 호출: 스티커(게임별 최초 1회) + 연속 출석일 갱신
+function markPlayed(gameId) {
+    try {
+        var st = getStickers();
+        if (gameId && !st[gameId]) { st[gameId] = 1; localStorage.setItem('gameStickers', JSON.stringify(st)); }
+    } catch (e) { }
+    try {
+        var s = getStreak();
+        var today = _dayStr();
+        if (s.last !== today) {
+            var y = new Date(); y.setDate(y.getDate() - 1);
+            s.count = (s.last === _dayStr(y)) ? (s.count || 0) + 1 : 1;
+            s.last = today;
+            localStorage.setItem('playStreak', JSON.stringify(s));
+        }
+    } catch (e) { }
+}
+function renderStickers() {
+    navEnterScreen();
+    document.getElementById('homeBtn').style.display = 'inline-block';
+    var earned = getStickers();
+    var got = Object.keys(earned).filter(function (k) { return !!findGame(k); }).length;
+    var total = totalGameCount();
+    var html = '<div class="game-title-box">🎟️ 스티커 모으기</div>';
+    html += '<div class="game-sub-desc">게임을 한 번씩 해볼 때마다 스티커를 받아요! <b style="color:var(--primary);">' + got + ' / ' + total + '</b></div>';
+    var streak = getStreak();
+    if (streak.count > 0) {
+        html += '<div class="msg-box" style="display:block; background:#fffbeb; border-color:#fde68a; color:#b45309; font-weight:800;">🔥 ' + streak.count + '일 연속 놀이 중!</div>';
+    }
+    GAME_LIST.forEach(function (block) {
+        html += '<div class="category-block"><div class="category-title">' + block.cat + '</div><div class="sticker-grid">';
+        block.games.forEach(function (g) {
+            var has = !!earned[g.id];
+            html += '<div class="sticker' + (has ? ' got' : '') + '" onclick="startGame(\'' + g.id + '\')"><span>' + (has ? g.emoji : '❓') + '</span><span class="sticker-name">' + g.name + '</span></div>';
+        });
+        html += '</div></div>';
+    });
+    document.getElementById('mainArea').innerHTML = html;
+}
+
 function captureCurrentRoundNumber() {
     var rows = document.querySelectorAll('.status-row');
     if (rows.length > 0) {
@@ -436,6 +524,7 @@ function endGameSession() {
         if (list.length > 300) list = list.slice(list.length - 300);
         localStorage.setItem('gameHistory', JSON.stringify(list));
     } catch (e) { /* 저장 실패시 무시 */ }
+    markPlayed(activeGameSession.id);
     activeGameSession = null;
 }
 function setHistoryFilterUser(u) { historyFilter.user = u; renderHistory(); }
@@ -682,7 +771,11 @@ function speakCurrentHelp() {
 }
 function updateReadHelpBtn() {
     var b = document.getElementById('readHelpBtn');
-    if (b) { b.style.opacity = READ_HELP ? '1' : '0.45'; b.setAttribute('aria-label', READ_HELP ? '설명 읽어주기 끄기' : '설명 읽어주기 켜기'); }
+    if (b) {
+        b.style.opacity = READ_HELP ? '1' : '0.7';
+        b.style.background = READ_HELP ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.12)';
+        b.setAttribute('aria-label', READ_HELP ? '설명 읽어주기 끄기' : '설명 읽어주기 켜기');
+    }
 }
 function toggleReadHelp() {
     READ_HELP = !READ_HELP;

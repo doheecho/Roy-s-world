@@ -80,6 +80,12 @@ h1 { font-size: 1.1rem; margin: 0; text-align: left; }
 .game-tile .tile-name { font-weight: 700; font-size: 0.92rem; }
 .game-tile .tile-desc { font-size: 0.76rem; color: #6b7280; margin-top: 0.2rem; }
 .game-tile .tile-best { font-size: 0.72rem; font-weight: 800; color: #b45309; margin-top: 0.3rem; }
+.sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 0.5rem; }
+.sticker { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.4rem 0.2rem; border-radius: 0.6rem; background: #f1f5f9; cursor: pointer; filter: grayscale(1); opacity: 0.55; }
+.sticker > span:first-child { font-size: 1.5rem; }
+.sticker .sticker-name { font-size: 0.6rem; font-weight: 700; color: #64748b; text-align: center; line-height: 1.15; }
+.sticker.got { background: #fef3c7; border: 2px solid #f59e0b; filter: none; opacity: 1; }
+.sticker.got .sticker-name { color: #92400e; }
 
 .game-title-box {
     font-size: 1.1rem;
