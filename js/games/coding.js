@@ -844,49 +844,33 @@ function generateFunctionRound() {
     functionState = { unit: unit, repeatCount: repeatCount, full: full, options: options, answered: false };
     renderFunctionFinder();
 }
+function functionChoiceCfg() {
+    var s = functionState;
+    return {
+        msgId: 'functionMsg',
+        ok: '🎉 정답이에요! 이 함수를 ' + s.repeatCount + '번 부르면 전체 명령과 똑같아요.',
+        bad: '아쉬워요! 정답은 "' + seqToLabel(s.unit) + '" 였어요.',
+        onCorrect: function () { functionCorrect++; },
+        onResolved: function () { functionRound++; },
+        next: 'generateFunctionRound()', retry: 'retryFunctionFinder()', home: 'initFunctionFinder()',
+        failStyle: 'standard'
+    };
+}
 function renderFunctionFinder() {
+    var s = functionState;
     var html = '<div class="game-title-box">📦 나만의 명령 만들기</div>';
-    html += '<div class="game-sub-desc">아래의 긴 명령은 사실 짧은 명령을 <b style="color:var(--primary);">' + functionState.repeatCount + '번</b> 반복한 거예요. 반복되는 부분(함수)이 무엇인지 찾아보세요!</div>';
+    html += '<div class="game-sub-desc">아래의 긴 명령은 사실 짧은 명령을 <b style="color:var(--primary);">' + s.repeatCount + '번</b> 반복한 거예요. 반복되는 부분(함수)이 무엇인지 찾아보세요!</div>';
     html += '<div class="status-row"><div>' + functionRound + '라운드</div><div>정답: ' + functionCorrect + ' / ' + (functionRound - 1) + '</div></div>';
     html += '<div class="row-label">전체 명령</div><div class="row-display">';
-    functionState.full.forEach(function (c) { html += '<div class="row-box" style="width:auto; min-width:46px; padding:0 0.3rem; font-size:0.72rem; font-weight:800;">' + FUNC_SHORT[c] + '</div>'; });
+    s.full.forEach(function (c) { html += '<div class="row-box" style="width:auto; min-width:46px; padding:0 0.3rem; font-size:0.72rem; font-weight:800;">' + FUNC_SHORT[c] + '</div>'; });
     html += '</div>';
-    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">이 함수를 ' + functionState.repeatCount + '번 반복하면 될까요?</div>';
-    html += '<div class="options-grid">';
-    functionState.options.forEach(function (opt, idx) {
-        html += '<button class="opt-btn text-opt" onclick="checkFunctionFinder(this,' + idx + ')">' + seqToLabel(opt) + '</button>';
-    });
-    html += '</div>';
-    html += '<div id="functionMsg" class="msg-box"></div>';
+    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">이 함수를 ' + s.repeatCount + '번 반복하면 될까요?</div>';
+    var cfg = functionChoiceCfg();
+    html += choiceOptionsHtml(s.options.map(function (opt) { return seqToLabel(opt); }), cfg);
     document.getElementById('mainArea').innerHTML = html;
+    choiceBegin(s.options.indexOf(s.unit), cfg);
 }
-function retryFunctionFinder() {
-    functionState.answered = false;
-    renderFunctionFinder();
-}
-function checkFunctionFinder(btn, idx) {
-    if (functionState.answered) return;
-    functionState.answered = true;
-    vibrateShort();
-    var buttons = document.querySelectorAll('.opt-btn');
-    var opt = functionState.options[idx];
-    var isCorrect = opt.every(function (c, i2) { return c === functionState.unit[i2]; });
-    var msg = document.getElementById('functionMsg');
-    if (isCorrect) {
-        btn.classList.add('correct');
-        functionCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요! 이 함수를 ' + functionState.repeatCount + '번 부르면 전체 명령과 똑같아요.';
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(function (b, i3) {
-            var o = functionState.options[i3];
-            if (o && o.every(function (c, i4) { return c === functionState.unit[i4]; })) b.classList.add('correct');
-        });
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 정답은 "' + seqToLabel(functionState.unit) + '" 였어요.';
-    }
-    functionRound++;
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('generateFunctionRound()', 'retryFunctionFinder()', 'initFunctionFinder()'));
-}
+function retryFunctionFinder() { renderFunctionFinder(); }
 
 // ===================== 24. 코딩 사고: 최소 명령 개수 맞추기 (효율적으로 생각하기) =====================
 var efficiencyState = {};
@@ -927,41 +911,29 @@ function generateEfficiencyRound() {
     efficiencyState = { r: R, d: D, minCommands: minCommands, options: shuffleArray(options), answered: false };
     renderEfficiencyGuess();
 }
+function efficiencyChoiceCfg() {
+    var s = efficiencyState;
+    return {
+        msgId: 'efficiencyMsg',
+        ok: '🎉 정답이에요! 오른쪽 ' + s.r + '번 + 회전 1번 + 아래 ' + s.d + '번 = ' + s.minCommands + '개예요.',
+        bad: '아쉬워요! 정답은 ' + s.minCommands + '개였어요.',
+        onCorrect: function () { efficiencyCorrect++; },
+        onResolved: function () { efficiencyRound++; },
+        next: 'generateEfficiencyRound()', retry: 'retryEfficiencyGuess()', home: 'initEfficiencyGuess()',
+        failStyle: 'standard'
+    };
+}
 function renderEfficiencyGuess() {
+    var s = efficiencyState;
     var html = '<div class="game-title-box">⚡ 최소 명령 개수 맞추기</div>';
-    html += '<div class="game-sub-desc">로봇이 오른쪽으로 <b style="color:var(--primary);">' + efficiencyState.r + '칸</b>, 아래로 <b style="color:var(--primary);">' + efficiencyState.d + '칸</b> 가야 도착해요. 전진과 회전을 각각 명령 1개로 셀 때, 최소 몇 개의 명령이면 도착할 수 있을까요?</div>';
+    html += '<div class="game-sub-desc">로봇이 오른쪽으로 <b style="color:var(--primary);">' + s.r + '칸</b>, 아래로 <b style="color:var(--primary);">' + s.d + '칸</b> 가야 도착해요. 전진과 회전을 각각 명령 1개로 셀 때, 최소 몇 개의 명령이면 도착할 수 있을까요?</div>';
     html += '<div class="status-row"><div>' + efficiencyRound + '라운드</div><div>정답: ' + efficiencyCorrect + ' / ' + (efficiencyRound - 1) + '</div></div>';
-    html += '<div class="options-grid">';
-    efficiencyState.options.forEach(function (opt, idx) {
-        html += '<button class="opt-btn text-opt" onclick="checkEfficiencyGuess(this,' + idx + ')">' + opt + '개</button>';
-    });
-    html += '</div>';
-    html += '<div id="efficiencyMsg" class="msg-box"></div>';
+    var cfg = efficiencyChoiceCfg();
+    html += choiceOptionsHtml(s.options.map(function (o) { return o + '개'; }), cfg);
     document.getElementById('mainArea').innerHTML = html;
+    choiceBegin(s.options.indexOf(s.minCommands), cfg);
 }
-function retryEfficiencyGuess() {
-    efficiencyState.answered = false;
-    renderEfficiencyGuess();
-}
-function checkEfficiencyGuess(btn, idx) {
-    if (efficiencyState.answered) return;
-    efficiencyState.answered = true;
-    vibrateShort();
-    var buttons = document.querySelectorAll('.opt-btn');
-    var opt = efficiencyState.options[idx];
-    var msg = document.getElementById('efficiencyMsg');
-    if (opt === efficiencyState.minCommands) {
-        btn.classList.add('correct');
-        efficiencyCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요! 오른쪽 ' + efficiencyState.r + '번 + 회전 1번 + 아래 ' + efficiencyState.d + '번 = ' + efficiencyState.minCommands + '개예요.';
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(function (b, i5) { if (efficiencyState.options[i5] === efficiencyState.minCommands) b.classList.add('correct'); });
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 정답은 ' + efficiencyState.minCommands + '개였어요.';
-    }
-    efficiencyRound++;
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('generateEfficiencyRound()', 'retryEfficiencyGuess()', 'initEfficiencyGuess()'));
-}
+function retryEfficiencyGuess() { renderEfficiencyGuess(); }
 
 // ===================== 25. 코딩 사고: AND OR 스위치 놀이 (논리 게이트) =====================
 var logicGateState = {};
@@ -975,50 +947,36 @@ function generateLogicGateRound() {
     logicGateState = { gate: gate, sw1: sw1, sw2: sw2, result: result, answered: false };
     renderLogicGate();
 }
+function logicGateChoiceCfg() {
+    var r = logicGateState.result;
+    return {
+        msgId: 'logicGateMsg',
+        ok: '🎉 정답이에요! ' + (r ? '전구가 켜져요.' : '전구가 꺼져있어요.'),
+        bad: '아쉬워요! 실제로는 ' + (r ? '켜져요.' : '꺼져있어요.'),
+        onCorrect: function () { logicGateCorrect++; },
+        onResolved: function () { logicGateRound++; },
+        next: 'generateLogicGateRound()', retry: 'retryLogicGate()', home: 'initLogicGate()',
+        failStyle: 'standard'
+    };
+}
 function renderLogicGate() {
+    var s = logicGateState;
     var html = '<div class="game-title-box">💡 AND OR 스위치 놀이</div>';
-    var gateDesc = logicGateState.gate === 'AND'
+    var gateDesc = s.gate === 'AND'
         ? '이 전구는 <b style="color:var(--primary);">AND</b> 규칙이에요. 스위치가 <b>둘 다 켜져야</b> 불이 켜져요!'
         : '이 전구는 <b style="color:var(--primary);">OR</b> 규칙이에요. 스위치가 <b>하나라도 켜지면</b> 불이 켜져요!';
     html += '<div class="game-sub-desc">' + gateDesc + '</div>';
     html += '<div class="status-row"><div>' + logicGateRound + '라운드</div><div>정답: ' + logicGateCorrect + ' / ' + (logicGateRound - 1) + '</div></div>';
     html += '<div class="msg-box" style="display:block; background:#f8fafc; border-color:#e5e7eb; text-align:center; font-size:2rem;">';
-    html += (logicGateState.sw1 ? '🟢' : '⚫') + ' 스위치1 &nbsp;&nbsp; ' + (logicGateState.sw2 ? '🟢' : '⚫') + ' 스위치2';
+    html += (s.sw1 ? '🟢' : '⚫') + ' 스위치1 &nbsp;&nbsp; ' + (s.sw2 ? '🟢' : '⚫') + ' 스위치2';
     html += '</div>';
     html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">전구는 켜질까요, 꺼질까요?</div>';
-    html += '<div class="options-grid">';
-    html += '<button class="opt-btn text-opt" onclick="checkLogicGate(this,true)">💡 켜진다</button>';
-    html += '<button class="opt-btn text-opt" onclick="checkLogicGate(this,false)">⚫ 꺼진다</button>';
-    html += '</div>';
-    html += '<div id="logicGateMsg" class="msg-box"></div>';
+    var cfg = logicGateChoiceCfg();
+    html += choiceOptionsHtml(['💡 켜진다', '⚫ 꺼진다'], cfg);
     document.getElementById('mainArea').innerHTML = html;
+    choiceBegin(s.result ? 0 : 1, cfg);
 }
-function retryLogicGate() {
-    logicGateState.answered = false;
-    renderLogicGate();
-}
-function checkLogicGate(btn, guess) {
-    if (logicGateState.answered) return;
-    logicGateState.answered = true;
-    vibrateShort();
-    var buttons = document.querySelectorAll('.opt-btn');
-    var msg = document.getElementById('logicGateMsg');
-    if (guess === logicGateState.result) {
-        btn.classList.add('correct');
-        logicGateCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block';
-        msg.innerText = '🎉 정답이에요! ' + (logicGateState.result ? '전구가 켜져요.' : '전구가 꺼져있어요.');
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(function (b) {
-            if ((b.innerText.indexOf('켜진다') > -1) === logicGateState.result) b.classList.add('correct');
-        });
-        msg.className = 'msg-box bad'; msg.style.display = 'block';
-        msg.innerText = '아쉬워요! 실제로는 ' + (logicGateState.result ? '켜져요.' : '꺼져있어요.');
-    }
-    logicGateRound++;
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('generateLogicGateRound()', 'retryLogicGate()', 'initLogicGate()'));
-}
+function retryLogicGate() { renderLogicGate(); }
 
 // ===================== 30. 코딩 사고: 햄버거 만들기 (순차+선행조건 개념, 실제 실행) =====================
 var HAMBURGER_RECIPES = [

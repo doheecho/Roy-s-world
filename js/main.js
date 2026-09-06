@@ -651,6 +651,67 @@ function buildStandardResultButtons(nextCall, retryCall, homeCall) {
         '</div>';
 }
 
+// ===================== 객관식 한 문제 공용 헬퍼 =====================
+// 여러 게임이 똑같이 반복하던 "보기 그리드 + 채점 + 결과 버튼" 로직을 한 곳으로 모은다.
+// 사용법:  render 안에서  html += choiceOptionsHtml(opts, cfg);
+//          그 직전/직후  choiceBegin(answerIndex, cfg);   (cfg 는 같은 객체 재사용)
+// cfg 필드:
+//   msgId     결과 메시지 div id (기본 'choiceMsg')
+//   cols      options-grid 열 수 (기본: CSS 기본값)
+//   optClass  보기 버튼 클래스 (기본 'opt-btn text-opt')
+//   ok / bad  결과 메시지. 문자열 또는 fn(answerIndex)->string
+//   explain   채점 후 보기 아래 덧붙일 HTML. 문자열 또는 fn(ok)->string
+//   onCorrect / onWrong  각각 호출될 콜백 (점수 증가 등)
+//   onResolved(ok)       채점 후 항상 마지막에 호출 (round++ 등)
+//   next / retry / home  결과 버튼이 실행할 코드 문자열
+//   failStyle 'retryHome'(기본, 2버튼) | 'standard'(성공과 같은 buildStandardResultButtons)
+var _choice = null;
+function choiceOptionsHtml(opts, cfg) {
+    cfg = cfg || {};
+    var cls = cfg.optClass || 'opt-btn text-opt';
+    var gs = cfg.cols ? ' style="grid-template-columns:repeat(' + cfg.cols + ',1fr);"' : '';
+    var h = '<div class="options-grid"' + gs + '>';
+    opts.forEach(function (o, i) { h += '<button class="' + cls + '" onclick="choiceSubmit(' + i + ')">' + o + '</button>'; });
+    h += '</div><div id="' + (cfg.msgId || 'choiceMsg') + '" class="msg-box"></div>';
+    return h;
+}
+function choiceBegin(answerIndex, cfg) {
+    _choice = { answerIndex: answerIndex, cfg: cfg || {}, answered: false };
+}
+function choiceSubmit(i) {
+    var st = _choice;
+    if (!st || st.answered) return;
+    st.answered = true;
+    var c = st.cfg;
+    vibrateShort();
+    var main = document.getElementById('mainArea');
+    var buttons = main ? main.querySelectorAll('.opt-btn') : [];
+    var ok = (i === st.answerIndex);
+    if (buttons[i]) buttons[i].classList.add(ok ? 'correct' : 'wrong');
+    if (!ok && buttons[st.answerIndex]) buttons[st.answerIndex].classList.add('correct');
+    var msg = document.getElementById(c.msgId || 'choiceMsg');
+    if (msg) {
+        msg.style.display = 'block';
+        msg.className = ok ? 'msg-box' : 'msg-box bad';
+        var text = ok ? (typeof c.ok === 'function' ? c.ok(st.answerIndex) : (c.ok || '🎉 정답이에요!'))
+            : (typeof c.bad === 'function' ? c.bad(st.answerIndex) : (c.bad || '아쉬워요!'));
+        msg.innerText = text;
+    }
+    if (c.explain) {
+        var e = (typeof c.explain === 'function') ? c.explain(ok) : c.explain;
+        if (e && main) main.insertAdjacentHTML('beforeend', e);
+    }
+    if (ok && c.onCorrect) c.onCorrect();
+    if (!ok && c.onWrong) c.onWrong();
+    var useStandard = ok || c.failStyle === 'standard';
+    var btnHtml = useStandard
+        ? buildStandardResultButtons(c.next, c.retry, c.home)
+        : '<div class="options-grid"><button class="action-btn" onclick="' + c.retry + '">다시 풀어보기 🔁</button>' +
+        '<button class="action-btn secondary" onclick="' + c.home + '">처음부터 풀기 🔄</button></div>';
+    if (main) main.insertAdjacentHTML('beforeend', btnHtml);
+    if (c.onResolved) c.onResolved(ok);
+}
+
 // ===================== 타이머 관리 (모든 게임 공용) =====================
 var activeTimers = [];
 function clearAllGameTimers() {

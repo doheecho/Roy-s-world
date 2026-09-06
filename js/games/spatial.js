@@ -430,6 +430,17 @@ function generateMapRound() {
     mapState = { grid: grid, gridSize: gridSize, a: chosen[0], b: chosen[1], answer: dir, answered: false };
     renderMapFinder();
 }
+var MAP_DIR_OPTS = ['위쪽', '아래쪽', '왼쪽', '오른쪽'];
+function mapFinderChoiceCfg() {
+    return {
+        msgId: 'mapMsg',
+        ok: '🎉 정답이에요!',
+        bad: '아쉬워요! 정답은 "' + mapState.answer + '" 였어요.',
+        onCorrect: function () { mapCorrect++; },
+        next: 'nextMapRound()', retry: 'retryMapRound()', home: 'restartMapFinder()',
+        failStyle: 'retryHome'
+    };
+}
 function renderMapFinder() {
     var html = '<div class="game-title-box">🗺️ 지도 찾기</div>';
     html += '<div class="game-sub-desc">지도를 보고 위치 관계를 알아맞혀보세요!</div>';
@@ -440,36 +451,12 @@ function renderMapFinder() {
     });
     html += '</div>';
     html += '<div class="game-sub-desc" style="text-align:center;">' + mapState.b.emoji + ' ' + mapState.b.name + '은(는) ' + mapState.a.emoji + ' ' + mapState.a.name + '의 어느 쪽에 있을까요?</div>';
-    html += '<div class="options-grid">';
-    ['위쪽', '아래쪽', '왼쪽', '오른쪽'].forEach(function (opt, idx) {
-        html += '<button class="opt-btn text-opt" onclick="checkMapFinder(this,\'' + opt + '\')">' + opt + '</button>';
-    });
-    html += '</div>';
-    html += '<div id="mapMsg" class="msg-box"></div>';
+    var cfg = mapFinderChoiceCfg();
+    html += choiceOptionsHtml(MAP_DIR_OPTS, cfg);
     document.getElementById('mainArea').innerHTML = html;
+    choiceBegin(MAP_DIR_OPTS.indexOf(mapState.answer), cfg);
 }
-function checkMapFinder(btn, opt) {
-    if (mapState.answered) return;
-    mapState.answered = true;
-    var buttons = document.querySelectorAll('.opt-btn');
-    var msg = document.getElementById('mapMsg');
-    if (opt === mapState.answer) {
-        btn.classList.add('correct');
-        mapCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요!';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextMapRound()', 'retryMapRound()', 'restartMapFinder()'));
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(function (b) { if (b.innerText === mapState.answer) b.classList.add('correct'); });
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 정답은 "' + mapState.answer + '" 였어요.';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-            '<div class="options-grid">' +
-            '<button class="action-btn" onclick="retryMapRound()">다시 풀어보기 🔁</button>' +
-            '<button class="action-btn secondary" onclick="restartMapFinder()">처음부터 풀기 🔄</button>' +
-            '</div>');
-    }
-}
-function retryMapRound() { mapState.answered = false; renderMapFinder(); }
+function retryMapRound() { renderMapFinder(); }
 function restartMapFinder() { mapRound = 1; mapCorrect = 0; generateMapRound(); }
 function nextMapRound() { mapRound++; generateMapRound(); }
 

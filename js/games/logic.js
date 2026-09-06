@@ -317,42 +317,35 @@ function generateSyllogismRound() {
     syllogismState = { premise1: premise1, premise2: premise2, conclusion: conclusion, answer: answer, answered: false };
     renderSyllogism();
 }
+var SYLLO_OPTS = ['맞다', '틀리다', '알 수 없다'];
+function syllogismChoiceCfg() {
+    var s = syllogismState;
+    return {
+        msgId: 'syllogismMsg', cols: 3,
+        ok: '🎉 정답이에요!',
+        bad: '아쉬워요! 정답은 "' + s.answer + '" 였어요.',
+        onCorrect: function () { syllogismCorrect++; },
+        onResolved: function () { syllogismRound++; },
+        next: 'generateSyllogismRound()', retry: 'retrySyllogismRound()', home: 'initSyllogism()',
+        failStyle: 'standard'
+    };
+}
 function renderSyllogism() {
+    var s = syllogismState;
     var html = '<div class="game-title-box">🧠 참/거짓 명제 추론</div>';
     html += '<div class="game-sub-desc">아래 단서 두 개를 보고, 마지막 문장이 맞는지 틀리는지 알 수 없는지 골라보세요!</div>';
     html += '<div class="status-row"><div>' + syllogismRound + '라운드</div><div>정답: ' + syllogismCorrect + ' / ' + (syllogismRound - 1) + '</div></div>';
     html += '<div class="msg-box" style="display:block; background:#f8fafc; border-color:#e5e7eb; text-align:left; line-height:1.9;">';
-    html += '단서1: ' + syllogismState.premise1 + '<br>';
-    html += '단서2: ' + syllogismState.premise2;
+    html += '단서1: ' + s.premise1 + '<br>';
+    html += '단서2: ' + s.premise2;
     html += '</div>';
-    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">➡️ ' + syllogismState.conclusion + '</div>';
-    html += '<div class="options-grid" style="grid-template-columns: repeat(3, 1fr);">';
-    ['맞다', '틀리다', '알 수 없다'].forEach(function (opt) {
-        html += '<button class="opt-btn text-opt" onclick="checkSyllogism(this,\'' + opt + '\')">' + opt + '</button>';
-    });
-    html += '</div>';
-    html += '<div id="syllogismMsg" class="msg-box"></div>';
+    html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">➡️ ' + s.conclusion + '</div>';
+    var cfg = syllogismChoiceCfg();
+    html += choiceOptionsHtml(SYLLO_OPTS, cfg);
     document.getElementById('mainArea').innerHTML = html;
+    choiceBegin(SYLLO_OPTS.indexOf(s.answer), cfg);
 }
-function checkSyllogism(btn, guess) {
-    if (syllogismState.answered) return;
-    syllogismState.answered = true;
-    vibrateShort();
-    var buttons = document.querySelectorAll('.opt-btn');
-    var msg = document.getElementById('syllogismMsg');
-    if (guess === syllogismState.answer) {
-        btn.classList.add('correct');
-        syllogismCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요!';
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(function (b) { if (b.innerText === syllogismState.answer) b.classList.add('correct'); });
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 정답은 "' + syllogismState.answer + '" 였어요.';
-    }
-    syllogismRound++;
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('generateSyllogismRound()', 'retrySyllogismRound()', 'initSyllogism()'));
-}
-function retrySyllogismRound() { syllogismState.answered = false; renderSyllogism(); }
+function retrySyllogismRound() { renderSyllogism(); }
 
 // ===================== 29. 논리: 숫자 규칙 추리 (인적성검사 스타일) =====================
 var numSeqState = {};
@@ -395,43 +388,32 @@ function generateNumSeqRound() {
     numSeqState = { shown: shown, answer: answer, ruleText: ruleText, fullSeq: seq, options: shuffleArray(options), answered: false };
     renderNumSeq();
 }
+function numSeqChoiceCfg() {
+    var s = numSeqState;
+    return {
+        msgId: 'numSeqMsg',
+        ok: '🎉 정답이에요!',
+        bad: '아쉬워요! 정답은 ' + s.answer + '였어요.',
+        explain: '<div class="msg-box" style="display:block; background:#f8fafc; border-color:#e5e7eb; text-align:left;">' +
+            s.ruleText + '<br>전체 숫자: ' + s.fullSeq.join(', ') + '</div>',
+        onCorrect: function () { numSeqCorrect++; },
+        onResolved: function () { numSeqRound++; },
+        next: 'generateNumSeqRound()', retry: 'retryNumSeqRound()', home: 'initNumSeq()',
+        failStyle: 'standard'
+    };
+}
 function renderNumSeq() {
+    var s = numSeqState;
     var html = '<div class="game-title-box">🔢 숫자 규칙 추리</div>';
     html += '<div class="game-sub-desc">숫자들 사이의 규칙을 찾아서, 물음표에 들어갈 숫자를 맞혀보세요!</div>';
     html += '<div class="status-row"><div>' + numSeqRound + '라운드</div><div>정답: ' + numSeqCorrect + ' / ' + (numSeqRound - 1) + '</div></div>';
-    html += '<div class="big-display" style="font-size:2rem; letter-spacing:0.2rem;">' + numSeqState.shown.join(',  ') + ',  ?</div>';
-    html += '<div class="options-grid">';
-    numSeqState.options.forEach(function (opt, idx) {
-        html += '<button class="opt-btn text-opt" onclick="checkNumSeq(this,' + idx + ')">' + opt + '</button>';
-    });
-    html += '</div>';
-    html += '<div id="numSeqMsg" class="msg-box"></div>';
+    html += '<div class="big-display" style="font-size:2rem; letter-spacing:0.2rem;">' + s.shown.join(',  ') + ',  ?</div>';
+    var cfg = numSeqChoiceCfg();
+    html += choiceOptionsHtml(s.options, cfg);
     document.getElementById('mainArea').innerHTML = html;
+    choiceBegin(s.options.indexOf(s.answer), cfg);
 }
-function checkNumSeq(btn, idx) {
-    if (numSeqState.answered) return;
-    numSeqState.answered = true;
-    vibrateShort();
-    var buttons = document.querySelectorAll('.opt-btn');
-    var opt = numSeqState.options[idx];
-    var msg = document.getElementById('numSeqMsg');
-    if (opt === numSeqState.answer) {
-        btn.classList.add('correct');
-        numSeqCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요!';
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(function (b, i) { if (numSeqState.options[i] === numSeqState.answer) b.classList.add('correct'); });
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 정답은 ' + numSeqState.answer + '였어요.';
-    }
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-        '<div class="msg-box" style="display:block; background:#f8fafc; border-color:#e5e7eb; text-align:left;">' +
-        numSeqState.ruleText + '<br>전체 숫자: ' + numSeqState.fullSeq.join(', ') +
-        '</div>');
-    numSeqRound++;
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('generateNumSeqRound()', 'retryNumSeqRound()', 'initNumSeq()'));
-}
-function retryNumSeqRound() { numSeqState.answered = false; renderNumSeq(); }
+function retryNumSeqRound() { renderNumSeq(); }
 
 // ===================== 30. 논리: 무게 저울 추론하기 =====================
 var weightState = {};
