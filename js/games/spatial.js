@@ -1944,7 +1944,7 @@ function checkNetFoldLevel1(idx) {
     });
     netfoldState.level1Correct = isCorrect;
     // 답을 고르면 정육면체가 천천히 접히고, 상자를 한 바퀴 돌려 마주보는 면을 확인시켜 준다
-    var t = gameTimeout(playNetFoldLevel1Reveal, 300);
+    var t = gameTimeout(playNetFoldLevel1Reveal, 400);
 }
 function playNetFoldLevel1Reveal() {
     var assign = netfoldState.assign;
@@ -1981,9 +1981,9 @@ function playNetFoldLevel1Reveal() {
                         '<span style="padding:0.25rem 0.5rem; border:3px solid #10b981; background:#d1fae5; border-radius:0.5rem; box-shadow:0 0 12px rgba(16,185,129,0.6);">' + netfoldState.correctAnswer + '</span>' +
                         '</div>';
                 }
-                var t2 = gameTimeout(finishNetFoldLevel1, 850);
-            }, NETFOLD_SPIN_MS + 120);
-        }, NETFOLD_SPIN_MS + 200);
+                var t2 = gameTimeout(finishNetFoldLevel1, 1050);
+            }, NETFOLD_SPIN_MS + 170);
+        }, NETFOLD_SPIN_MS + 280);
     });
 }
 function finishNetFoldLevel1() {
@@ -1995,9 +1995,9 @@ function finishNetFoldLevel1() {
 // F는 고정(회전 없음), L/R/T/Bo는 F와 맞닿은 변을 축으로 90도 접혀 옆면이 되고,
 // B는 R의 자식 요소로 두어 R을 따라 함께 돌다가 마지막에 한 번 더 접혀 뒷면이 됨(종이 상자 접기와 동일한 방식)
 var NETFOLD_ANIM_S = 56;
-var NETFOLD_FOLD_MS = 620;    // 한 면이 접히는 시간 (너무 느리면 답답해서 조정)
-var NETFOLD_SPIN_MS = 520;    // 접힌 상자를 돌려 보여줄 때의 회전 시간
-var NETFOLD_STEP_GAP = 90;    // 접기 단계 사이의 여유 시간
+var NETFOLD_FOLD_MS = 1000;   // 한 면이 접히는 시간
+var NETFOLD_SPIN_MS = 700;    // 접힌 상자를 돌려 보여줄 때의 회전 시간
+var NETFOLD_STEP_GAP = 140;   // 접기 단계 사이의 여유 시간
 function renderNetFoldSceneHtml(assign) {
     var S = NETFOLD_ANIM_S;
     var sceneW = 4 * S, sceneH = 3 * S;
@@ -2034,7 +2034,7 @@ function playNetFoldAssemblyAnim(assign, onDone) {
                 var t4 = gameTimeout(function () { if (onDone) onDone(); }, NETFOLD_SPIN_MS);
             }, NETFOLD_FOLD_MS + NETFOLD_STEP_GAP);
         }, NETFOLD_FOLD_MS + NETFOLD_STEP_GAP);
-    }, 300);
+    }, 420);
 }
 function generateNetFoldLevel2() {
     var assign = netfoldState.assign;
@@ -2071,13 +2071,13 @@ function netFoldLevel2Hint() {
     var el = document.getElementById('netfoldRefCube');
     if (!el || netfoldState.answered) return;
     vibrateShort();
-    el.style.transition = 'transform 1.6s ease-in-out';
+    el.style.transition = 'transform 1.9s ease-in-out';
     el.style.transform = 'rotateX(-20deg) rotateY(332deg)';
     var t = gameTimeout(function () {
         if (!el) return;
-        el.style.transition = 'transform 0.9s ease-in-out';
+        el.style.transition = 'transform 1s ease-in-out';
         el.style.transform = 'rotateX(-20deg) rotateY(-28deg)';
-    }, 1700);
+    }, 1950);
 }
 function checkNetFoldLevel2(idx) {
     if (netfoldState.answered) return;
@@ -2111,11 +2111,11 @@ function renderNetFoldLevel3() {
     document.getElementById('mainArea').innerHTML = html;
 }
 function renderNetFoldLevel3Body(assign) {
-    // netfoldL3Cubes: 두 각도 상자를 감싸는 블록. 답을 고르면 이 안이 "펼치는 애니메이션"으로 통째로 교체된다.
-    var html = '<div id="netfoldL3Cubes"><div style="display:flex; justify-content:center; gap:0.8rem; flex-wrap:wrap; align-items:flex-start;">';
-    html += '<div style="text-align:center;"><div class="netfold-cube-scene">' + buildNetCubeHTML(assign, -20, -28, 'netfoldView1', 46) + '</div><div class="game-sub-desc" style="margin:0.2rem 0 0 0;">앞에서 볼 때</div></div>';
-    html += '<div style="text-align:center;"><div class="netfold-cube-scene">' + buildNetCubeHTML(assign, -20, 152, 'netfoldView2', 46) + '</div><div class="game-sub-desc" style="margin:0.2rem 0 0 0;">뒤에서 볼 때</div></div>';
-    html += '</div></div>';
+    // 답을 고르면 두 열(앞/뒤 상자)이 각각 그 자리에서 펼쳐지는 애니메이션으로 바뀐다.
+    var html = '<div style="display:flex; justify-content:center; gap:0.8rem; flex-wrap:wrap; align-items:flex-start;">';
+    html += '<div id="netfoldL3Front" style="text-align:center;"><div class="netfold-cube-scene">' + buildNetCubeHTML(assign, -20, -28, 'netfoldView1', 46) + '</div><div class="game-sub-desc" style="margin:0.2rem 0 0 0;">앞에서 볼 때</div></div>';
+    html += '<div id="netfoldL3Back" style="text-align:center;"><div class="netfold-cube-scene">' + buildNetCubeHTML(assign, -20, 152, 'netfoldView2', 46) + '</div><div class="game-sub-desc" style="margin:0.2rem 0 0 0;">뒤에서 볼 때</div></div>';
+    html += '</div>';
     html += '<div class="cube3d-options-row" style="flex-wrap:wrap;">';
     netfoldState.options.forEach(function (opt, idx) {
         html += '<button type="button" class="cube3d-option-box" onclick="checkNetFoldLevel3(' + idx + ')">' + renderNetPreviewHtml(opt.a, 16, null, null) + '</button>';
@@ -2133,53 +2133,63 @@ function checkNetFoldLevel3(idx) {
         if (i === netfoldState.correctOptIndex) b.classList.add('correct');
         else if (i === idx) b.classList.add('wrong');
     });
-    // 정답이든 오답이든: 보기 4개는 그대로 두고, 두 각도 상자 자리를 하나의 상자가 펼쳐지는 애니메이션으로 바꿔 보여줌
+    // 보기 4개는 그대로 두고, 앞/뒤 두 상자를 각각 제자리에서 펼쳐 보여준다. (끝나면 앞쪽 콜백에서 마무리)
     var t = gameTimeout(function () {
+        playNetFoldUnfoldAnim(netfoldState.assign, null, 'netfoldL3Back', isCorrect,
+            { prefix: 'nfB', startRotY: 152, caption: '뒤에서 본 상자 펼치기' });
         playNetFoldUnfoldAnim(netfoldState.assign, function () {
             netfoldFinishRound(isCorrect,
                 '🎉 정답이에요! 상자가 펼쳐지는 모습대로 전개도를 정확히 찾았어요.',
                 '아쉬워요! 상자가 펼쳐지는 모습을 보세요. 초록 테두리가 정답 전개도예요.');
-        }, 'netfoldL3Cubes', isCorrect);
-    }, 300);
+        }, 'netfoldL3Front', isCorrect, { prefix: 'nfF', caption: '앞에서 본 상자 펼치기' });
+    }, 400);
 }
 // 완성된 상자를 다시 전개도로 "느리게" 펼치는 애니메이션 (playNetFoldAssemblyAnim 의 역방향)
 // containerId: 애니메이션을 그릴 컨테이너(기본 netfoldStage), wasCorrect: 안내 문구 결정용
-function playNetFoldUnfoldAnim(assign, onDone, containerId, wasCorrect) {
+// opts.prefix: 요소 id 접두사(같은 화면에 두 개를 동시에 돌릴 때 충돌 방지). opts.startRotY: 시작 각도.
+// opts.caption: 상단 문구('' 로 숨김). 기본은 wasCorrect 로 결정.
+function playNetFoldUnfoldAnim(assign, onDone, containerId, wasCorrect, opts) {
+    opts = opts || {};
+    var P = opts.prefix || 'netfold';
+    var startRotY = (typeof opts.startRotY === 'number') ? opts.startRotY : -28;
     var target = document.getElementById(containerId || 'netfoldStage');
     if (!target) { if (onDone) onDone(); return; }
     var S = NETFOLD_ANIM_S;
     var sceneW = 4 * S, sceneH = 3 * S;
-    function face(id, key, extra) {
+    function face(idKey, key, extra) {
         var g = NETFOLD_GRID[key];
-        return '<div id="' + id + '" style="position:absolute; left:' + (g.c * S) + 'px; top:' + (g.r * S) + 'px; width:' + S + 'px; height:' + S + 'px; background:#fff; border:2px solid #c18a3d; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:' + (S * 0.5) + 'px; backface-visibility:hidden;' + (extra || '') + '">' + assign[key] + '</div>';
+        return '<div id="' + P + idKey + '" style="position:absolute; left:' + (g.c * S) + 'px; top:' + (g.r * S) + 'px; width:' + S + 'px; height:' + S + 'px; background:#fff; border:2px solid #c18a3d; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:' + (S * 0.5) + 'px; backface-visibility:hidden;' + (extra || '') + '">' + assign[key] + '</div>';
     }
     var tr = 'transition:transform ' + NETFOLD_FOLD_MS + 'ms ease;';
-    var capText = (wasCorrect === false) ? '상자를 펼치면 이런 전개도예요' : '정답! 상자를 천천히 펼쳐볼게요...';
-    var html = '<div class="game-sub-desc" style="text-align:center; font-weight:800;">' + capText + '</div>';
+    var html = '';
+    if (opts.caption !== '') {
+        var capText = opts.caption || ((wasCorrect === false) ? '상자를 펼치면 이런 전개도예요' : '정답! 상자를 천천히 펼쳐볼게요...');
+        html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">' + capText + '</div>';
+    }
     html += '<div style="width:100%; overflow-x:auto;"><div style="width:' + sceneW + 'px; height:' + (sceneH + 30) + 'px; margin:0.5rem auto; perspective:760px;">';
-    html += '<div id="netfoldAssembly" style="position:relative; width:' + sceneW + 'px; height:' + sceneH + 'px; margin-top:20px; transform-style:preserve-3d; transform-origin:' + (1.5 * S) + 'px ' + (1.5 * S) + 'px ' + (-0.5 * S) + 'px; transform:rotateX(-20deg) rotateY(-28deg); transition:transform ' + NETFOLD_SPIN_MS + 'ms ease;">';
-    html += face('netfoldFaceF', 'F', '');
-    html += face('netfoldFaceL', 'L', 'transform-origin:right center; transform:rotateY(-90deg);' + tr);
-    html += face('netfoldFaceT', 'T', 'transform-origin:bottom center; transform:rotateX(90deg);' + tr);
-    html += face('netfoldFaceBo', 'Bo', 'transform-origin:top center; transform:rotateX(-90deg);' + tr);
+    html += '<div id="' + P + 'Assembly" style="position:relative; width:' + sceneW + 'px; height:' + sceneH + 'px; margin-top:20px; transform-style:preserve-3d; transform-origin:' + (1.5 * S) + 'px ' + (1.5 * S) + 'px ' + (-0.5 * S) + 'px; transform:rotateX(-20deg) rotateY(' + startRotY + 'deg); transition:transform ' + NETFOLD_SPIN_MS + 'ms ease;">';
+    html += face('FaceF', 'F', '');
+    html += face('FaceL', 'L', 'transform-origin:right center; transform:rotateY(-90deg);' + tr);
+    html += face('FaceT', 'T', 'transform-origin:bottom center; transform:rotateX(90deg);' + tr);
+    html += face('FaceBo', 'Bo', 'transform-origin:top center; transform:rotateX(-90deg);' + tr);
     var gr = NETFOLD_GRID.R;
-    html += '<div id="netfoldFaceR" style="position:absolute; left:' + (gr.c * S) + 'px; top:' + (gr.r * S) + 'px; width:' + S + 'px; height:' + S + 'px; background:#fff; border:2px solid #c18a3d; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:' + (S * 0.5) + 'px; backface-visibility:hidden; transform-style:preserve-3d; transform-origin:left center; transform:rotateY(90deg);' + tr + '">';
+    html += '<div id="' + P + 'FaceR" style="position:absolute; left:' + (gr.c * S) + 'px; top:' + (gr.r * S) + 'px; width:' + S + 'px; height:' + S + 'px; background:#fff; border:2px solid #c18a3d; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:' + (S * 0.5) + 'px; backface-visibility:hidden; transform-style:preserve-3d; transform-origin:left center; transform:rotateY(90deg);' + tr + '">';
     html += assign.R;
-    html += '<div id="netfoldFaceB" style="position:absolute; left:' + S + 'px; top:0; width:' + S + 'px; height:' + S + 'px; background:#fff; border:2px solid #c18a3d; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:' + (S * 0.5) + 'px; backface-visibility:hidden; transform-origin:left center; transform:rotateY(90deg);' + tr + '">' + assign.B + '</div>';
+    html += '<div id="' + P + 'FaceB" style="position:absolute; left:' + S + 'px; top:0; width:' + S + 'px; height:' + S + 'px; background:#fff; border:2px solid #c18a3d; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:' + (S * 0.5) + 'px; backface-visibility:hidden; transform-origin:left center; transform:rotateY(90deg);' + tr + '">' + assign.B + '</div>';
     html += '</div></div></div></div>';
     target.innerHTML = html;
     var t0 = gameTimeout(function () {
-        var assembly = document.getElementById('netfoldAssembly');
+        var assembly = document.getElementById(P + 'Assembly');
         if (assembly) assembly.style.transform = 'rotateX(0deg) rotateY(0deg)';
-        var elB = document.getElementById('netfoldFaceB'); if (elB) elB.style.transform = 'rotateY(0deg)';
+        var elB = document.getElementById(P + 'FaceB'); if (elB) elB.style.transform = 'rotateY(0deg)';
         var t1 = gameTimeout(function () {
-            var elL = document.getElementById('netfoldFaceL'); if (elL) elL.style.transform = 'rotateY(0deg)';
-            var elR = document.getElementById('netfoldFaceR'); if (elR) elR.style.transform = 'rotateY(0deg)';
-            var elT = document.getElementById('netfoldFaceT'); if (elT) elT.style.transform = 'rotateX(0deg)';
-            var elBo = document.getElementById('netfoldFaceBo'); if (elBo) elBo.style.transform = 'rotateX(0deg)';
-            var t2 = gameTimeout(function () { if (onDone) onDone(); }, NETFOLD_FOLD_MS + 150);
+            var elL = document.getElementById(P + 'FaceL'); if (elL) elL.style.transform = 'rotateY(0deg)';
+            var elR = document.getElementById(P + 'FaceR'); if (elR) elR.style.transform = 'rotateY(0deg)';
+            var elT = document.getElementById(P + 'FaceT'); if (elT) elT.style.transform = 'rotateX(0deg)';
+            var elBo = document.getElementById(P + 'FaceBo'); if (elBo) elBo.style.transform = 'rotateX(0deg)';
+            var t2 = gameTimeout(function () { if (onDone) onDone(); }, NETFOLD_FOLD_MS + 200);
         }, NETFOLD_FOLD_MS + NETFOLD_STEP_GAP);
-    }, 200);
+    }, 300);
 }
 
 // ===================== 게임 등록 =====================
