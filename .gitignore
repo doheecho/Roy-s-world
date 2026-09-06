@@ -9,3 +9,6 @@ desktop.ini
 *.bak
 *~
 node_modules/
+
+# 로컬 전용 푸시 스크립트
+push.bat
