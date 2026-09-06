@@ -19,7 +19,10 @@ function computeAngleFromCenter(cx, cy, px, py) {
     return angle;
 }
 function angleToHour(angle) { return Math.round(angle / 30) % 12; }
-function angleToMinute(angle) { return (Math.round(angle / 30) * 5) % 60; }
+// 분침은 1분(6도) 단위로 읽어 부드럽게 움직이게 한다. (기존엔 5분/30도 단위라 뚝뚝 끊겼음)
+function angleToMinute(angle) { return Math.round(angle / 6) % 60; }
+// 두 분 값의 원형(60분) 최소 차이
+function minuteDiff(a, b) { var d = Math.abs(a - b); return Math.min(d, 60 - d); }
 function startClockDrag(which, e) {
     if (e && e.preventDefault) e.preventDefault();
     clockState.dragging = which;
@@ -74,7 +77,7 @@ function renderClockFace() {
 function checkClockMatch() {
     if (clockState.checked) return;
     var msg = document.getElementById('clockMsg');
-    if (clockState.currentHour === clockState.targetHour && clockState.currentMinute === clockState.targetMinute) {
+    if (clockState.currentHour === clockState.targetHour && minuteDiff(clockState.currentMinute, clockState.targetMinute) <= 1) {
         clockState.checked = true;
         msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요!';
         clockCorrect++;

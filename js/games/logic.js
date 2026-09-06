@@ -33,30 +33,30 @@ function startPatternSession() { patternRound = 1; patternCorrect = 0; generateP
 
 function generatePatternMatrixRound() {
     var size = patternSettings.size === 'random' ? pickRandom([2, 3, 4]) : patternSettings.size;
-    var icons = pickN(MATRIX_SHAPE_POOL, Math.max(4, size));
-    var type = getRandomInt(0, 2);
+    var icons = pickN(MATRIX_SHAPE_POOL, size);
+    // 라틴 방진: 각 행·열에 모든 아이콘이 정확히 한 번씩 들어가도록 만든다.
+    // → 빈칸에 들어갈 아이콘이 "그 행/열에 없는 하나"로 유일하게 결정되어 모호하지 않다.
+    var rowPerm = shuffleArray(Array.from({ length: size }, function (_, i) { return i; }));
+    var colPerm = shuffleArray(Array.from({ length: size }, function (_, i) { return i; }));
+    var shift = getRandomInt(0, size - 1);
     var grid = [];
     for (var r = 0; r < size; r++) {
         var row = [];
         for (var c = 0; c < size; c++) {
-            var val = 0;
-            if(type === 0) val = r + c;
-            else if(type === 1) val = r + (size - c);
-            else val = r * 2 + c;
-            row.push(icons[val % icons.length]);
+            row.push(icons[(rowPerm[r] + colPerm[c] + shift) % size]);
         }
         grid.push(row);
     }
-    var hideR = getRandomInt(0, size-1), hideC = getRandomInt(0, size-1);
+    var hideR = getRandomInt(0, size - 1), hideC = getRandomInt(0, size - 1);
     var answer = grid[hideR][hideC];
 
-    var decoys = icons.filter(function(i) { return i !== answer; });
-    var opts = [answer].concat(pickN(decoys, 3));
-    var options = shuffleArray(opts.slice(0, 4));
+    var wrongs = icons.filter(function (i) { return i !== answer; });
+    var extra = shuffleArray(MATRIX_SHAPE_POOL.filter(function (i) { return icons.indexOf(i) === -1; }));
+    var options = shuffleArray([answer].concat(wrongs).concat(extra).slice(0, 4));
 
     patternState = { size: size, grid: grid, hideR: hideR, hideC: hideC, answer: answer, options: options, answered: false, finished: false, timeLeft: patternSettings.timeLimit, timerId: null };
     renderPatternMatrix();
-    if(patternSettings.timeLimit > 0) startPatternTimer();
+    if (patternSettings.timeLimit > 0) startPatternTimer();
 }
 
 function retryPatternRound() {
@@ -102,7 +102,7 @@ function patternChoiceCfg() {
 }
 function renderPatternMatrix() {
     var html = '<div class="game-title-box">🧩 패턴 매트릭스</div>';
-    html += '<div class="game-sub-desc">가로세로 규칙을 찾아 빈칸에 들어갈 모양을 골라보세요!</div>';
+    html += '<div class="game-sub-desc">각 가로줄과 세로줄에는 모든 모양이 한 번씩만 들어가요. 빈칸에 들어갈 모양을 골라보세요!</div>';
     html += '<div class="status-row"><div>' + patternRound + '라운드</div><div>정답: ' + patternCorrect + ' / ' + (patternRound - 1) + '</div></div>';
 
     if (patternSettings.timeLimit > 0) {
@@ -209,9 +209,10 @@ function generateMirrorRound() {
         if (!exists) filledLeft.push({ x: x, y: y });
     }
     var correctRight = filledLeft.map(function (c) { return { x: w - 1 - c.x, y: c.y }; });
-    mirrorState = { w: w, h: h, halfW: halfW, filledLeft: filledLeft, correctRight: correctRight, selected: [], finished: false };
+    mirrorState = { w: w, h: h, halfW: halfW, filledLeft: filledLeft, correctRight: correctRight, selected: [], finished: false, failed: false, wrongCount: 0 };
     renderMirrorSymmetry();
 }
+var MIRROR_MAX_WRONG = 3;
 function clickMirrorCell(x, y) {
     if (mirrorState.finished) return;
     if (x < mirrorState.halfW) return;
@@ -232,27 +233,48 @@ function clickMirrorCell(x, y) {
         }
         renderMirrorSymmetry();
     } else {
+        mirrorState.wrongCount++;
+        var left = MIRROR_MAX_WRONG - mirrorState.wrongCount;
+        if (left <= 0) {
+            mirrorState.failed = true;
+            mirrorState.finished = true;
+            renderMirrorSymmetry();
+            var fmsg = document.getElementById('mirrorMsg');
+            fmsg.className = 'msg-box bad'; fmsg.style.display = 'block';
+            fmsg.innerText = '아쉬워요! 초록색 칸이 정답 위치예요.';
+            document.getElementById('mainArea').insertAdjacentHTML('beforeend',
+                '<div class="options-grid">' +
+                '<button class="action-btn" onclick="retryMirrorRound()">다시 풀어보기 🔁</button>' +
+                '<button class="action-btn secondary" onclick="initMirrorSymmetry()">처음부터 풀기 🔄</button>' +
+                '</div>');
+            return;
+        }
+        renderMirrorSymmetry();
         var msg2 = document.getElementById('mirrorMsg');
-        msg2.className = 'msg-box bad'; msg2.style.display = 'block'; msg2.innerText = '음... 대칭 위치가 아니에요. 다시 찾아보세요!';
+        msg2.className = 'msg-box bad'; msg2.style.display = 'block';
+        msg2.innerText = '음... 대칭 위치가 아니에요. (' + left + '번 더 틀리면 정답이 공개돼요)';
     }
 }
 function nextMirrorRound() { mirrorRound++; generateMirrorRound(); }
-function retryMirrorRound() { mirrorState.selected = []; mirrorState.finished = false; renderMirrorSymmetry(); }
+function retryMirrorRound() { mirrorState.selected = []; mirrorState.finished = false; mirrorState.failed = false; mirrorState.wrongCount = 0; renderMirrorSymmetry(); }
 function renderMirrorSymmetry() {
     var html = '<div class="game-title-box">🪞 거울 대칭 완성하기</div>';
     html += '<div class="game-sub-desc">왼쪽 그림과 거울처럼 똑같이 되도록, 오른쪽에서 알맞은 칸을 클릭하세요!</div>';
-    html += '<div class="status-row"><div>' + mirrorRound + '라운드</div><div>정답: ' + mirrorCorrect + ' / ' + (mirrorRound - 1) + '</div></div>';
+    html += '<div class="status-row"><div>' + mirrorRound + '라운드</div><div>실수: ' + mirrorState.wrongCount + ' / ' + MIRROR_MAX_WRONG + '</div></div>';
     html += '<div class="maze-wrap"><div class="maze-grid" style="grid-template-columns: repeat(' + mirrorState.w + ', 34px);">';
     for (var y = 0; y < mirrorState.h; y++) {
         for (var x = 0; x < mirrorState.w; x++) {
             var isLeftFilled = mirrorState.filledLeft.some(function (c) { return c.x === x && c.y === y; });
             var isSelected = mirrorState.selected.some(function (c) { return c.x === x && c.y === y; });
+            var isCorrectRight = mirrorState.correctRight.some(function (c) { return c.x === x && c.y === y; });
             var isMirrorLine = x === mirrorState.halfW - 1;
             var bg = '#f8fafc';
+            var extra = '';
             if (x < mirrorState.halfW && isLeftFilled) bg = '#8b5cf6';
             if (x >= mirrorState.halfW && isSelected) bg = '#8b5cf6';
+            if (mirrorState.failed && x >= mirrorState.halfW && isCorrectRight && !isSelected) { bg = '#d1fae5'; extra = 'box-shadow: inset 0 0 0 3px #10b981;'; }
             var borderRight = isMirrorLine ? '3px dashed #94a3b8' : '1px solid #e2e8f0';
-            html += '<div class="maze-cell" style="background:' + bg + '; border-right:' + borderRight + '; cursor:pointer;" onclick="clickMirrorCell(' + x + ',' + y + ')"></div>';
+            html += '<div class="maze-cell" style="background:' + bg + '; border-right:' + borderRight + '; cursor:pointer;' + extra + '" onclick="clickMirrorCell(' + x + ',' + y + ')"></div>';
         }
     }
     html += '</div></div>';
@@ -578,10 +600,43 @@ function generateSudokuSolution() {
     }
     return grid;
 }
+// 4×4 스도쿠(2×2 상자)의 해 개수를 센다 (limit 이상이면 조기 종료)
+function sudokuCountSolutions(grid, limit) {
+    limit = limit || 2;
+    var g = grid.map(function (row) { return row.slice(); });
+    var count = 0;
+    function ok(r, c, v) {
+        for (var k = 0; k < 4; k++) { if (g[r][k] === v || g[k][c] === v) return false; }
+        var br = r - r % 2, bc = c - c % 2;
+        return g[br][bc] !== v && g[br][bc + 1] !== v && g[br + 1][bc] !== v && g[br + 1][bc + 1] !== v;
+    }
+    function rec() {
+        var r = -1, c = -1;
+        for (var i = 0; i < 4 && r < 0; i++) { for (var j = 0; j < 4; j++) { if (g[i][j] === null) { r = i; c = j; break; } } }
+        if (r < 0) { count++; return; }
+        for (var v = 0; v < 4 && count < limit; v++) {
+            if (ok(r, c, v)) { g[r][c] = v; rec(); g[r][c] = null; }
+        }
+    }
+    rec();
+    return count;
+}
+// 정답이 유일하게 결정되는 빈칸 조합을 찾는다. (여러 정답이 나오는 불공정한 퍼즐 방지)
+function sudokuMakeUniqueBlanks(solution, blankCount) {
+    var all = Array.from({ length: 16 }, function (_, i) { return i; });
+    for (var t = 0; t < 80; t++) {
+        var picks = pickN(all, blankCount);
+        var g = solution.map(function (row) { return row.slice(); });
+        picks.forEach(function (p) { g[Math.floor(p / 4)][p % 4] = null; });
+        if (sudokuCountSolutions(g, 2) === 1) return picks;
+    }
+    return null;
+}
 function generateSudokuRound() {
     var solution = generateSudokuSolution();
     var icons = pickN(ICON_POOL, 4);
-    var blankPositions = pickN(Array.from({ length: 16 }, function (_, i) { return i; }), 8);
+    var blankPositions = sudokuMakeUniqueBlanks(solution, 8) || sudokuMakeUniqueBlanks(solution, 7) ||
+        sudokuMakeUniqueBlanks(solution, 6) || pickN(Array.from({ length: 16 }, function (_, i) { return i; }), 6);
     var editable = [[false, false, false, false], [false, false, false, false], [false, false, false, false], [false, false, false, false]];
     var userGrid = solution.map(function (row) { return row.slice(); });
     blankPositions.forEach(function (pos) {

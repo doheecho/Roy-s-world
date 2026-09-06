@@ -77,6 +77,7 @@ function pickPaletteBlock(idx) {
     vibrateShort();
     if (blockCodeState.debugMode) {
         var target = blockCodeState.selectedEditIndex;
+        if (target === null || target === undefined) return; // 바꿀 블록을 아직 안 골랐으면 무시
         blockCodeState.program[target] = BLOCK_TYPES[idx];
         if (target === blockCodeState.buggyIndex) {
             blockCodeState.buggyIndex = null;
@@ -363,19 +364,30 @@ function renderBlockCoding() {
 var condRobotState = {};
 var condRobotRound = 1, condRobotCorrect = 0;
 function initConditionalRobot() { condRobotRound = 1; condRobotCorrect = 0; generateCondRobotRound(); }
+// 🔵(조건 색)의 이동 방향은 "지금 로봇 위치"에 따라 달라진다 → 진짜 만약~라면(if/else)
+function condRobotBlueDelta(pos) { return pos > 0 ? -1 : 1; }
+function condRobotDeltaAt(rules, symbol, pos) {
+    var rule = rules.filter(function (r) { return r.symbol === symbol; })[0];
+    return rule.kind === 'cond' ? condRobotBlueDelta(pos) : rule.delta;
+}
 function generateCondRobotRound() {
     var n = getRandomInt(4, 6);
     var colors = ['🔴', '🟢', '🔵'];
-    var actionsPool = shuffleArray(['전진', '정지', '후진']);
-    var deltaMap = { '전진': 1, '정지': 0, '후진': -1 };
-    var rules = colors.map(function (c, i) { return { symbol: c, action: actionsPool[i], delta: deltaMap[actionsPool[i]] }; });
+    // 🔴/🟢 는 고정 규칙, 🔵 는 위치에 따라 달라지는 조건 규칙
+    var fixedPool = shuffleArray([{ action: '전진', delta: 1 }, { action: '후진', delta: -1 }]);
+    var rules = [
+        { symbol: '🔴', kind: 'fixed', action: fixedPool[0].action, delta: fixedPool[0].delta },
+        { symbol: '🟢', kind: 'fixed', action: fixedPool[1].action, delta: fixedPool[1].delta },
+        { symbol: '🔵', kind: 'cond' }
+    ];
     var path = [];
     for (var i = 0; i < n; i++) path.push(pickRandom(colors));
-    // 후진하면 0보다 뒤(-1, -2 …)로도 갈 수 있음 - 더 이상 0에서 막지 않음
+    // 조건 규칙이 최소 한 번은 나오도록 보장
+    if (path.indexOf('🔵') === -1) { path[getRandomInt(0, n - 1)] = '🔵'; }
+    // 한 단계씩 실제로 시뮬레이션 (🔵는 그 순간 위치에 따라 방향이 정해짐)
     var pos = 0, minPos = 0, maxPos = 0;
     path.forEach(function (c) {
-        var rule = rules.filter(function (r) { return r.symbol === c; })[0];
-        pos += rule.delta;
+        pos += condRobotDeltaAt(rules, c, pos);
         if (pos < minPos) minPos = pos;
         if (pos > maxPos) maxPos = pos;
     });
@@ -424,11 +436,11 @@ function stepCondRobotAnim() {
         return;
     }
     var c = condRobotState.path[condRobotState.animIndex];
-    var rule = condRobotState.rules.filter(function (r) { return r.symbol === c; })[0];
     vibrateShort();
-    // 명령을 처리하는 그 순간에 로봇 위치도 바로 갱신(한 타임 지연 없음)
-    condRobotState.currentPos += rule.delta;
-    condRobotState.lastDelta = rule.delta;
+    // 🔵는 "지금 위치"를 보고 방향을 정한다 (이동 적용 전 위치 기준)
+    var delta = condRobotDeltaAt(condRobotState.rules, c, condRobotState.currentPos);
+    condRobotState.currentPos += delta;
+    condRobotState.lastDelta = delta;
     condRobotState.execIndex = condRobotState.animIndex;
     condRobotState.animIndex++;
     renderConditionalRobot();
@@ -487,10 +499,16 @@ function renderCondRobotTrack() {
 }
 function renderConditionalRobot() {
     var html = '<div class="game-title-box">🚦 조건문 로봇</div>';
-    html += '<div class="game-sub-desc">아래 규칙을 보고, 로봇이 이 길을 끝까지 가면 최종적으로 몇 번 칸에 있을지 예측해보세요! (뒤로 가면 0보다 작은 칸으로도 갈 수 있어요)</div>';
+    html += '<div class="game-sub-desc">🔵는 <b>지금 로봇 위치</b>에 따라 방향이 달라져요(만약~라면). 로봇이 길을 끝까지 가면 몇 번 칸에 도착할지 예측해보세요!</div>';
     html += '<div class="status-row"><div>' + condRobotRound + '라운드</div><div>정답: ' + condRobotCorrect + ' / ' + (condRobotRound - 1) + '</div></div>';
     html += '<div class="msg-box" style="display:block; background:#f8fafc; border-color:#e5e7eb; color:#1f2937; text-align:left; line-height:1.9;">';
-    condRobotState.rules.forEach(function (r) { html += '만약 ' + r.symbol + ' 이면 → <b>' + r.action + '</b><br>'; });
+    condRobotState.rules.forEach(function (r) {
+        if (r.kind === 'cond') {
+            html += '만약 ' + r.symbol + ' 이면 → <b>지금 위치가 0보다 앞이면 뒤로, 아니면 앞으로</b><br>';
+        } else {
+            html += '만약 ' + r.symbol + ' 이면 → <b>' + r.action + '</b><br>';
+        }
+    });
     html += '</div>';
     html += '<div class="row-label">처리할 명령 순서</div>';
     html += '<div class="row-display">';
