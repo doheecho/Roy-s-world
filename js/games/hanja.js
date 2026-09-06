@@ -201,7 +201,7 @@ function renderHanjaSetup() {
         html += '<button class="setup-btn' + (hanjaSettings.mode === m.v ? ' active' : '') + '" onclick="setHanjaMode(\'' + m.v + '\')">' + m.l + '</button>';
     });
     html += '</div>';
-    html += '<div class="setup-section-label">제한시간</div><div class="setup-btn-group">';
+    html += '<div class="setup-section-label">제한 시간</div><div class="setup-btn-group">';
     times.forEach(function (t) {
         html += '<button class="setup-btn' + (hanjaSettings.timeLimit === t.v ? ' active' : '') + '" onclick="setHanjaTimeLimit(' + t.v + ')">' + t.l + '</button>';
     });

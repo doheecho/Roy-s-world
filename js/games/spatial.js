@@ -30,7 +30,7 @@ function initMazeGame() {
     renderMazeSetup();
 }
 function renderMazeSetup() {
-    var sizes = [{ v: 6, l: '작은 미로' }, { v: 8, l: '보통 미로' }, { v: 10, l: '큰 미로' }];
+    var sizes = [{ v: 6, l: '쉬움' }, { v: 8, l: '보통' }, { v: 10, l: '어려움' }];
     var times = [{ v: 10, l: '10초' }, { v: 20, l: '20초' }, { v: 60, l: '1분' }, { v: 0, l: '무제한' }];
     var html = '<div class="game-title-box">🐭 미로 찾기</div>';
     html += '<div class="game-sub-desc">난이도를 골라 시작해보세요!</div>';
@@ -1228,9 +1228,9 @@ var paperRound = 1, paperCorrect = 0;
 function initPaperFold() { renderPaperFoldSetup(); }
 function renderPaperFoldSetup() {
     var levels = [
-        { v: 'low', l: '하 (1번 접기)' },
-        { v: 'mid', l: '중 (2번 접기)' },
-        { v: 'high', l: '상 (3번 접기)' }
+        { v: 'low', l: '쉬움 (1번 접기)' },
+        { v: 'mid', l: '보통 (2번 접기)' },
+        { v: 'high', l: '어려움 (3번 접기)' }
     ];
     var html = '<div class="game-title-box">🧩 접힌 종이 구멍 뚫기</div>';
     html += '<div class="game-sub-desc">난이도를 골라 시작해보세요! 접는 횟수가 많을수록 어려워져요.</div>';
@@ -1826,9 +1826,9 @@ var netfoldRound = 1, netfoldCorrect = 0;
 function initNetFoldBox() { renderNetFoldSetup(); }
 function renderNetFoldSetup() {
     var levels = [
-        { v: 'low', l: '하 (마주보는 면 맞히기)' },
-        { v: 'mid', l: '중 (접어서 상자 맞추기)' },
-        { v: 'high', l: '상 (거꾸로 전개도 찾기)' }
+        { v: 'low', l: '쉬움 (마주보는 면 맞히기)' },
+        { v: 'mid', l: '보통 (접어서 상자 맞추기)' },
+        { v: 'high', l: '어려움 (거꾸로 전개도 찾기)' }
     ];
     var html = '<div class="game-title-box">📦 전개도 접어 상자 만들기</div>';
     html += '<div class="game-sub-desc">난이도를 골라 시작해보세요! 전개도를 접었을 때의 모습을 상상하는 놀이예요.</div>';

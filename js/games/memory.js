@@ -412,7 +412,7 @@ var pianoSettings = { level: 'low' };
 var pianoState = {};
 function initPianoKeys() { renderPianoSetup(); }
 function renderPianoSetup() {
-    var levels = [{ v: 'low', l: '하 (1옥타브 흰 건반)' }, { v: 'mid', l: '중 (1옥타브 전체)' }, { v: 'high', l: '상 (2옥타브 전체)' }];
+    var levels = [{ v: 'low', l: '쉬움 (1옥타브 흰 건반)' }, { v: 'mid', l: '보통 (1옥타브 전체)' }, { v: 'high', l: '어려움 (2옥타브 전체)' }];
     var html = '<div class="game-title-box">🎹 피아노 건반 누르기</div>';
     html += '<div class="game-sub-desc">소리를 잘 듣고, 같은 순서로 건반을 눌러보세요! 난이도를 골라 시작해보세요.</div>';
     html += '<div class="setup-section-label">난이도</div><div class="setup-btn-group">';

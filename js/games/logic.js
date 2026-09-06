@@ -542,9 +542,9 @@ var sudokuRound = 1, sudokuCorrect = 0;
 function initSudokuLite() { renderSudokuSetup(); }
 function renderSudokuSetup() {
     var levels = [
-        { v: 'low', l: '하 (힌트 3개)' },
-        { v: 'mid', l: '중 (힌트 2개)' },
-        { v: 'high', l: '상 (힌트 1개)' },
+        { v: 'low', l: '쉬움 (힌트 3개)' },
+        { v: 'mid', l: '보통 (힌트 2개)' },
+        { v: 'high', l: '어려움 (힌트 1개)' },
         { v: 'extreme', l: '최상 (힌트 없음)' }
     ];
     var html = '<div class="game-title-box">🧮 스도쿠 퍼즐 라이트</div>';
@@ -555,7 +555,7 @@ function renderSudokuSetup() {
     });
     html += '</div>';
     var times = [{ v: 20, l: '20초' }, { v: 40, l: '40초' }, { v: 60, l: '60초' }, { v: 0, l: '무제한' }];
-    html += '<div class="setup-section-label">제한시간</div><div class="setup-btn-group">';
+    html += '<div class="setup-section-label">제한 시간</div><div class="setup-btn-group">';
     times.forEach(function (t) {
         html += '<button class="setup-btn' + (sudokuSettings.timeLimit === t.v ? ' active' : '') + '" onclick="setSudokuTimeLimit(' + t.v + ')">' + t.l + '</button>';
     });

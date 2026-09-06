@@ -252,7 +252,7 @@ function renderChangeSetup() {
     html += '<div class="setup-section-label">물건 개수</div><div class="setup-btn-group">';
     counts.forEach(function (c) { html += '<button class="setup-btn' + (changeSettings.itemCount === c.v ? ' active' : '') + '" onclick="setChangeItemCount(' + (c.v === 'random' ? "'random'" : c.v) + ')">' + c.l + '</button>'; });
     html += '</div>';
-    html += '<div class="setup-section-label">시간 제한</div><div class="setup-btn-group">';
+    html += '<div class="setup-section-label">제한 시간</div><div class="setup-btn-group">';
     times.forEach(function (t) { html += '<button class="setup-btn' + (changeSettings.timeLimit === t.v ? ' active' : '') + '" onclick="setChangeTimeLimit(' + t.v + ')">' + t.l + '</button>'; });
     html += '</div>';
     html += '<button class="action-btn" onclick="startChangeSession()">시작하기 🚀</button>';
@@ -722,7 +722,7 @@ function renderMathAdvSetup() {
         html += '<button class="setup-btn' + (mathAdvSettings.grade === g.v ? ' active' : '') + '" onclick="setMathAdvGrade(\'' + g.v + '\')">' + g.l + '</button>';
     });
     html += '</div>';
-    html += '<div class="setup-section-label">제한시간</div><div class="setup-btn-group">';
+    html += '<div class="setup-section-label">제한 시간</div><div class="setup-btn-group">';
     times.forEach(function (t) {
         html += '<button class="setup-btn' + (mathAdvSettings.timeLimit === t.v ? ' active' : '') + '" onclick="setMathAdvTimeLimit(' + t.v + ')">' + t.l + '</button>';
     });

@@ -896,7 +896,7 @@ var efficiencyRound = 1, efficiencyCorrect = 0;
 var efficiencySettings = { level: 'medium' };
 function initEfficiencyGuess() { renderEfficiencySetup(); }
 function renderEfficiencySetup() {
-    var levels = [{ v: 'low', l: '하' }, { v: 'medium', l: '중' }, { v: 'high', l: '상' }, { v: 'random', l: '랜덤' }];
+    var levels = [{ v: 'low', l: '쉬움' }, { v: 'medium', l: '보통' }, { v: 'high', l: '어려움' }, { v: 'random', l: '무작위' }];
     var html = '<div class="game-title-box">⚡ 최소 명령 개수 맞추기</div>';
     html += '<div class="game-sub-desc">난이도를 골라 시작해보세요!</div>';
     html += '<div class="setup-section-label">난이도</div><div class="setup-btn-group">';
@@ -1380,7 +1380,7 @@ function renderWaterPipeSetup() {
         html += '<button class="setup-btn' + (waterPipeSettings.pipeMode === t.v ? ' active' : '') + '" onclick="setWaterPipeMode(\'' + t.v + '\')">' + t.l + '</button>';
     });
     html += '</div>';
-    html += '<div class="setup-section-label">시간 제한</div><div class="setup-btn-group">';
+    html += '<div class="setup-section-label">제한 시간</div><div class="setup-btn-group">';
     times.forEach(function (t) {
         html += '<button class="setup-btn' + (waterPipeSettings.timeLimit === t.v ? ' active' : '') + '" onclick="setWaterPipeTimeLimit(' + t.v + ')">' + t.l + '</button>';
     });
@@ -1659,9 +1659,9 @@ var cleanbotRound = 1, cleanbotSolved = 0;
 function initCleanbot() { renderCleanbotSetup(); }
 function renderCleanbotSetup() {
     var levels = [
-        { v: 'low', l: '하 (복도 1개)' },
-        { v: 'mid', l: '중 (복도 2개 + 코너 1번)' },
-        { v: 'high', l: '상 (복도 3개 + 코너 2번)' }
+        { v: 'low', l: '쉬움 (복도 1개)' },
+        { v: 'mid', l: '보통 (복도 2개 + 코너 1번)' },
+        { v: 'high', l: '어려움 (복도 3개 + 코너 2번)' }
     ];
     var html = '<div class="game-title-box">🧹 반복 청소 로봇</div>';
     html += '<div class="game-sub-desc">복도의 먼지 개수는 매번 달라져요. 청소를 "몇 번 반복" 시키는게 아니고 "먼지가 있으면 반복" 시키는게 필요해요.</div>';
