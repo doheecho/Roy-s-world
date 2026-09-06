@@ -103,15 +103,16 @@ var GAME_LIST = [
         { id: "weightScale", emoji: "⚖️", name: "무게 저울 추론하기", desc: "저울 단서를 보고 교환 비율을 추론해요", quickStart: "initWeightScale" }
     ]},
     { cat: "💻 코딩 사고 놀이", games: [
-        { id: "hamburgerMaker", emoji: "🍔", name: "햄버거 만들기", desc: "순서가 결과를 바꿔요! 명령을 순서대로 쌓아 직접 실행해요", quickStart: "initHamburger" },
-        { id: "codeTrace", emoji: "🔍", name: "명령 미리보기", desc: "코드는 위에서부터 차례로 실행돼요. 실행 전에 결과를 먼저 읽어봐요", quickStart: "startCodeTraceSession" },
-        { id: "blockCoding", emoji: "🧑‍💻", name: "블록코딩 로봇", desc: "같은 동작을 반복으로 묶고, 틀리면 디버깅으로 고쳐요", quickStart: "startBlockCodeSession" },
-        { id: "conditionalRobot", emoji: "🚦", name: "조건문 로봇", desc: "조건에 따라 다른 행동을 해요(만약 ~라면)", quickStart: "initConditionalRobot" },
-        { id: "variableScore", emoji: "🔢", name: "변수 점수 만들기", desc: "값(변수)은 계속 바뀔 수 있어요", quickStart: "initVariableScore" },
-        { id: "logicGate", emoji: "💡", name: "AND OR 스위치 놀이", desc: "여러 조건을 AND(둘다)/OR(하나만)로 합쳐요", quickStart: "initLogicGate" },
-        { id: "functionFinder", emoji: "📦", name: "나만의 명령 만들기", desc: "반복되는 부분을 함수 하나로 묶어 재사용해요", quickStart: "initFunctionFinder" },
-        { id: "efficiencyGuess", emoji: "⚡", name: "최소 명령 개수 맞추기", desc: "같은 결과라도 더 효율적인 방법이 있어요", quickStart: "startEfficiencySession" },
-        { id: "cleanbot", emoji: "🧹", name: "반복 청소 로봇", desc: "'조건 반복' 명령 블록으로 복도를 청소해요", quickStart: "initCleanbot" }
+        // 일반적인 코딩 교육 순서: 순차 → 반복 → 조건 → 조건 결합 → 조건 반복 → 변수 → 함수 → 효율
+        { id: "hamburgerMaker", emoji: "🍔", name: "햄버거 만들기", desc: "① 순차 · 순서가 결과를 바꿔요! 명령을 순서대로 쌓아 직접 실행해요", quickStart: "initHamburger" },
+        { id: "codeTrace", emoji: "🔍", name: "명령 미리보기", desc: "② 순차 읽기 · 코드는 위에서부터 차례로 실행돼요. 결과를 먼저 예측해요", quickStart: "startCodeTraceSession" },
+        { id: "blockCoding", emoji: "🧑‍💻", name: "블록코딩 로봇", desc: "③ 반복·디버깅 · 같은 동작을 반복으로 묶고, 틀리면 고쳐요", quickStart: "startBlockCodeSession" },
+        { id: "conditionalRobot", emoji: "🚦", name: "조건문 로봇", desc: "④ 조건 · 만약 ~라면, 에 따라 다른 행동을 해요", quickStart: "initConditionalRobot" },
+        { id: "logicGate", emoji: "💡", name: "AND OR 스위치 놀이", desc: "⑤ 조건 결합 · 여러 조건을 AND(둘다)/OR(하나만)로 합쳐요", quickStart: "initLogicGate" },
+        { id: "cleanbot", emoji: "🧹", name: "반복 청소 로봇", desc: "⑥ 조건 반복 · 몇 번인지 몰라도 '~하는 동안' 계속 반복해요", quickStart: "initCleanbot" },
+        { id: "variableScore", emoji: "🔢", name: "변수 점수 만들기", desc: "⑦ 변수 · 값은 계속 바뀔 수 있어요", quickStart: "initVariableScore" },
+        { id: "functionFinder", emoji: "📦", name: "나만의 명령 만들기", desc: "⑧ 함수 · 반복되는 부분을 명령 하나로 묶어 재사용해요", quickStart: "initFunctionFinder" },
+        { id: "efficiencyGuess", emoji: "⚡", name: "최소 명령 개수 맞추기", desc: "⑨ 효율 · 같은 결과라도 더 적은 명령으로 할 수 있어요", quickStart: "startEfficiencySession" }
     ]},
     { cat: "🔤 영어 놀이", games: [
         { id: "listenPickPicture", emoji: "🎧", name: "듣고 그림 찾기", desc: "영어 문장을 듣고 맞는 그림을 골라요", quickStart: "initListenPick" },
