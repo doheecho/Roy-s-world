@@ -142,13 +142,13 @@ function renderMaze() {
         clearInterval(mazeState.stopwatchId);
         stopHoldMove();
         var msg = document.getElementById('mazeMsg');
-        msg.style.display = 'block'; msg.innerText = '🎉 도착했어요! ' + mazeState.elapsed.toFixed(1) + '초 만에 성공했어요!';
+        msg.style.display = 'block'; msg.innerText = '🎉 도착했어요! ' + mazeState.elapsed.toFixed(1) + '초 만에 성공했어요!'; playResultSound(true);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextMazeProblem()', 'retryMazeRound()', 'restartMaze()'));
     } else if (mazeState.failed) {
         clearInterval(mazeState.stopwatchId);
         stopHoldMove();
         var msg2 = document.getElementById('mazeMsg');
-        msg2.className = 'msg-box bad'; msg2.style.display = 'block'; msg2.innerText = '⏰ 시간이 다 됐어요!';
+        msg2.className = 'msg-box bad'; msg2.style.display = 'block'; msg2.innerText = '⏰ 시간이 다 됐어요!'; playResultSound(false);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend',
             '<div class="options-grid">' +
             '<button class="action-btn" onclick="retryMazeRound()">다시 풀어보기 🔁</button>' +

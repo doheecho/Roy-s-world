@@ -110,7 +110,7 @@ function handleSpotTimeout() {
     });
     var msg = document.getElementById('spotMsg');
     msg.className = 'msg-box bad'; msg.style.display = 'block';
-    msg.innerText = '아쉬워요! ' + spotRound + '라운드까지 성공했어요. (' + spotState.found.length + '/' + spotState.changeIndices.length + ' 찾음)';
+    msg.innerText = '아쉬워요! ' + spotRound + '라운드까지 성공했어요. (' + spotState.found.length + '/' + spotState.changeIndices.length + ' 찾음)'; playResultSound(false);
     document.getElementById('mainArea').insertAdjacentHTML('beforeend',
         '<div class="options-grid">' +
         '<button class="action-btn" onclick="retrySpotChangeRound()">다시 풀어보기 🔁</button>' +
@@ -130,7 +130,7 @@ function checkSpotChange(el, idx) {
         if (spotState.found.length === spotState.changeIndices.length) {
             spotState.finished = true;
             clearInterval(spotState.timerId);
-            msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 성공! 모두 찾았어요.';
+            msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 성공! 모두 찾았어요.'; playResultSound(true);
             document.getElementById('mainArea').insertAdjacentHTML('beforeend',
                 buildStandardResultButtons('nextSpotChangeRound()', 'retrySpotChangeRound()', 'restartSpotChange()'));
         } else {
@@ -232,13 +232,13 @@ function renderNumberRush() {
     if (numberRushState.finished) {
         var msg = document.getElementById('numberRushMsg');
         msg.className = 'msg-box'; msg.style.display = 'block';
-        msg.innerText = '🎉 정답이에요! 잘했어요.';
+        msg.innerText = '🎉 정답이에요! 잘했어요.'; playResultSound(true);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend',
             buildStandardResultButtons('nextNumberRushProblem()', 'retryNumberRushRound()', 'restartNumberRush()'));
     } else if (numberRushState.failed) {
         var msg2 = document.getElementById('numberRushMsg');
         msg2.className = 'msg-box bad'; msg2.style.display = 'block';
-        msg2.innerText = '아쉬워요! 주황색으로 표시된 숫자가 다음 정답이었어요.';
+        msg2.innerText = '아쉬워요! 주황색으로 표시된 숫자가 다음 정답이었어요.'; playResultSound(false);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend',
             '<div class="options-grid">' +
             '<button class="action-btn" onclick="retryNumberRushRound()">다시 풀어보기 🔁</button>' +

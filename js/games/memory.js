@@ -102,12 +102,14 @@ function renderMemoryMatch() {
         var msg = document.getElementById('memoryMsg');
         msg.className = 'msg-box'; msg.style.display = 'block';
         msg.innerText = '🎉 성공! ' + memoryState.moves + '번 만에 모두 맞췄어요.';
+        playResultSound(true);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextMemoryRound()', 'retryMemoryRound()', 'restartMemory()'));
     } else if (memoryState.timedOut && !memoryState.finished) {
         memoryState.finished = true;
         var msg2 = document.getElementById('memoryMsg');
         msg2.className = 'msg-box bad'; msg2.style.display = 'block';
         msg2.innerText = '아쉬워요! ' + memoryRound + '라운드까지 성공했어요.';
+        playResultSound(false);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend',
             '<div class="options-grid">' +
             '<button class="action-btn" onclick="retryMemoryRound()">다시 풀어보기 🔁</button>' +
@@ -205,7 +207,7 @@ function simonClick(btn, idx) {
             simonState.locked = true;
             renderSimonGame();
             var msg = document.getElementById('simonMsg');
-            msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 성공! ' + simonState.round + '라운드를 통과했어요.';
+            msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 성공! ' + simonState.round + '라운드를 통과했어요.'; playResultSound(true);
             document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextSimonRound()', 'retrySimonSuccess()', 'initSimonGame()'));
         }
     } else {
@@ -214,7 +216,7 @@ function simonClick(btn, idx) {
         renderSimonGame();
         var msg2 = document.getElementById('simonMsg');
         msg2.className = 'msg-box bad'; msg2.style.display = 'block';
-        msg2.innerText = '아쉬워요! ' + simonState.round + '라운드까지 성공했어요.';
+        msg2.innerText = '아쉬워요! ' + simonState.round + '라운드까지 성공했어요.'; playResultSound(false);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend',
             '<div class="options-grid">' +
             '<button class="action-btn" onclick="retrySimonRound()">다시 풀어보기 🔁</button>' +
@@ -350,10 +352,10 @@ function checkFlashMemory() {
     correctIdxs.forEach(function (idx) { if (items[idx]) { items[idx].style.border = '3px solid #10b981'; } });
     if (isCorrect) {
         flashCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정확히 기억했어요!';
+        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정확히 기억했어요!'; playResultSound(true);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextFlashRound()', 'retryFlashRound()', 'restartFlashMemory()'));
     } else {
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 초록 테두리가 아까 보여드렸던 그림이에요.';
+        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 초록 테두리가 아까 보여드렸던 그림이에요.'; playResultSound(false);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend',
             '<div class="options-grid">' +
             '<button class="action-btn" onclick="retryFlashRound()">다시 풀어보기 🔁</button>' +
@@ -527,7 +529,7 @@ function pianoKeyClick(btn, idx) {
             renderPianoKeys();
             var msg = document.getElementById('pianoMsg');
             msg.className = 'msg-box'; msg.style.display = 'block';
-            msg.innerText = '🎉 성공! ' + pianoState.round + '라운드를 통과했어요. 답은 ' + pianoSeqToNoteString(pianoState.sequence) + ' 이에요.';
+            msg.innerText = '🎉 성공! ' + pianoState.round + '라운드를 통과했어요. 답은 ' + pianoSeqToNoteString(pianoState.sequence) + ' 이에요.'; playResultSound(true);
             document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextPianoRound()', 'retryPianoSuccess()', 'initPianoKeys()'));
         }
     } else {
@@ -535,7 +537,7 @@ function pianoKeyClick(btn, idx) {
         renderPianoKeys();
         var msg2 = document.getElementById('pianoMsg');
         msg2.className = 'msg-box bad'; msg2.style.display = 'block';
-        msg2.innerText = '아쉬워요! 답은 ' + pianoSeqToNoteString(pianoState.sequence) + ' 였어요.';
+        msg2.innerText = '아쉬워요! 답은 ' + pianoSeqToNoteString(pianoState.sequence) + ' 였어요.'; playResultSound(false);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend',
             '<div class="options-grid">' +
             '<button class="action-btn" onclick="retryPianoRound()">다시 풀어보기 🔁</button>' +

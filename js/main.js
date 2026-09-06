@@ -191,7 +191,7 @@ function launchRandomModeGame(g) {
     startGameSession(g.id);
     document.getElementById('homeBtn').style.display = 'inline-block';
     updateMetaProgressBar();
-    window[g.quickStart]();
+    window[g.quickStart](); speakCurrentHelp();
 }
 function nextRandomModeRound() {
     randomModeClearedCount++;
@@ -237,7 +237,7 @@ function launchTodayModeGame(g) {
     startGameSession(g.id);
     document.getElementById('homeBtn').style.display = 'inline-block';
     updateMetaProgressBar();
-    window[g.quickStart]();
+    window[g.quickStart](); speakCurrentHelp();
 }
 function nextTodayModeRound() {
     todayModeClearedCount++;
@@ -294,6 +294,7 @@ function renderHome() {
     _navAway = false;
     document.getElementById('homeBtn').style.display = 'none';
     updateSoundBtn();
+    updateReadHelpBtn();
     hideMetaProgressBar();
     var html = '';
     if (_deferredInstall && !isStandalone()) {
@@ -622,6 +623,75 @@ function toggleSound() {
     updateSoundBtn();
 }
 
+// --- 정답/오답 효과음 (WebAudio, SOUND_ON 존중) ---
+var _sfxCtx = null;
+function _getSfxCtx() {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!_sfxCtx) { try { _sfxCtx = new AC(); } catch (e) { return null; } }
+    if (_sfxCtx.state === 'suspended') { try { _sfxCtx.resume(); } catch (e) { } }
+    return _sfxCtx;
+}
+function _beep(freq, dur, when, type) {
+    var ctx = _getSfxCtx();
+    if (!ctx) return;
+    var t0 = ctx.currentTime + (when || 0);
+    var osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.2, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.03);
+}
+// ok=true → 딩동(상행), false → 삐빅(하행). 게임 어디서든 호출 가능.
+function playResultSound(ok) {
+    if (typeof SOUND_ON !== 'undefined' && !SOUND_ON) return;
+    if (ok) { _beep(660, 0.13, 0); _beep(988, 0.17, 0.11); }
+    else { _beep(300, 0.16, 0); _beep(220, 0.22, 0.13, 'square'); }
+}
+
+// --- 게임 설명을 한국어로 읽어주기 (헤더 📖 토글) ---
+var READ_HELP = false;
+try { READ_HELP = localStorage.getItem('readHelp') === '1'; } catch (e) { }
+var _koVoice = null;
+function _refreshKoVoice() {
+    try {
+        var vs = (window.speechSynthesis && window.speechSynthesis.getVoices) ? window.speechSynthesis.getVoices() : [];
+        for (var i = 0; i < vs.length; i++) { if (/^ko(-|_|$)/i.test(vs[i].lang || '')) { _koVoice = vs[i]; return; } }
+    } catch (e) { }
+}
+if (window.speechSynthesis) {
+    try { _refreshKoVoice(); window.speechSynthesis.addEventListener('voiceschanged', _refreshKoVoice); } catch (e) { }
+}
+function speakKo(text) {
+    if (!READ_HELP || !SOUND_ON || !window.speechSynthesis || !window.SpeechSynthesisUtterance || !text) return;
+    try {
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(String(text).slice(0, 300));
+        u.lang = 'ko-KR';
+        if (_koVoice) u.voice = _koVoice;
+        u.rate = 0.95; u.pitch = 1.05;
+        window.speechSynthesis.speak(u);
+    } catch (e) { }
+}
+function speakCurrentHelp() {
+    var el = document.querySelector('#mainArea .game-sub-desc') || document.querySelector('#mainArea .game-title-box');
+    if (el) speakKo(el.innerText || el.textContent);
+}
+function updateReadHelpBtn() {
+    var b = document.getElementById('readHelpBtn');
+    if (b) { b.style.opacity = READ_HELP ? '1' : '0.45'; b.setAttribute('aria-label', READ_HELP ? '설명 읽어주기 끄기' : '설명 읽어주기 켜기'); }
+}
+function toggleReadHelp() {
+    READ_HELP = !READ_HELP;
+    try { localStorage.setItem('readHelp', READ_HELP ? '1' : '0'); } catch (e) { }
+    if (!READ_HELP) { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { } }
+    else { speakCurrentHelp(); }
+    updateReadHelpBtn();
+}
+
 // --- "홈 화면에 추가" 설치 안내 ---
 var _deferredInstall = null;
 function isStandalone() {
@@ -717,6 +787,7 @@ function choiceSubmit(i) {
     }
     if (ok && c.onCorrect) c.onCorrect();
     if (!ok && c.onWrong) c.onWrong();
+    playResultSound(ok);
     var btnHtml = (ok || c.failStyle === 'standard') ? buildStandardResultButtons(c.next, c.retry, c.home) : _choiceFailButtons(c);
     if (main) main.insertAdjacentHTML('beforeend', btnHtml);
     if (c.onResolved) c.onResolved(ok);
@@ -738,6 +809,7 @@ function choiceTimeout() {
         msg.innerText = _choiceMsgText(c.timeout, '⏰ 시간이 다 됐어요!', st.answerIndex);
     }
     if (c.onTimeout) c.onTimeout();
+    playResultSound(false);
     var btnHtml = (c.failStyle === 'standard') ? buildStandardResultButtons(c.next, c.retry, c.home) : _choiceFailButtons(c);
     if (main) main.insertAdjacentHTML('beforeend', btnHtml);
 }
@@ -762,6 +834,7 @@ function startGame(id) {
     document.getElementById('homeBtn').style.display = 'inline-block';
     var fn = GAME_INIT_FNS[id];
     if (fn) fn();
+    speakCurrentHelp();
 }
 
 // ===================== 앱 시작점 =====================
