@@ -1,6 +1,6 @@
 var CACHE_PREFIX = 'eroi-playground-';
 // 배포할 때마다 이 버전을 올리면 이전 캐시가 정리되고 새 파일이 받아진다.
-var CACHE_NAME = CACHE_PREFIX + 'v5.02';
+var CACHE_NAME = CACHE_PREFIX + 'v5.03';
 var BASE = '/Roy-s-world/';
 
 // index.html이 로드하는 모든 스크립트를 빠짐없이 넣는다.

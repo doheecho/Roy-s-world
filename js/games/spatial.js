@@ -1944,7 +1944,7 @@ function checkNetFoldLevel1(idx) {
     });
     netfoldState.level1Correct = isCorrect;
     // 답을 고르면 정육면체가 천천히 접히고, 상자를 한 바퀴 돌려 마주보는 면을 확인시켜 준다
-    var t = gameTimeout(playNetFoldLevel1Reveal, 700);
+    var t = gameTimeout(playNetFoldLevel1Reveal, 300);
 }
 function playNetFoldLevel1Reveal() {
     var assign = netfoldState.assign;
@@ -1981,9 +1981,9 @@ function playNetFoldLevel1Reveal() {
                         '<span style="padding:0.25rem 0.5rem; border:3px solid #10b981; background:#d1fae5; border-radius:0.5rem; box-shadow:0 0 12px rgba(16,185,129,0.6);">' + netfoldState.correctAnswer + '</span>' +
                         '</div>';
                 }
-                var t2 = gameTimeout(finishNetFoldLevel1, 1600);
-            }, NETFOLD_SPIN_MS + 250);
-        }, NETFOLD_SPIN_MS + 700);
+                var t2 = gameTimeout(finishNetFoldLevel1, 850);
+            }, NETFOLD_SPIN_MS + 120);
+        }, NETFOLD_SPIN_MS + 200);
     });
 }
 function finishNetFoldLevel1() {
@@ -1995,8 +1995,9 @@ function finishNetFoldLevel1() {
 // F는 고정(회전 없음), L/R/T/Bo는 F와 맞닿은 변을 축으로 90도 접혀 옆면이 되고,
 // B는 R의 자식 요소로 두어 R을 따라 함께 돌다가 마지막에 한 번 더 접혀 뒷면이 됨(종이 상자 접기와 동일한 방식)
 var NETFOLD_ANIM_S = 56;
-var NETFOLD_FOLD_MS = 1800;   // 한 면이 접히는 시간 (기존 900ms의 2배 = 절반 속도)
-var NETFOLD_SPIN_MS = 1100;   // 접힌 상자를 돌려 보여줄 때의 회전 시간
+var NETFOLD_FOLD_MS = 620;    // 한 면이 접히는 시간 (너무 느리면 답답해서 조정)
+var NETFOLD_SPIN_MS = 520;    // 접힌 상자를 돌려 보여줄 때의 회전 시간
+var NETFOLD_STEP_GAP = 90;    // 접기 단계 사이의 여유 시간
 function renderNetFoldSceneHtml(assign) {
     var S = NETFOLD_ANIM_S;
     var sceneW = 4 * S, sceneH = 3 * S;
@@ -2031,9 +2032,9 @@ function playNetFoldAssemblyAnim(assign, onDone) {
                 var assembly = document.getElementById('netfoldAssembly');
                 if (assembly) assembly.style.transform = 'rotateX(-20deg) rotateY(-28deg)';
                 var t4 = gameTimeout(function () { if (onDone) onDone(); }, NETFOLD_SPIN_MS);
-            }, NETFOLD_FOLD_MS + 250);
-        }, NETFOLD_FOLD_MS + 250);
-    }, 700);
+            }, NETFOLD_FOLD_MS + NETFOLD_STEP_GAP);
+        }, NETFOLD_FOLD_MS + NETFOLD_STEP_GAP);
+    }, 300);
 }
 function generateNetFoldLevel2() {
     var assign = netfoldState.assign;
@@ -2070,13 +2071,13 @@ function netFoldLevel2Hint() {
     var el = document.getElementById('netfoldRefCube');
     if (!el || netfoldState.answered) return;
     vibrateShort();
-    el.style.transition = 'transform 2.2s ease-in-out';
+    el.style.transition = 'transform 1.6s ease-in-out';
     el.style.transform = 'rotateX(-20deg) rotateY(332deg)';
     var t = gameTimeout(function () {
         if (!el) return;
-        el.style.transition = 'transform 1.1s ease-in-out';
+        el.style.transition = 'transform 0.9s ease-in-out';
         el.style.transform = 'rotateX(-20deg) rotateY(-28deg)';
-    }, 2300);
+    }, 1700);
 }
 function checkNetFoldLevel2(idx) {
     if (netfoldState.answered) return;
@@ -2110,10 +2111,11 @@ function renderNetFoldLevel3() {
     document.getElementById('mainArea').innerHTML = html;
 }
 function renderNetFoldLevel3Body(assign) {
-    var html = '<div style="display:flex; justify-content:center; gap:0.8rem; flex-wrap:wrap; align-items:flex-start;">';
-    html += '<div id="netfoldL3Left" style="text-align:center;"><div class="netfold-cube-scene">' + buildNetCubeHTML(assign, -20, -28, 'netfoldView1', 46) + '</div><div class="game-sub-desc" style="margin:0.2rem 0 0 0;">앞에서 볼 때</div></div>';
+    // netfoldL3Cubes: 두 각도 상자를 감싸는 블록. 답을 고르면 이 안이 "펼치는 애니메이션"으로 통째로 교체된다.
+    var html = '<div id="netfoldL3Cubes"><div style="display:flex; justify-content:center; gap:0.8rem; flex-wrap:wrap; align-items:flex-start;">';
+    html += '<div style="text-align:center;"><div class="netfold-cube-scene">' + buildNetCubeHTML(assign, -20, -28, 'netfoldView1', 46) + '</div><div class="game-sub-desc" style="margin:0.2rem 0 0 0;">앞에서 볼 때</div></div>';
     html += '<div style="text-align:center;"><div class="netfold-cube-scene">' + buildNetCubeHTML(assign, -20, 152, 'netfoldView2', 46) + '</div><div class="game-sub-desc" style="margin:0.2rem 0 0 0;">뒤에서 볼 때</div></div>';
-    html += '</div>';
+    html += '</div></div>';
     html += '<div class="cube3d-options-row" style="flex-wrap:wrap;">';
     netfoldState.options.forEach(function (opt, idx) {
         html += '<button type="button" class="cube3d-option-box" onclick="checkNetFoldLevel3(' + idx + ')">' + renderNetPreviewHtml(opt.a, 16, null, null) + '</button>';
@@ -2131,14 +2133,14 @@ function checkNetFoldLevel3(idx) {
         if (i === netfoldState.correctOptIndex) b.classList.add('correct');
         else if (i === idx) b.classList.add('wrong');
     });
-    // 정답이든 오답이든: 보기 4개는 그대로 두고, 왼쪽 상자를 그 자리에서 느리게 펼쳐 전개도를 보여줌
+    // 정답이든 오답이든: 보기 4개는 그대로 두고, 두 각도 상자 자리를 하나의 상자가 펼쳐지는 애니메이션으로 바꿔 보여줌
     var t = gameTimeout(function () {
         playNetFoldUnfoldAnim(netfoldState.assign, function () {
             netfoldFinishRound(isCorrect,
                 '🎉 정답이에요! 상자가 펼쳐지는 모습대로 전개도를 정확히 찾았어요.',
-                '아쉬워요! 왼쪽 상자가 펼쳐지는 모습을 보세요. 초록 테두리가 정답 전개도예요.');
-        }, 'netfoldL3Left', isCorrect);
-    }, 700);
+                '아쉬워요! 상자가 펼쳐지는 모습을 보세요. 초록 테두리가 정답 전개도예요.');
+        }, 'netfoldL3Cubes', isCorrect);
+    }, 300);
 }
 // 완성된 상자를 다시 전개도로 "느리게" 펼치는 애니메이션 (playNetFoldAssemblyAnim 의 역방향)
 // containerId: 애니메이션을 그릴 컨테이너(기본 netfoldStage), wasCorrect: 안내 문구 결정용
@@ -2175,9 +2177,9 @@ function playNetFoldUnfoldAnim(assign, onDone, containerId, wasCorrect) {
             var elR = document.getElementById('netfoldFaceR'); if (elR) elR.style.transform = 'rotateY(0deg)';
             var elT = document.getElementById('netfoldFaceT'); if (elT) elT.style.transform = 'rotateX(0deg)';
             var elBo = document.getElementById('netfoldFaceBo'); if (elBo) elBo.style.transform = 'rotateX(0deg)';
-            var t2 = gameTimeout(function () { if (onDone) onDone(); }, NETFOLD_FOLD_MS + 400);
-        }, NETFOLD_FOLD_MS + 200);
-    }, 400);
+            var t2 = gameTimeout(function () { if (onDone) onDone(); }, NETFOLD_FOLD_MS + 150);
+        }, NETFOLD_FOLD_MS + NETFOLD_STEP_GAP);
+    }, 200);
 }
 
 // ===================== 게임 등록 =====================
