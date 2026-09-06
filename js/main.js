@@ -659,6 +659,8 @@ function buildStandardResultButtons(nextCall, retryCall, homeCall) {
 //   msgId     결과 메시지 div id (기본 'choiceMsg')
 //   cols      options-grid 열 수 (기본: CSS 기본값)
 //   optClass  보기 버튼 클래스 (기본 'opt-btn text-opt')
+//   selector  정/오답 하이라이트할 보기 요소 선택자 (기본 '.opt-btn').
+//             보기 마크업을 게임이 직접 그리는 경우 onclick="choiceSubmit(i)" 만 달고 이 값을 지정
 //   ok / bad  결과 메시지. 문자열 또는 fn(answerIndex)->string
 //   timeout   제한시간 초과 시 메시지. 문자열 또는 fn(answerIndex)->string (choiceTimeout 호출 시)
 //   explain   채점 후 보기 아래 덧붙일 HTML. 문자열 또는 fn(ok)->string  (제출 시에만, 타임아웃 X)
@@ -695,8 +697,10 @@ function choiceSubmit(i) {
     var c = st.cfg;
     if (c.onPick) c.onPick();
     vibrateShort();
+    // 정답 공개 시 문제 영역을 다시 그려야 하는 게임(보기 글자 교체 등)은 rerender 를 제공
+    if (c.rerender) c.rerender(i, i === st.answerIndex);
     var main = document.getElementById('mainArea');
-    var buttons = main ? main.querySelectorAll('.opt-btn') : [];
+    var buttons = main ? main.querySelectorAll(c.selector || '.opt-btn') : [];
     var ok = (i === st.answerIndex);
     if (buttons[i]) buttons[i].classList.add(ok ? 'correct' : 'wrong');
     if (!ok && buttons[st.answerIndex]) buttons[st.answerIndex].classList.add('correct');
@@ -723,8 +727,9 @@ function choiceTimeout() {
     if (!st || st.answered) return;
     st.answered = true;
     var c = st.cfg;
+    if (c.rerender) c.rerender(-1, false);
     var main = document.getElementById('mainArea');
-    var buttons = main ? main.querySelectorAll('.opt-btn') : [];
+    var buttons = main ? main.querySelectorAll(c.selector || '.opt-btn') : [];
     if (buttons[st.answerIndex]) buttons[st.answerIndex].classList.add('correct');
     var msg = document.getElementById(c.msgId || 'choiceMsg');
     if (msg) {

@@ -286,41 +286,24 @@ function startHanjaTimer() {
 }
 
 function handleHanjaTimeout() {
-    if (hanjaState.answered || hanjaState.timedOut) return;
     if (hanjaState.timerId) { clearInterval(hanjaState.timerId); hanjaState.timerId = null; }
-    hanjaState.timedOut = true;
-    hanjaState.answered = true;
-    renderHanja();
-    var msg = document.getElementById('hanjaMsg');
-    var correctOpt = hanjaState.options.filter(function (o) { return o.correct; })[0];
-    msg.className = 'msg-box bad'; msg.style.display = 'block';
-    msg.innerText = '⏰ 시간이 다 됐어요! 정답은 ' + correctOpt.full + ' 였어요.';
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-        '<div class="options-grid"><button class="action-btn" onclick="retryHanjaRound()">다시 시도 🔁</button><button class="action-btn secondary" onclick="renderHanjaSetup()">처음부터 ⏮</button></div>');
-    hanjaRound++;
+    choiceTimeout();
 }
-
-function checkHanjaAnswer(idx) {
-    if (hanjaState.answered) return;
-    if (hanjaState.timerId) { clearInterval(hanjaState.timerId); hanjaState.timerId = null; }
-    vibrateShort();
-    hanjaState.answered = true;
-    hanjaState.selectedIdx = idx;
-    var picked = hanjaState.options[idx];
-    renderHanja();
-    var msg = document.getElementById('hanjaMsg');
-    if (picked.correct) {
-        hanjaCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요!';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextHanjaRound()', 'retryHanjaRound()', 'renderHanjaSetup()'));
-    } else {
-        var correctOpt = hanjaState.options.filter(function (o) { return o.correct; })[0];
-        msg.className = 'msg-box bad'; msg.style.display = 'block';
-        msg.innerText = '아쉬워요! 정답은 ' + correctOpt.full + ' 였어요.';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-            '<div class="options-grid"><button class="action-btn" onclick="retryHanjaRound()">다시 시도 🔁</button><button class="action-btn secondary" onclick="renderHanjaSetup()">처음부터 ⏮</button></div>');
-    }
-    hanjaRound++;
+function hanjaChoiceCfg() {
+    var correctOpt = hanjaState.options.filter(function (o) { return o.correct; })[0];
+    return {
+        msgId: 'hanjaMsg',
+        ok: '🎉 정답이에요!',
+        bad: '아쉬워요! 정답은 ' + correctOpt.full + ' 였어요.',
+        timeout: '⏰ 시간이 다 됐어요! 정답은 ' + correctOpt.full + ' 였어요.',
+        onPick: function () { if (hanjaState.timerId) { clearInterval(hanjaState.timerId); hanjaState.timerId = null; } },
+        rerender: function (pickedIdx) { hanjaState.answered = true; hanjaState.selectedIdx = pickedIdx; renderHanja(); },
+        onCorrect: function () { hanjaCorrect++; },
+        onResolved: function () { hanjaRound++; },
+        onTimeout: function () { hanjaState.timedOut = true; hanjaRound++; },
+        next: 'nextHanjaRound()', retry: 'retryHanjaRound()', home: 'renderHanjaSetup()',
+        failStyle: 'retryHome'
+    };
 }
 
 function retryHanjaRound() {
@@ -357,6 +340,7 @@ function renderHanja() {
         html += '<div style="font-size:1.3rem; font-weight:700; color:var(--primary);">"' + s.q.meaning + '"에 알맞은 한자는?</div>';
     }
     html += '</div>';
+    var cfg = hanjaChoiceCfg();
     html += '<div class="options-grid">';
     s.options.forEach(function (o, idx) {
         var label = s.answered ? o.full : o.label;
@@ -365,11 +349,16 @@ function renderHanja() {
             if (o.correct) cls += ' correct';
             else if (idx === s.selectedIdx) cls += ' wrong';
         }
-        html += '<button class="' + cls + '" style="font-size:1.4rem; height:64px;" ' + (s.answered ? 'disabled' : '') + ' onclick="checkHanjaAnswer(' + idx + ')">' + label + '</button>';
+        html += '<button class="' + cls + '" style="font-size:1.4rem; height:64px;" ' + (s.answered ? 'disabled' : '') + ' onclick="choiceSubmit(' + idx + ')">' + label + '</button>';
     });
     html += '</div>';
     html += '<div id="hanjaMsg" class="msg-box"></div>';
     document.getElementById('mainArea').innerHTML = html;
+    if (!s.answered) {
+        var ci = -1;
+        s.options.forEach(function (o, idx) { if (o.correct) ci = idx; });
+        choiceBegin(ci, cfg);
+    }
 }
 
 GAME_INIT_FNS.hanjaQuiz = initHanja;

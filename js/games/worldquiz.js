@@ -294,40 +294,32 @@ function startWorldQuizTimer() {
     activeTimers.push(worldQuizState.timerId);
 }
 function handleWorldQuizTimeout() {
-    if (worldQuizState.timedOut || worldQuizState.answered) return;
     if (worldQuizState.timerId) { clearInterval(worldQuizState.timerId); worldQuizState.timerId = null; }
-    worldQuizState.timedOut = true;
-    worldQuizState.answered = true;
-    renderWorldQuizQuiz();
+    choiceTimeout();
 }
 function toggleWorldQuizHint() {
     if (worldQuizState.answered) return;
     worldQuizState.hintShown = !worldQuizState.hintShown;
     renderWorldQuizQuiz();
 }
-function checkWorldQuizAnswer(value, isCorrect) {
-    if (worldQuizState.answered) return;
-    if (worldQuizState.timerId) { clearInterval(worldQuizState.timerId); worldQuizState.timerId = null; }
-    worldQuizState.answered = true;
-    worldQuizState.selectedValue = value;
-    vibrateShort();
-    if (isCorrect) { worldQuizCorrect++; }
-    renderWorldQuizQuiz();
-    var msg = document.getElementById('worldQuizMsg');
+function worldQuizChoiceCfg() {
     var key = worldQuizSettings.quizType === "capital" ? "capital" : "country";
-    if (isCorrect) {
-        msg.className = 'msg-box'; msg.style.display = 'block';
-        msg.innerText = '🎉 정답이에요! "' + worldQuizState.correct[key] + '"';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextWorldQuizRound()', 'retryWorldQuizRound()', 'renderWorldQuizSetup()'));
-    } else {
-        msg.className = 'msg-box bad'; msg.style.display = 'block';
-        msg.innerText = '아쉬워요! 정답은 "' + worldQuizState.correct[key] + '" 였어요.';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-            '<div class="options-grid">' +
-            '<button class="action-btn" onclick="retryWorldQuizRound()">다시 시도 🔁</button>' +
-            '<button class="action-btn secondary" onclick="renderWorldQuizSetup()">처음부터 ⏮</button>' +
-            '</div>');
-    }
+    var ans = worldQuizState.correct[key];
+    return {
+        msgId: 'worldQuizMsg',
+        ok: '🎉 정답이에요! "' + ans + '"',
+        bad: '아쉬워요! 정답은 "' + ans + '" 였어요.',
+        timeout: '⏰ 시간이 다 됐어요! 정답은 "' + ans + '" 였어요.',
+        onPick: function () { if (worldQuizState.timerId) { clearInterval(worldQuizState.timerId); worldQuizState.timerId = null; } },
+        rerender: function (pickedIdx) {
+            worldQuizState.answered = true;
+            worldQuizState.selectedValue = (pickedIdx >= 0 && worldQuizState.options[pickedIdx]) ? worldQuizState.options[pickedIdx].value : null;
+            renderWorldQuizQuiz();
+        },
+        onCorrect: function () { worldQuizCorrect++; },
+        next: 'nextWorldQuizRound()', retry: 'retryWorldQuizRound()', home: 'renderWorldQuizSetup()',
+        failStyle: 'retryHome'
+    };
 }
 function buildWorldQuizInfoHtml(data) {
     var relationHtml = data.relation ? '<br><strong>한국과의 관계:</strong> ' + data.relation : '';
@@ -379,17 +371,20 @@ function renderWorldQuizQuiz() {
         html += '<div class="msg-box" style="display:block; background:#f8fafc; border-color:#e5e7eb; text-align:left;">' + buildWorldQuizInfoHtml(data) + '</div>';
     }
     html += '<div class="options-grid single-col">';
-    worldQuizState.options.forEach(function (opt) {
+    var correctIdx = -1;
+    worldQuizState.options.forEach(function (opt, idx) {
+        if (opt.isCorrect) correctIdx = idx;
         var cls = 'opt-btn text-opt';
         if (worldQuizState.answered) {
             if (opt.isCorrect) cls += ' correct';
             else if (opt.value === worldQuizState.selectedValue) cls += ' wrong';
         }
-        html += '<button class="' + cls + '" ' + (worldQuizState.answered ? 'disabled' : '') + ' onclick="checkWorldQuizAnswer(\'' + opt.value.replace(/'/g, "\\'") + '\',' + opt.isCorrect + ')">' + opt.value + '</button>';
+        html += '<button class="' + cls + '" ' + (worldQuizState.answered ? 'disabled' : '') + ' onclick="choiceSubmit(' + idx + ')">' + opt.value + '</button>';
     });
     html += '</div>';
     html += '<div id="worldQuizMsg" class="msg-box"></div>';
     document.getElementById('mainArea').innerHTML = html;
+    if (!worldQuizState.answered) { choiceBegin(correctIdx, worldQuizChoiceCfg()); }
 }
 
 GAME_INIT_FNS.worldQuiz = initWorldQuiz;

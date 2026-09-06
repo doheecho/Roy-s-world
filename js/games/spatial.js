@@ -759,18 +759,19 @@ function startProjMatchTimer() {
     }, 100);
     activeTimers.push(projMatchState.timerId);
 }
-function handleProjMatchTimeout() {
-    if (projMatchState.checked) return;
-    projMatchState.checked = true;
-    var boxes = document.querySelectorAll('.cube3d-option-box');
-    if (boxes[projMatchState.correctIndex]) boxes[projMatchState.correctIndex].classList.add('correct');
-    var msg = document.getElementById('projMatchMsg');
-    msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '⏰ 시간이 다 됐어요! 초록 테두리가 정답이에요.';
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-        '<div class="options-grid">' +
-        '<button class="action-btn" onclick="retryProjMatchRound()">다시 풀어보기 🔁</button>' +
-        '<button class="action-btn secondary" onclick="restartProjMatch()">처음부터 풀기 🔄</button>' +
-        '</div>');
+function handleProjMatchTimeout() { choiceTimeout(); }
+function projMatchChoiceCfg() {
+    return {
+        msgId: 'projMatchMsg', selector: '.cube3d-option-box',
+        ok: '🎉 정답이에요!',
+        bad: '아쉬워요! 초록 테두리가 정답이에요.',
+        timeout: '⏰ 시간이 다 됐어요! 초록 테두리가 정답이에요.',
+        onPick: function () { if (projMatchState.timerId) clearInterval(projMatchState.timerId); projMatchState.checked = true; },
+        onCorrect: function () { projMatchCorrect++; },
+        onTimeout: function () { projMatchState.checked = true; },
+        next: 'nextProjMatchRound()', retry: 'retryProjMatchRound()', home: 'restartProjMatch()',
+        failStyle: 'retryHome'
+    };
 }
 function renderProjectionGrid(points) {
     var maxU = 0, maxV = 0;
@@ -809,11 +810,12 @@ function renderProjMatch() {
         html += '<div class="timer-container" style="display:block;"><div class="timer-bar" id="projMatchTimerBar"></div></div>';
     }
     html += '<div class="status-row"><div>' + projMatchRound + '라운드</div><div>정답: ' + projMatchCorrect + ' / ' + (projMatchRound - 1) + '</div></div>';
+    var cfg = projMatchChoiceCfg();
     var innerContent = renderProjectionGrid(projMatchState.targetPoints);
     innerContent += '<div class="cube3d-options-row">';
     projMatchState.options.forEach(function (opt, idx) {
         var scale = computeCubeScale(opt);
-        innerContent += '<div class="cube3d-option-box" onclick="checkProjMatch(' + idx + ')">';
+        innerContent += '<div class="cube3d-option-box" onclick="choiceSubmit(' + idx + ')">';
         innerContent += '<div class="cube3d-scene" style="width:100px; height:100px;">' + buildCube3DHTML(opt, CUBE3D_TILT_X, 35, 'projOpt' + idx, scale) + '</div>';
         innerContent += '</div>';
     });
@@ -821,28 +823,7 @@ function renderProjMatch() {
     html += renderCompassFrame(innerContent, projMatchState.direction);
     html += '<div id="projMatchMsg" class="msg-box"></div>';
     document.getElementById('mainArea').innerHTML = html;
-}
-function checkProjMatch(idx) {
-    if (projMatchState.checked) return;
-    projMatchState.checked = true;
-    clearInterval(projMatchState.timerId);
-    var boxes = document.querySelectorAll('.cube3d-option-box');
-    var msg = document.getElementById('projMatchMsg');
-    if (idx === projMatchState.correctIndex) {
-        projMatchCorrect++;
-        if (boxes[idx]) boxes[idx].classList.add('correct');
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요!';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextProjMatchRound()', 'retryProjMatchRound()', 'restartProjMatch()'));
-    } else {
-        if (boxes[idx]) boxes[idx].classList.add('wrong');
-        if (boxes[projMatchState.correctIndex]) boxes[projMatchState.correctIndex].classList.add('correct');
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 초록 테두리가 정답이에요.';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-            '<div class="options-grid">' +
-            '<button class="action-btn" onclick="retryProjMatchRound()">다시 풀어보기 🔁</button>' +
-            '<button class="action-btn secondary" onclick="restartProjMatch()">처음부터 풀기 🔄</button>' +
-            '</div>');
-    }
+    choiceBegin(projMatchState.correctIndex, cfg);
 }
 
 // ===================== 26. 공간지각: 좌표 보물찾기 =====================
