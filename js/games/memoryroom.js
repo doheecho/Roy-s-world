@@ -231,7 +231,7 @@ function renderRoomMissingAnswer() {
             if (isMissing) extra = ' style="border:3px solid #10b981;"';
             else if (sel) extra = ' style="border:3px solid #ef4444;"';
         }
-        html += '<div class="' + cls + '"' + extra + ' onclick="pickRoomMissingOption(' + idx + ')">' + p.emoji + '</div>';
+        html += '<button type="button" class="' + cls + '"' + extra + ' aria-label="' + p.name + '" onclick="pickRoomMissingOption(' + idx + ')">' + p.emoji + '</button>';
     });
     html += '</div>';
     if (!roomState.checked) {

@@ -76,7 +76,7 @@ function renderSpotChangeRound() {
     spotState.afterIcons.forEach(function (icon, idx) {
         var alreadyFound = spotState.found.indexOf(idx) > -1;
         var extraStyle = alreadyFound ? ' style="border:2px solid #10b981;background:#d1fae5;"' : '';
-        html += '<div class="row-box clickable"' + extraStyle + ' onclick="checkSpotChange(this,' + idx + ')">' + icon + '</div>';
+        html += '<button type="button" class="row-box clickable"' + extraStyle + ' aria-label="칸 ' + (idx + 1) + '" onclick="checkSpotChange(this,' + idx + ')">' + icon + '</button>';
     });
     html += '</div>';
     html += '<div id="spotMsg" class="msg-box"></div>';

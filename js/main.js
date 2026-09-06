@@ -296,6 +296,7 @@ function renderHome() {
     html += '<div style="font-weight:800; color:var(--primary);">👋 ' + escapeHtml(currentUser || '플레이어') + '님</div>';
     html += '<button class="action-btn secondary" style="padding:0.4rem 0.7rem; font-size:0.78rem;" onclick="renderHistory()">📜 게임 기록</button>';
     html += '</div>';
+    var bests = getGameBests();
     GAME_LIST.forEach(function (block) {
         html += '<div class="category-block">';
         html += '<div class="category-title">' + block.cat + '</div>';
@@ -305,6 +306,7 @@ function renderHome() {
             html += '<span class="tile-emoji">' + g.emoji + '</span>';
             html += '<div class="tile-name">' + g.name + '</div>';
             html += '<div class="tile-desc">' + g.desc + '</div>';
+            if (bests[g.id] > 0) { html += '<div class="tile-best">🏆 최고 ' + bests[g.id] + '라운드</div>'; }
             html += '</div>';
         });
         html += '</div></div>';
@@ -366,21 +368,42 @@ function getGameName(id) {
     });
     return found || id;
 }
+// ===================== 게임별 최고 라운드 기록 =====================
+function getGameBests() {
+    try { return JSON.parse(localStorage.getItem('gameBest') || '{}') || {}; } catch (e) { return {}; }
+}
+function bumpGameBest(id, round) {
+    if (!id || !(round > 0)) return;
+    try {
+        var bests = getGameBests();
+        if (!(bests[id] >= round)) {
+            bests[id] = round;
+            localStorage.setItem('gameBest', JSON.stringify(bests));
+        }
+    } catch (e) { }
+}
+
 function captureCurrentRoundNumber() {
     var rows = document.querySelectorAll('.status-row');
     if (rows.length > 0) {
         var text = rows[0].innerText || rows[0].textContent || '';
-        var m = text.match(/(\d+)\s*라운드/);
+        // "3라운드" 형태와 "라운드: 3" / "라운드 3" 형태를 모두 인식
+        var m = text.match(/(\d+)\s*라운드/) || text.match(/라운드[\s:]*?(\d+)/);
         if (m) return parseInt(m[1], 10);
     }
     return 0;
+}
+// 게임이 라운드 수를 직접 알려주고 싶을 때 호출(선택). 호출하지 않으면 위 화면 스크랩으로 대체된다.
+function reportGameRound(n) {
+    if (activeGameSession) { activeGameSession.round = parseInt(n, 10) || 0; }
 }
 function startGameSession(id) {
     activeGameSession = { id: id, name: getGameName(id), startTime: Date.now() };
 }
 function endGameSession() {
     if (!activeGameSession) return;
-    var roundNum = captureCurrentRoundNumber();
+    var roundNum = (activeGameSession.round != null) ? activeGameSession.round : captureCurrentRoundNumber();
+    bumpGameBest(activeGameSession.id, roundNum);
     var record = {
         user: currentUser || '플레이어',
         gameId: activeGameSession.id,
@@ -408,6 +431,20 @@ function renderHistory() {
     var html = '<div class="game-title-box">📜 게임 기록</div>';
     var list = [];
     try { list = JSON.parse(localStorage.getItem('gameHistory') || '[]'); } catch (e) { }
+
+    // 게임별 최고 라운드 요약
+    var bests = getGameBests();
+    var bestIds = Object.keys(bests).filter(function (id) { return bests[id] > 0; });
+    if (bestIds.length > 0) {
+        bestIds.sort(function (a, b) { return bests[b] - bests[a]; });
+        html += '<div class="setup-section-label">🏆 게임별 최고 기록</div>';
+        html += '<div class="msg-box" style="display:block; background:#fffbeb; border-color:#fde68a; text-align:left; line-height:1.9;">';
+        bestIds.forEach(function (id) {
+            html += '<div>' + escapeHtml(getGameName(id)) + ' · <b>' + bests[id] + '라운드</b></div>';
+        });
+        html += '</div>';
+        html += '<div class="options-grid" style="grid-template-columns: 1fr; margin-bottom:0.6rem;"><button class="action-btn secondary" onclick="clearGameBests()">최고 기록 지우기 🗑️</button></div>';
+    }
 
     var allUsers = [];
     var allGames = [];
@@ -468,6 +505,10 @@ function renderHistory() {
 }
 function clearHistory() {
     try { localStorage.removeItem('gameHistory'); } catch (e) { }
+    renderHistory();
+}
+function clearGameBests() {
+    try { localStorage.removeItem('gameBest'); } catch (e) { }
     renderHistory();
 }
 function deleteHistoryRecord(idx) {

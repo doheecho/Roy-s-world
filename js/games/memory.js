@@ -86,7 +86,7 @@ function renderMemoryMatch() {
         var isFlipped = memoryState.flipped.indexOf(idx) > -1;
         var isMatched = memoryState.matched.indexOf(idx) > -1;
         var cls = 'memory-card' + (isFlipped || isMatched ? ' flipped' : '') + (isMatched ? ' matched' : '');
-        html += '<div class="' + cls + '" onclick="flipMemoryCard(' + idx + ')">' + ((isFlipped || isMatched) ? icon : '❓') + '</div>';
+        html += '<button type="button" class="' + cls + '" aria-label="카드 ' + (idx + 1) + '" onclick="flipMemoryCard(' + idx + ')">' + ((isFlipped || isMatched) ? icon : '❓') + '</button>';
     });
     html += '</div>';
     html += '<div id="memoryMsg" class="msg-box"></div>';
@@ -321,7 +321,7 @@ function renderFlashMemory() {
         html += '<div class="flash-grid">';
         flashState.allOptions.forEach(function (icon, idx) {
             var sel = flashState.selected.indexOf(idx) > -1;
-            html += '<div class="flash-item' + (sel ? ' selected' : '') + '" onclick="toggleFlashSelect(' + idx + ')">' + icon + '</div>';
+            html += '<button type="button" class="flash-item' + (sel ? ' selected' : '') + '" aria-pressed="' + (sel ? 'true' : 'false') + '" onclick="toggleFlashSelect(' + idx + ')">' + icon + '</button>';
         });
         html += '</div>';
         if (!flashState.checked) {
