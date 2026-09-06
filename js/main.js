@@ -340,15 +340,21 @@ function renderUsernamePrompt() {
     html += '<button class="action-btn" onclick="submitUsername()">시작하기 🚀</button>';
     document.getElementById('mainArea').innerHTML = html;
 }
+var DEFAULT_USER = '이로이';
+function rememberCurrentUser() {
+    try { localStorage.setItem('currentUser', currentUser); } catch (e) { }
+}
 function selectExistingUsername(name) {
-    currentUser = sanitizeUserName(name) || '플레이어';
+    currentUser = sanitizeUserName(name) || DEFAULT_USER;
+    rememberCurrentUser();
     renderHome();
 }
 function submitUsername() {
     var input = document.getElementById('usernameInput');
     var name = sanitizeUserName((input && input.value) || '');
-    if (!name) name = '플레이어';
+    if (!name) name = DEFAULT_USER;
     currentUser = name;
+    rememberCurrentUser();
     try {
         var names = JSON.parse(localStorage.getItem('playerNameList') || '[]');
         if (names.indexOf(name) === -1) {
@@ -564,6 +570,10 @@ function startGame(id) {
 // ===================== 앱 시작점 =====================
 // 하이브리드 웹뷰(Cordova/Capacitor)에서 DOM 초기화 전에 스크립트가 실행되는 것을 막기 위해
 // DOMContentLoaded 이후에 진입 화면을 그린다.
+// 이로이 전용 앱이라 시작할 때 이름을 묻지 않고 바로 홈으로 간다.
+// (이름은 저장돼 있으면 그걸 쓰고, 없으면 '이로이'. 게임 기록 화면의 "이름 바꾸기"로 변경 가능.)
 document.addEventListener('DOMContentLoaded', function () {
-    renderUsernamePrompt();
+    try { currentUser = sanitizeUserName(localStorage.getItem('currentUser') || ''); } catch (e) { }
+    if (!currentUser) currentUser = DEFAULT_USER;
+    renderHome();
 });
