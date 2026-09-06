@@ -139,8 +139,7 @@ function checkSpotChange(el, idx) {
     } else {
         el.style.border = '2px solid #ef4444';
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '다시 한 번 비교해보아요!';
-        var t = setTimeout(function () { el.style.border = ''; msg.style.display = 'none'; }, 500);
-        activeTimers.push(t);
+        var t = gameTimeout(function () { el.style.border = ''; msg.style.display = 'none'; }, 500);
     }
 }
 
@@ -390,12 +389,10 @@ function renderFlashCountReady() {
     html += '<div class="eng-btn-row"><button class="eng-mini-btn" onclick="initFlashCount()">⏮ 처음으로</button></div>';
     html += '<div class="fcs-stage"><div class="fcs-countdown" id="fcsCount">준비!</div></div>';
     document.getElementById('mainArea').innerHTML = html;
-    var t1 = setTimeout(function () {
+    var t1 = gameTimeout(function () {
         var el = document.getElementById('fcsCount'); if (el) el.innerText = '집중!';
-        var t2 = setTimeout(fcs_showObjects, 650);
-        activeTimers.push(t2);
+        var t2 = gameTimeout(fcs_showObjects, 650);
     }, 700);
-    activeTimers.push(t1);
 }
 function fcs_showObjects() {
     var st = fcsState;
@@ -404,8 +401,7 @@ function fcs_showObjects() {
     html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">잘 보세요! 👀</div>';
     html += fcs_stageHtml(st.data.objs, null);
     document.getElementById('mainArea').innerHTML = html;
-    var t = setTimeout(fcs_askQuestion, FCS_LEVELS[st.level].expo);
-    activeTimers.push(t);
+    var t = gameTimeout(fcs_askQuestion, FCS_LEVELS[st.level].expo);
 }
 function fcs_askQuestion() {
     var st = fcsState;

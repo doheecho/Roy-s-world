@@ -180,9 +180,18 @@ var HANJA_MODE_DESC = {
     antonym: '반대되는 뜻을 가진 한자(어)를 고르세요!'
 };
 
-var hanjaSettings = { mode: 'meaning', timeLimit: 10 };
+var hanjaSettings = { mode: 'meaning', timeLimit: 10, level: 'all' };
 var hanjaState = {};
 var hanjaRound = 1, hanjaCorrect = 0;
+
+// 급수는 한자 낱글자(뜻/한자 맞추기)에만 적용된다. 한자어·반대말 모드는 낱글자 급수가 없어 전체를 쓴다.
+var HANJA_LEVEL_MODES = { meaning: 1, hanja: 1 };
+function hanjaLevelApplies() { return !!HANJA_LEVEL_MODES[hanjaSettings.mode]; }
+function hanjaCharPool() {
+    if (hanjaSettings.level === 'all') return HANJA_LIST;
+    var pool = HANJA_LIST.filter(function (i) { return i.level === hanjaSettings.level; });
+    return pool.length >= 4 ? pool : HANJA_LIST;
+}
 
 function initHanja() { renderHanjaSetup(); }
 
@@ -193,14 +202,22 @@ function renderHanjaSetup() {
         { v: 'wordmeaning', l: '한자어 뜻 찾기' },
         { v: 'antonym', l: '반대 뜻 찾기' }
     ];
+    var levels = [{ v: 'all', l: '전체' }, { v: '8급', l: '8급 (쉬움)' }, { v: '7급', l: '7급 (보통)' }, { v: '6급', l: '6급 (어려움)' }];
     var times = [{ v: 10, l: '10초' }, { v: 15, l: '15초' }, { v: 20, l: '20초' }, { v: 0, l: '무제한' }];
     var html = '<div class="game-title-box">漢 한자 공부</div>';
-    html += '<div class="game-sub-desc">모드와 제한시간을 골라 시작해보세요!</div>';
+    html += '<div class="game-sub-desc">모드와 급수, 제한시간을 골라 시작해보세요!</div>';
     html += '<div class="setup-section-label">모드</div><div class="setup-btn-group">';
     modes.forEach(function (m) {
         html += '<button class="setup-btn' + (hanjaSettings.mode === m.v ? ' active' : '') + '" onclick="setHanjaMode(\'' + m.v + '\')">' + m.l + '</button>';
     });
     html += '</div>';
+    if (hanjaLevelApplies()) {
+        html += '<div class="setup-section-label">급수</div><div class="setup-btn-group">';
+        levels.forEach(function (lv) {
+            html += '<button class="setup-btn' + (hanjaSettings.level === lv.v ? ' active' : '') + '" onclick="setHanjaLevel(\'' + lv.v + '\')">' + lv.l + '</button>';
+        });
+        html += '</div>';
+    }
     html += '<div class="setup-section-label">제한 시간</div><div class="setup-btn-group">';
     times.forEach(function (t) {
         html += '<button class="setup-btn' + (hanjaSettings.timeLimit === t.v ? ' active' : '') + '" onclick="setHanjaTimeLimit(' + t.v + ')">' + t.l + '</button>';
@@ -210,6 +227,7 @@ function renderHanjaSetup() {
     document.getElementById('mainArea').innerHTML = html;
 }
 function setHanjaMode(v) { hanjaSettings.mode = v; renderHanjaSetup(); }
+function setHanjaLevel(v) { hanjaSettings.level = v; renderHanjaSetup(); }
 function setHanjaTimeLimit(v) { hanjaSettings.timeLimit = v; renderHanjaSetup(); }
 function startHanjaSession() { hanjaRound = 1; hanjaCorrect = 0; generateHanjaRound(); }
 
@@ -232,14 +250,16 @@ function generateHanjaRound() {
     var mode = hanjaSettings.mode;
     var q, options;
     if (mode === 'meaning') {
-        q = pickRandom(HANJA_LIST);
-        var w1 = pickN(HANJA_LIST.filter(function (i) { return i.char !== q.char; }), 3);
+        var pool1 = hanjaCharPool();
+        q = pickRandom(pool1);
+        var w1 = pickN(pool1.filter(function (i) { return i.char !== q.char; }), 3);
         options = shuffleArray([q].concat(w1)).map(function (o) {
             return { label: o.meaning, correct: o.char === q.char, full: o.meaning + ' (' + o.char + ')' };
         });
     } else if (mode === 'hanja') {
-        q = pickRandom(HANJA_LIST);
-        var w2 = pickN(HANJA_LIST.filter(function (i) { return i.char !== q.char; }), 3);
+        var pool2 = hanjaCharPool();
+        q = pickRandom(pool2);
+        var w2 = pickN(pool2.filter(function (i) { return i.char !== q.char; }), 3);
         options = shuffleArray([q].concat(w2)).map(function (o) {
             return { label: o.char, correct: o.char === q.char, full: o.char + ' (' + o.meaning + ')' };
         });

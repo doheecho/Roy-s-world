@@ -407,11 +407,10 @@ function flashKeyPress(btn) {
     var origBg = btn.style.background;
     btn.style.background = isBlackKey ? '#eab308' : '#fde68a';
     btn.style.transform = 'translateY(2px)';
-    var t = setTimeout(function () {
+    var t = gameTimeout(function () {
         btn.style.background = origBg;
         btn.style.transform = '';
     }, 150);
-    activeTimers.push(t);
 }
 function freePlayKeyClick(btn, octaveOffset, pitchClass) {
     playPianoTone(getMelodyNoteFreq(pitchClass, octaveOffset));
@@ -778,11 +777,9 @@ function playMelodyEventsDemo(events, onComplete) {
             melodyState.demoActiveEvent = null;
         }
         updateMelodyTop();
-        var t = setTimeout(function () { i++; step(); }, durMs);
-        activeTimers.push(t);
+        var t = gameTimeout(function () { i++; step(); }, durMs);
     }
-    var t0 = setTimeout(step, MELODY_FIRST_NOTE_DELAY_MS);
-    activeTimers.push(t0);
+    var t0 = gameTimeout(step, MELODY_FIRST_NOTE_DELAY_MS);
 }
 
 function melodyKeyClick(btn, octaveOffset, pitchClass) {

@@ -317,6 +317,12 @@ function renderHome() {
         html += '<div style="flex:1; display:flex; align-items:center; justify-content:center; font-weight:800; color:#b45309; background:#fffbeb; border:2px solid #fde68a; border-radius:0.6rem; font-size:0.85rem;">🔥 ' + _streak.count + '일 연속</div>';
     }
     html += '</div>';
+    // 카테고리 바로가기 칩 (홈 화면이 길어서 원하는 분류로 바로 스크롤)
+    html += '<div class="cat-nav">';
+    GAME_LIST.forEach(function (block, ci) {
+        html += '<button class="cat-chip" onclick="scrollToCategory(' + ci + ')">' + block.cat + '</button>';
+    });
+    html += '</div>';
     // 최근에 한 게임
     var _recent = getRecentGameIds(6);
     if (_recent.length > 0) {
@@ -329,8 +335,8 @@ function renderHome() {
         html += '</div></div>';
     }
     var bests = getGameBests();
-    GAME_LIST.forEach(function (block) {
-        html += '<div class="category-block">';
+    GAME_LIST.forEach(function (block, ci) {
+        html += '<div class="category-block" id="homeCat-' + ci + '">';
         html += '<div class="category-title">' + block.cat + '</div>';
         html += '<div class="tile-row">';
         block.games.forEach(function (g) {
@@ -344,6 +350,14 @@ function renderHome() {
         html += '</div></div>';
     });
     document.getElementById('mainArea').innerHTML = html;
+}
+// 홈 화면 카테고리 칩 → 해당 분류로 부드럽게 스크롤
+function scrollToCategory(i) {
+    var el = document.getElementById('homeCat-' + i);
+    if (!el) return;
+    // 부드러운 스크롤은 일부 웹뷰에서 무시되므로, 확실히 이동하도록 즉시 스크롤한다.
+    try { el.scrollIntoView({ block: 'start' }); }
+    catch (e) { window.scrollTo(0, el.offsetTop || 0); }
 }
 
 // ===================== 사용자 이름 + 게임 기록(필터/정렬) =====================
@@ -925,6 +939,18 @@ var activeTimers = [];
 function clearAllGameTimers() {
     activeTimers.forEach(function (t) { clearTimeout(t); clearInterval(t); });
     activeTimers = [];
+}
+// setTimeout 래퍼: 콜백이 실행되면 자기 id를 activeTimers 에서 스스로 빼낸다.
+// (한 게임을 오래 하면 라운드마다 쌓이던 죽은 timeout id 가 무한정 늘지 않도록.)
+// setInterval 은 반복 실행되므로 이 래퍼를 쓰지 않고 기존처럼 직접 push 한다.
+function gameTimeout(fn, delay) {
+    var id = setTimeout(function () {
+        var i = activeTimers.indexOf(id);
+        if (i !== -1) activeTimers.splice(i, 1);
+        if (typeof fn === 'function') fn();
+    }, delay);
+    activeTimers.push(id);
+    return id;
 }
 
 // ===================== 게임 시작 라우터 =====================

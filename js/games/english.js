@@ -61,7 +61,7 @@ function engSpeak(text, delayMs) {
     };
     var d = (typeof delayMs === 'number') ? delayMs : (ENG_TTS.warmed ? 0 : 900);
     ENG_TTS.warmed = true;
-    if (d > 0) { var t = setTimeout(doIt, d); activeTimers.push(t); } else { doIt(); }
+    if (d > 0) { var t = gameTimeout(doIt, d); } else { doIt(); }
 }
 function engReplayLast() { vibrateShort(); engSpeak(ENG_TTS.lastText, 0); }
 function setEngRate(v) {
@@ -267,12 +267,12 @@ function checkListenPick(idx) {
         if (st.firstTry) st.correct++;
         engSpeak(item.t, 0);
         msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 맞았어요!'; playResultSound(true);
-        var t = setTimeout(listenNext, 1100); activeTimers.push(t);
+        var t = gameTimeout(listenNext, 1100);
     } else {
         st.firstTry = false;
         btns[idx].classList.add('eng-no');
         var b = btns[idx];
-        var tt = setTimeout(function () { b.classList.remove('eng-no'); }, 500); activeTimers.push(tt);
+        var tt = gameTimeout(function () { b.classList.remove('eng-no'); }, 500);
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '다시 한 번 들어볼까요? 🔊'; playResultSound(false);
     }
 }
@@ -519,7 +519,7 @@ function checkFollowHit(idx) {
             if (st.timerId) { clearInterval(st.timerId); st.timerId = null; }
             st.cleared++;
             msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 다 찾았어요!'; playResultSound(true);
-            var t = setTimeout(nextFollowRound, 900); activeTimers.push(t);
+            var t = gameTimeout(nextFollowRound, 900);
         } else {
             renderFollowRound();
         }
@@ -527,7 +527,7 @@ function checkFollowHit(idx) {
         st.wrongHits++;
         var b = btns[idx];
         b.classList.add('eng-no');
-        var tt = setTimeout(function () { b.classList.remove('eng-no'); }, 500); activeTimers.push(tt);
+        var tt = gameTimeout(function () { b.classList.remove('eng-no'); }, 500);
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '앗, 이건 아니에요. 다시 들어볼까요? 🔊';
     }
 }
@@ -535,7 +535,7 @@ function followRoundTimeout() {
     var st = followState;
     var msg = document.getElementById('engFollowMsg');
     if (msg) { msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '시간이 다 됐어요! 다음 라운드로 가요.'; }
-    var t = setTimeout(nextFollowRound, 1100); activeTimers.push(t);
+    var t = gameTimeout(nextFollowRound, 1100);
 }
 function finishFollowSession() {
     var st = followState;
@@ -756,7 +756,7 @@ function checkScramble() {
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '음... 순서를 다시 생각해볼까요? 🤔';
         // 슬롯 흔들기
         var row = document.querySelector('.eng-slot-row');
-        if (row) { row.classList.add('eng-shake'); var t = setTimeout(function () { row.classList.remove('eng-shake'); }, 500); activeTimers.push(t); }
+        if (row) { row.classList.add('eng-shake'); var t = gameTimeout(function () { row.classList.remove('eng-shake'); }, 500); }
     }
 }
 function scrambleReveal() {
@@ -933,7 +933,7 @@ function checkFill(idx) {
         st.firstTry = false;
         btns[idx].classList.add('wrong');
         var b = btns[idx];
-        var tt = setTimeout(function () { b.classList.remove('wrong'); }, 500); activeTimers.push(tt);
+        var tt = gameTimeout(function () { b.classList.remove('wrong'); }, 500);
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '💡 ' + item.w + ' 다시 골라볼까요?';
     }
 }
@@ -1086,7 +1086,7 @@ function wordSortDrop(ck) {
         if (bins[binIdx]) {
             bins[binIdx].classList.add('eng-shake', 'eng-no');
             var b = bins[binIdx];
-            var t = setTimeout(function () { b.classList.remove('eng-shake', 'eng-no'); }, 500); activeTimers.push(t);
+            var t = gameTimeout(function () { b.classList.remove('eng-shake', 'eng-no'); }, 500);
         }
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '음, 그 통이 아니에요. 다시 생각해봐요!';
     }
@@ -1199,7 +1199,7 @@ function oppFlip(idx) {
         var a = st.cards[st.flipped[0]], b = st.cards[st.flipped[1]];
         renderOppRound();
         if (a.pid === b.pid && a !== b) {
-            var t = setTimeout(function () {
+            var t = gameTimeout(function () {
                 a.matched = true; b.matched = true;
                 st.matched++;
                 st.flipped = [];
@@ -1209,15 +1209,13 @@ function oppFlip(idx) {
                 var m = document.getElementById('engOppMsg');
                 if (m) { m.className = 'msg-box'; m.style.display = 'block'; m.innerText = '🎉 ' + a.w + ' ↔ ' + b.w + ' 짝!'; }
             }, 700);
-            activeTimers.push(t);
         } else {
-            var t2 = setTimeout(function () {
+            var t2 = gameTimeout(function () {
                 a.up = false; b.up = false;
                 st.flipped = [];
                 st.busy = false;
                 renderOppRound();
             }, 950);
-            activeTimers.push(t2);
         }
     } else {
         renderOppRound();

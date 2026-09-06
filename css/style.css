@@ -64,8 +64,26 @@ h1 { font-size: 1.1rem; margin: 0; text-align: left; }
 #soundBtn, #readHelpBtn { display: inline-block; font-size: 1rem; padding: 0.3rem 0.55rem; line-height: 1; }
 .content-padding { padding: 1.3rem 1.4rem 1.6rem 1.4rem; text-align: center; }
 
-.category-block { margin-bottom: 1.4rem; text-align: left; }
+.category-block { margin-bottom: 1.4rem; text-align: left; scroll-margin-top: 12px; }
 .category-title { font-size: 1rem; font-weight: 800; color: var(--primary); margin-bottom: 0.6rem; }
+/* 홈 화면 카테고리 바로가기 칩 (가로 스크롤) */
+.cat-nav { display: flex; gap: 0.4rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.4rem; margin-bottom: 0.9rem; scrollbar-width: none; }
+.cat-nav::-webkit-scrollbar { display: none; }
+.cat-chip {
+    flex: 0 0 auto;
+    background: #eef2ff;
+    color: var(--primary);
+    border: 2px solid #c7d2fe;
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: inherit;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.cat-chip:active { background: #c7d2fe; }
 .tile-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.7rem; }
 .game-tile {
     background: #f8fafc;
@@ -148,7 +166,8 @@ h1 { font-size: 1.1rem; margin: 0; text-align: left; }
 
 /* 접근성: 아래 게임 칸들은 <button> 으로 렌더된다. 브라우저 기본 버튼 스타일만 지우고
    크기·색·테두리는 각 클래스 규칙을 그대로 쓰도록 둔다. */
-button.memory-card, button.flash-item, button.row-box {
+button.memory-card, button.flash-item, button.row-box,
+button.cube3d-option-box, button.maze-cell, button.sequence-answer-slot {
     margin: 0;
     padding: 0;
     font-family: inherit;
@@ -158,6 +177,13 @@ button.memory-card, button.flash-item, button.row-box {
     appearance: none;
 }
 button.memory-card { border: none; }
+/* 위 게임 칸 버튼들은 '눌러도 되는 것/안 되는 것'을 클래스·인라인 스타일로 이미 표현하므로
+   브라우저 기본 disabled 흐리기를 끈다. */
+button.cube3d-option-box[disabled], button.maze-cell[disabled], button.sequence-answer-slot[disabled] {
+    opacity: 1;
+    cursor: default;
+}
+button.cube3d-option-box { padding: 0.3rem; }
 
 /* 기억력: 순서 기억하기(사이먼) */
 .simon-grid { display: grid; grid-template-columns: repeat(2, 90px); grid-template-rows: repeat(2, 90px); gap: 0.6rem; justify-content: center; margin-bottom: 1rem; }

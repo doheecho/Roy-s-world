@@ -815,9 +815,9 @@ function renderProjMatch() {
     innerContent += '<div class="cube3d-options-row">';
     projMatchState.options.forEach(function (opt, idx) {
         var scale = computeCubeScale(opt);
-        innerContent += '<div class="cube3d-option-box" onclick="choiceSubmit(' + idx + ')">';
+        innerContent += '<button type="button" class="cube3d-option-box" onclick="choiceSubmit(' + idx + ')">';
         innerContent += '<div class="cube3d-scene" style="width:100px; height:100px;">' + buildCube3DHTML(opt, CUBE3D_TILT_X, 35, 'projOpt' + idx, scale) + '</div>';
-        innerContent += '</div>';
+        innerContent += '</button>';
     });
     innerContent += '</div>';
     html += renderCompassFrame(innerContent, projMatchState.direction);
@@ -849,8 +849,7 @@ function clickCoordHuntCell(x, y) {
     } else {
         coordHuntState.wrongCell = { x: x, y: y };
         renderCoordHunt();
-        var t = setTimeout(function () { coordHuntState.wrongCell = null; renderCoordHunt(); }, 400);
-        activeTimers.push(t);
+        var t = gameTimeout(function () { coordHuntState.wrongCell = null; renderCoordHunt(); }, 400);
     }
 }
 function nextCoordHuntRound() { coordHuntRound++; generateCoordHuntRound(); }
@@ -867,7 +866,7 @@ function renderCoordHunt() {
             var style = 'border:1px solid #e2e8f0; cursor:pointer;';
             if (coordHuntState.found && x === coordHuntState.tx && y === coordHuntState.ty) { content = '💎'; style += 'background:#d1fae5;'; }
             if (coordHuntState.wrongCell && coordHuntState.wrongCell.x === x && coordHuntState.wrongCell.y === y) { style += 'background:#fee2e2;'; }
-            html += '<div class="maze-cell" style="' + style + '" onclick="clickCoordHuntCell(' + x + ',' + y + ')">' + content + '</div>';
+            html += '<button type="button" class="maze-cell" style="' + style + '" ' + (coordHuntState.found ? 'disabled' : '') + ' onclick="clickCoordHuntCell(' + x + ',' + y + ')">' + content + '</button>';
         }
     }
     html += '</div></div>';
@@ -1146,8 +1145,7 @@ function stepLaserAnim(i) {
     }
     lightMazeState.path.push(lightMazeState.fullPath[i]);
     renderLightMirrorMaze();
-    var t = setTimeout(function () { stepLaserAnim(i + 1); }, 150);
-    activeTimers.push(t);
+    var t = gameTimeout(function () { stepLaserAnim(i + 1); }, 150);
 }
 function renderLightMirrorMaze() {
     var html = '<div class="game-title-box">🔆 빛과 거울 미로</div>';
@@ -1422,16 +1420,14 @@ function playPaperFoldAnim() {
             noPunchHtml += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">다 접었어요! 이제 펀치로 구멍을 뚫어요...</div>';
             noPunchHtml += renderPaperFlatStage(curW, curH, null);
             document.getElementById('mainArea').innerHTML = noPunchHtml;
-            var tPunch = setTimeout(function () {
+            var tPunch = gameTimeout(function () {
                 var punchHtml = '<div class="game-title-box">🧩 접힌 종이 구멍 뚫기</div>';
                 punchHtml += '<div class="status-row"><div>' + paperRound + '라운드</div><div>정답: ' + paperCorrect + ' / ' + (paperRound - 1) + '</div></div>';
                 punchHtml += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">🔴 표시된 위치에 펀치로 구멍을 뚫었어요!</div>';
                 punchHtml += renderPaperFlatStage(curW, curH, [paperState.punch], 'paper-punch-pop');
                 document.getElementById('mainArea').innerHTML = punchHtml;
-                var tDone = setTimeout(function () { renderPaperFold(); }, 2100);
-                activeTimers.push(tDone);
+                var tDone = gameTimeout(function () { renderPaperFold(); }, 2100);
             }, 900);
-            activeTimers.push(tPunch);
             return;
         }
         var axis = paperState.folds[i];
@@ -1441,17 +1437,15 @@ function playPaperFoldAnim() {
         html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">' + (i + 1) + ') ' + (axis === 'v' ? '왼쪽 ↔ 오른쪽으로 반 접기' : '위 ↔ 아래로 반 접기') + '</div>';
         html += renderPaperFoldFlapStage(curW, curH, axis, 'paperFoldFlap', axis === 'v' ? 'rotateY(0deg)' : 'rotateX(0deg)', null, null, false);
         document.getElementById('mainArea').innerHTML = html;
-        var t1 = setTimeout(function () {
+        var t1 = gameTimeout(function () {
             var flap = document.getElementById('paperFoldFlap');
             if (flap) { flap.style.transform = axis === 'v' ? 'rotateY(-180deg)' : 'rotateX(180deg)'; }
-            var t2 = setTimeout(function () {
+            var t2 = gameTimeout(function () {
                 if (axis === 'v') { curW = curW / 2; } else { curH = curH / 2; }
                 i++;
                 step();
             }, PAPER_FOLD_POST_WAIT_MS);
-            activeTimers.push(t2);
         }, PAPER_FOLD_PRE_DELAY_MS);
-        activeTimers.push(t1);
     }
     step();
 }
@@ -1461,8 +1455,7 @@ function playPaperUnfoldAnim(wasCorrect) {
     var i = 0;
     function step() {
         if (i >= reverseFolds.length) {
-            var tDone = setTimeout(function () { renderPaperFoldResult(wasCorrect); }, 750);
-            activeTimers.push(tDone);
+            var tDone = gameTimeout(function () { renderPaperFoldResult(wasCorrect); }, 750);
             return;
         }
         var axis = reverseFolds[i];
@@ -1473,17 +1466,15 @@ function playPaperUnfoldAnim(wasCorrect) {
         html += '<div class="game-sub-desc">종이를 다시 펼치고 있어요...</div>';
         html += renderPaperFoldFlapStage(nextW, nextH, axis, 'paperUnfoldFlap', axis === 'v' ? 'rotateY(-180deg)' : 'rotateX(180deg)', paperState.stagePositions[stageK], null, true);
         document.getElementById('mainArea').innerHTML = html;
-        var t1 = setTimeout(function () {
+        var t1 = gameTimeout(function () {
             var flap = document.getElementById('paperUnfoldFlap');
             if (flap) { flap.style.transform = axis === 'v' ? 'rotateY(0deg)' : 'rotateX(0deg)'; }
-            var t2 = setTimeout(function () {
+            var t2 = gameTimeout(function () {
                 curW = nextW; curH = nextH;
                 i++;
                 step();
             }, PAPER_UNFOLD_POST_WAIT_MS);
-            activeTimers.push(t2);
         }, PAPER_UNFOLD_PRE_DELAY_MS);
-        activeTimers.push(t1);
     }
     step();
 }
@@ -1533,7 +1524,7 @@ function renderPaperFold() {
     html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">종이를 완전히 펼치면 어떤 모양이 될까요?</div>';
     html += '<div class="cube3d-options-row" style="flex-wrap:wrap;">';
     paperState.options.forEach(function (holes, idx) {
-        html += '<div class="cube3d-option-box" onclick="checkPaperFold(' + idx + ')">' + renderPaperMiniGrid(holes, paperState.n, 12) + '</div>';
+        html += '<button type="button" class="cube3d-option-box" onclick="checkPaperFold(' + idx + ')">' + renderPaperMiniGrid(holes, paperState.n, 12) + '</button>';
     });
     html += '</div>';
     html += '<div id="paperMsg" class="msg-box"></div>';
@@ -1557,8 +1548,7 @@ function checkPaperFold(idx) {
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 종이를 펼치는 모습을 확인해보세요.';
     }
     paperRound++;
-    var t = setTimeout(function () { playPaperUnfoldAnim(isCorrect); }, 1000);
-    activeTimers.push(t);
+    var t = gameTimeout(function () { playPaperUnfoldAnim(isCorrect); }, 1000);
 }
 
 // ===================== 37. 공간지각: 치즈 갉아먹기 미로 =====================
@@ -1936,7 +1926,7 @@ function renderNetFoldLevel1() {
     html += renderNetPreviewHtml(netfoldState.assign, 40, netfoldState.askKey, null);
     html += '<div class="cube3d-options-row">';
     netfoldState.options.forEach(function (opt, idx) {
-        html += '<div class="cube3d-option-box" style="width:52px; height:52px; display:flex; align-items:center; justify-content:center; font-size:1.7rem;" onclick="checkNetFoldLevel1(' + idx + ')">' + opt + '</div>';
+        html += '<button type="button" class="cube3d-option-box" style="width:52px; height:52px; display:flex; align-items:center; justify-content:center; font-size:1.7rem;" onclick="checkNetFoldLevel1(' + idx + ')">' + opt + '</button>';
     });
     html += '</div>';
     html += '<div id="netfoldMsg" class="msg-box"></div>';
@@ -1954,8 +1944,7 @@ function checkNetFoldLevel1(idx) {
     });
     netfoldState.level1Correct = isCorrect;
     // 답을 고르면 정육면체가 천천히 접히고, 상자를 한 바퀴 돌려 마주보는 면을 확인시켜 준다
-    var t = setTimeout(playNetFoldLevel1Reveal, 700);
-    activeTimers.push(t);
+    var t = gameTimeout(playNetFoldLevel1Reveal, 700);
 }
 function playNetFoldLevel1Reveal() {
     var assign = netfoldState.assign;
@@ -1976,12 +1965,12 @@ function playNetFoldLevel1Reveal() {
         if (assembly) assembly.style.transform = NETFOLD_FACE_FRONT[askKey];
         if (askFace) { askFace.style.boxShadow = '0 0 0 4px #2563eb, 0 0 16px rgba(37,99,235,0.75)'; askFace.style.borderColor = '#2563eb'; }
         if (cap) cap.innerText = '고른 면(파란 테두리)이 상자 앞면이에요';
-        var t1 = setTimeout(function () {
+        var t1 = gameTimeout(function () {
             // 2) 같은 축으로 180도 돌려서 마주보는 면이 정면에 오게
             if (assembly) assembly.style.transform = NETFOLD_FACE_FRONT[oppKey];
             if (askFace) askFace.style.boxShadow = 'none';
             if (cap) cap.innerText = '상자를 돌려서 반대쪽(마주보는 면)을 확인해요!';
-            var t1b = setTimeout(function () {
+            var t1b = gameTimeout(function () {
                 var oppFace = document.getElementById('netfoldFace' + oppKey);
                 if (oppFace) { oppFace.style.boxShadow = '0 0 0 4px #10b981, 0 0 18px rgba(16,185,129,0.8)'; oppFace.style.borderColor = '#10b981'; }
                 var ans = document.getElementById('netfoldRevealAns');
@@ -1992,12 +1981,9 @@ function playNetFoldLevel1Reveal() {
                         '<span style="padding:0.25rem 0.5rem; border:3px solid #10b981; background:#d1fae5; border-radius:0.5rem; box-shadow:0 0 12px rgba(16,185,129,0.6);">' + netfoldState.correctAnswer + '</span>' +
                         '</div>';
                 }
-                var t2 = setTimeout(finishNetFoldLevel1, 1600);
-                activeTimers.push(t2);
+                var t2 = gameTimeout(finishNetFoldLevel1, 1600);
             }, NETFOLD_SPIN_MS + 250);
-            activeTimers.push(t1b);
         }, NETFOLD_SPIN_MS + 700);
-        activeTimers.push(t1);
     });
 }
 function finishNetFoldLevel1() {
@@ -2034,24 +2020,20 @@ function renderNetFoldSceneHtml(assign) {
 function playNetFoldAssemblyAnim(assign, onDone) {
     var html = '<div class="game-sub-desc" style="text-align:center; font-weight:800;">전개도가 어떻게 접히는지 잘 보세요!</div>' + renderNetFoldSceneHtml(assign);
     document.getElementById('netfoldStage').innerHTML = html;
-    var t1 = setTimeout(function () {
+    var t1 = gameTimeout(function () {
         var elL = document.getElementById('netfoldFaceL'); if (elL) elL.style.transform = 'rotateY(-90deg)';
         var elR = document.getElementById('netfoldFaceR'); if (elR) elR.style.transform = 'rotateY(90deg)';
         var elT = document.getElementById('netfoldFaceT'); if (elT) elT.style.transform = 'rotateX(90deg)';
         var elBo = document.getElementById('netfoldFaceBo'); if (elBo) elBo.style.transform = 'rotateX(-90deg)';
-        var t2 = setTimeout(function () {
+        var t2 = gameTimeout(function () {
             var elB = document.getElementById('netfoldFaceB'); if (elB) elB.style.transform = 'rotateY(90deg)';
-            var t3 = setTimeout(function () {
+            var t3 = gameTimeout(function () {
                 var assembly = document.getElementById('netfoldAssembly');
                 if (assembly) assembly.style.transform = 'rotateX(-20deg) rotateY(-28deg)';
-                var t4 = setTimeout(function () { if (onDone) onDone(); }, NETFOLD_SPIN_MS);
-                activeTimers.push(t4);
+                var t4 = gameTimeout(function () { if (onDone) onDone(); }, NETFOLD_SPIN_MS);
             }, NETFOLD_FOLD_MS + 250);
-            activeTimers.push(t3);
         }, NETFOLD_FOLD_MS + 250);
-        activeTimers.push(t2);
     }, 700);
-    activeTimers.push(t1);
 }
 function generateNetFoldLevel2() {
     var assign = netfoldState.assign;
@@ -2079,7 +2061,7 @@ function renderNetFoldLevel2Question() {
     html += '<button class="action-btn secondary" style="font-size:0.8rem; padding:0.4rem 0.9rem; margin-top:0;" onclick="netFoldLevel2Hint()">💡 힌트: 상자 한 바퀴 돌려보기</button></div>';
     html += '<div class="cube3d-options-row" style="flex-wrap:wrap; margin-top:0.9rem;">';
     netfoldState.options.forEach(function (opt, idx) {
-        html += '<div class="cube3d-option-box" onclick="checkNetFoldLevel2(' + idx + ')"><div class="netfold-cube-scene">' + buildNetCubeHTML(opt.a, -20, 158, 'netfoldOpt' + idx, 42) + '</div></div>';
+        html += '<button type="button" class="cube3d-option-box" onclick="checkNetFoldLevel2(' + idx + ')"><div class="netfold-cube-scene">' + buildNetCubeHTML(opt.a, -20, 158, 'netfoldOpt' + idx, 42) + '</div></button>';
     });
     html += '</div><div id="netfoldMsg" class="msg-box"></div>';
     document.getElementById('netfoldStage').innerHTML = html;
@@ -2090,12 +2072,11 @@ function netFoldLevel2Hint() {
     vibrateShort();
     el.style.transition = 'transform 2.2s ease-in-out';
     el.style.transform = 'rotateX(-20deg) rotateY(332deg)';
-    var t = setTimeout(function () {
+    var t = gameTimeout(function () {
         if (!el) return;
         el.style.transition = 'transform 1.1s ease-in-out';
         el.style.transform = 'rotateX(-20deg) rotateY(-28deg)';
     }, 2300);
-    activeTimers.push(t);
 }
 function checkNetFoldLevel2(idx) {
     if (netfoldState.answered) return;
@@ -2135,7 +2116,7 @@ function renderNetFoldLevel3Body(assign) {
     html += '</div>';
     html += '<div class="cube3d-options-row" style="flex-wrap:wrap;">';
     netfoldState.options.forEach(function (opt, idx) {
-        html += '<div class="cube3d-option-box" onclick="checkNetFoldLevel3(' + idx + ')">' + renderNetPreviewHtml(opt.a, 16, null, null) + '</div>';
+        html += '<button type="button" class="cube3d-option-box" onclick="checkNetFoldLevel3(' + idx + ')">' + renderNetPreviewHtml(opt.a, 16, null, null) + '</button>';
     });
     html += '</div>';
     return html;
@@ -2151,14 +2132,13 @@ function checkNetFoldLevel3(idx) {
         else if (i === idx) b.classList.add('wrong');
     });
     // 정답이든 오답이든: 보기 4개는 그대로 두고, 왼쪽 상자를 그 자리에서 느리게 펼쳐 전개도를 보여줌
-    var t = setTimeout(function () {
+    var t = gameTimeout(function () {
         playNetFoldUnfoldAnim(netfoldState.assign, function () {
             netfoldFinishRound(isCorrect,
                 '🎉 정답이에요! 상자가 펼쳐지는 모습대로 전개도를 정확히 찾았어요.',
                 '아쉬워요! 왼쪽 상자가 펼쳐지는 모습을 보세요. 초록 테두리가 정답 전개도예요.');
         }, 'netfoldL3Left', isCorrect);
     }, 700);
-    activeTimers.push(t);
 }
 // 완성된 상자를 다시 전개도로 "느리게" 펼치는 애니메이션 (playNetFoldAssemblyAnim 의 역방향)
 // containerId: 애니메이션을 그릴 컨테이너(기본 netfoldStage), wasCorrect: 안내 문구 결정용
@@ -2186,21 +2166,18 @@ function playNetFoldUnfoldAnim(assign, onDone, containerId, wasCorrect) {
     html += '<div id="netfoldFaceB" style="position:absolute; left:' + S + 'px; top:0; width:' + S + 'px; height:' + S + 'px; background:#fff; border:2px solid #c18a3d; box-sizing:border-box; display:flex; align-items:center; justify-content:center; font-size:' + (S * 0.5) + 'px; backface-visibility:hidden; transform-origin:left center; transform:rotateY(90deg);' + tr + '">' + assign.B + '</div>';
     html += '</div></div></div></div>';
     target.innerHTML = html;
-    var t0 = setTimeout(function () {
+    var t0 = gameTimeout(function () {
         var assembly = document.getElementById('netfoldAssembly');
         if (assembly) assembly.style.transform = 'rotateX(0deg) rotateY(0deg)';
         var elB = document.getElementById('netfoldFaceB'); if (elB) elB.style.transform = 'rotateY(0deg)';
-        var t1 = setTimeout(function () {
+        var t1 = gameTimeout(function () {
             var elL = document.getElementById('netfoldFaceL'); if (elL) elL.style.transform = 'rotateY(0deg)';
             var elR = document.getElementById('netfoldFaceR'); if (elR) elR.style.transform = 'rotateY(0deg)';
             var elT = document.getElementById('netfoldFaceT'); if (elT) elT.style.transform = 'rotateX(0deg)';
             var elBo = document.getElementById('netfoldFaceBo'); if (elBo) elBo.style.transform = 'rotateX(0deg)';
-            var t2 = setTimeout(function () { if (onDone) onDone(); }, NETFOLD_FOLD_MS + 400);
-            activeTimers.push(t2);
+            var t2 = gameTimeout(function () { if (onDone) onDone(); }, NETFOLD_FOLD_MS + 400);
         }, NETFOLD_FOLD_MS + 200);
-        activeTimers.push(t1);
     }, 400);
-    activeTimers.push(t0);
 }
 
 // ===================== 게임 등록 =====================

@@ -211,8 +211,7 @@ function runBlockCodeProgram() {
     }
     blockCodeState.lastFailSnapshot = null;
     renderBlockCoding();
-    var t = setTimeout(stepBlockProgram, 450);
-    activeTimers.push(t);
+    var t = gameTimeout(stepBlockProgram, 450);
 }
 function stepBlockProgram() {
     if (blockCodeState.stepIndex >= blockCodeState.actions.length) {
@@ -273,8 +272,7 @@ function stepBlockProgram() {
         handleBlockCodeSuccess();
         return;
     }
-    var t = setTimeout(stepBlockProgram, 450);
-    activeTimers.push(t);
+    var t = gameTimeout(stepBlockProgram, 450);
 }
 function handleBlockCodeSuccess() {
     blockCodeState.solved = true;
@@ -340,10 +338,10 @@ function renderBlockCoding() {
                 if (isBuggy) slotStyle += 'border:3px solid #ef4444;color:#991b1b;font-weight:800;';
             }
             var clickable = blockCodeState.debugMode ? 'cursor:pointer;' : '';
-            html += '<div class="sequence-answer-slot" style="width:auto; min-width:36px; padding:0 0.4rem; font-size:0.9rem;' + slotStyle + clickable + '" onclick="selectDebugSlot(' + i + ')">' + blk.shortLabel + '</div>';
+            html += '<button type="button" class="sequence-answer-slot" ' + (blockCodeState.debugMode ? '' : 'disabled') + ' style="width:auto; min-width:36px; padding:0 0.4rem; font-size:0.9rem;' + slotStyle + clickable + '" onclick="selectDebugSlot(' + i + ')">' + blk.shortLabel + '</button>';
         });
         if (blockCodeState.debugMode) {
-            html += '<div class="sequence-answer-slot" style="width:auto; min-width:36px; padding:0 0.5rem; font-size:0.85rem; cursor:pointer; border-style:dashed; color:var(--primary); font-weight:800;" onclick="switchToAddMode()">다음</div>';
+            html += '<button type="button" class="sequence-answer-slot" style="width:auto; min-width:36px; padding:0 0.5rem; font-size:0.85rem; cursor:pointer; border-style:dashed; color:var(--primary); font-weight:800;" onclick="switchToAddMode()">다음</button>';
         }
     }
     html += '</div>';
@@ -427,8 +425,7 @@ function pickCondRobotGuess(idx) {
     condRobotState.currentPos = 0;
     condRobotState.lastDelta = null;
     renderConditionalRobot();
-    var t = setTimeout(stepCondRobotAnim, 550);
-    activeTimers.push(t);
+    var t = gameTimeout(stepCondRobotAnim, 550);
 }
 function stepCondRobotAnim() {
     if (condRobotState.animIndex >= condRobotState.path.length) {
@@ -444,8 +441,7 @@ function stepCondRobotAnim() {
     condRobotState.execIndex = condRobotState.animIndex;
     condRobotState.animIndex++;
     renderConditionalRobot();
-    var t = setTimeout(stepCondRobotAnim, 650);
-    activeTimers.push(t);
+    var t = gameTimeout(stepCondRobotAnim, 650);
 }
 function finishCondRobotRound() {
     condRobotState.answered = true;
@@ -664,8 +660,7 @@ function pickCodeTraceGuess(idx) {
     codeTraceState.pos = { x: 0, y: 0 };
     codeTraceState.facing = 0;
     renderCodeTrace();
-    var t = setTimeout(stepCodeTraceAnim, 500);
-    activeTimers.push(t);
+    var t = gameTimeout(stepCodeTraceAnim, 500);
 }
 function stepCodeTraceAnim() {
     if (codeTraceState.animIndex >= codeTraceState.program.length) {
@@ -688,8 +683,7 @@ function stepCodeTraceAnim() {
     codeTraceState.lastTurnDeg = turnDeg;
     codeTraceState.animIndex++;
     renderCodeTrace();
-    var t = setTimeout(stepCodeTraceAnim, 500);
-    activeTimers.push(t);
+    var t = gameTimeout(stepCodeTraceAnim, 500);
 }
 function finishCodeTraceRound() {
     codeTraceState.answered = true;
@@ -1182,12 +1176,10 @@ function runHamburger() {
     burgerState.justAddedIdx = -1;
     burgerState.justServed = false;
     renderHamburger();
-    var t = setTimeout(stepHamburgerAnim, 1000);
-    activeTimers.push(t);
+    var t = gameTimeout(stepHamburgerAnim, 1000);
 }
 function scheduleHamburgerStep(delay) {
-    var t = setTimeout(stepHamburgerAnim, delay);
-    activeTimers.push(t);
+    var t = gameTimeout(stepHamburgerAnim, delay);
 }
 function advanceHamburgerStep() {
     burgerState.animIndex++;
@@ -1200,15 +1192,15 @@ function runGrillAddAnimation(item) {
     burgerState.panPhase = 'raw';
     burgerState.lastMsg = item + '를 후라이팬에 올렸어요!';
     renderHamburger();
-    var t1 = setTimeout(function () {
+    var t1 = gameTimeout(function () {
         burgerState.panPhase = 'cooked';
         burgerState.lastMsg = '🔥 지글지글~ 다 익었어요!';
         vibrateShort();
         renderHamburger();
-        var t2 = setTimeout(function () {
+        var t2 = gameTimeout(function () {
             burgerState.panPhase = 'flyup';
             renderHamburger();
-            var t3 = setTimeout(function () {
+            var t3 = gameTimeout(function () {
                 burgerState.panPhase = null;
                 burgerState.panItem = null;
                 burgerState.built.push(item);
@@ -1218,11 +1210,8 @@ function runGrillAddAnimation(item) {
                 burgerState.justAddedIdx = -1;
                 advanceHamburgerStep();
             }, 480);
-            activeTimers.push(t3);
         }, 650);
-        activeTimers.push(t2);
     }, 650);
-    activeTimers.push(t1);
 }
 function stepHamburgerAnim() {
     if (burgerState.animIndex >= burgerState.program.length) {
@@ -1558,8 +1547,7 @@ function stepWaterFlow(i) {
     }
     waterPipeState.filled.push(waterPipeState.fullVisited[i]);
     renderWaterPipe();
-    var t = setTimeout(function () { stepWaterFlow(i + 1); }, 220);
-    activeTimers.push(t);
+    var t = gameTimeout(function () { stepWaterFlow(i + 1); }, 220);
 }
 function renderPipeShape(sides, isFilled) {
     var color = isFilled ? '#0ea5e9' : '#93c5fd';
@@ -1787,8 +1775,7 @@ function runCleanbotProgram() {
     cleanbotState.cells = cloneCleanbotCells(cleanbotState.blueprint);
     cleanbotState.lastMsg = '';
     renderCleanbot();
-    var t = setTimeout(stepCleanbotProgram, 500);
-    activeTimers.push(t);
+    var t = gameTimeout(stepCleanbotProgram, 500);
 }
 function stepCleanbotProgram() {
     var st = cleanbotState;
@@ -1831,8 +1818,7 @@ function stepCleanbotProgram() {
         st.pc = curPc + 1;
     }
     renderCleanbot();
-    var t = setTimeout(stepCleanbotProgram, 480);
-    activeTimers.push(t);
+    var t = gameTimeout(stepCleanbotProgram, 480);
 }
 function handleCleanbotFail(reason) {
     renderCleanbot();
@@ -1845,8 +1831,7 @@ function handleCleanbotSuccess() {
     var msg = document.getElementById('cleanbotMsg');
     msg.className = 'msg-box'; msg.style.display = 'block';
     msg.innerText = '🎉 복도를 깨끗하게 청소했어요! 이 프로그램이 다른 길이의 복도에서도 통하는지 테스트해볼게요...';
-    var t = setTimeout(runCleanbotGeneralizationTest, 900);
-    activeTimers.push(t);
+    var t = gameTimeout(runCleanbotGeneralizationTest, 900);
 }
 // 성공한 프로그램을, 같은 구조지만 먼지 개수가 다른 복도 3곳에 몰래 테스트해봄으로써
 // "정해진 횟수만큼 낱개로 나열"이 아니라 진짜 "조건 반복"을 썼는지 확인하는 일반화 검증 단계

@@ -175,8 +175,7 @@ function stepProbabilityDraw(i) {
     probState.drawResults.push(color);
     vibrateShort();
     renderProbabilityDraw();
-    var t = setTimeout(function () { stepProbabilityDraw(i + 1); }, 500);
-    activeTimers.push(t);
+    var t = gameTimeout(function () { stepProbabilityDraw(i + 1); }, 500);
 }
 function renderProbabilityDraw() {
     var html = '<div class="game-title-box">🎲 확률 저울 뽑기</div>';

@@ -132,12 +132,11 @@ function flipMemoryCard(idx) {
         } else {
             memoryState.lock = true;
             renderMemoryMatch();
-            var t = setTimeout(function () {
+            var t = gameTimeout(function () {
                 memoryState.flipped = [];
                 memoryState.lock = false;
                 renderMemoryMatch();
             }, 900);
-            activeTimers.push(t);
         }
     } else {
         renderMemoryMatch();
@@ -183,23 +182,19 @@ function playSimonSequence() {
         }
         simonState.lit = simonState.sequence[i];
         renderSimonGame();
-        var t1 = setTimeout(function () {
+        var t1 = gameTimeout(function () {
             simonState.lit = -1;
             renderSimonGame();
-            var t2 = setTimeout(function () { i++; step(); }, 250);
-            activeTimers.push(t2);
+            var t2 = gameTimeout(function () { i++; step(); }, 250);
         }, 600);
-        activeTimers.push(t1);
     }
-    var t0 = setTimeout(step, 500);
-    activeTimers.push(t0);
+    var t0 = gameTimeout(step, 500);
 }
 function simonClick(btn, idx) {
     if (simonState.showing || simonState.locked) return;
     btn.classList.add('pressed');
     vibrateShort();
-    var tp = setTimeout(function () { btn.classList.remove('pressed'); }, 150);
-    activeTimers.push(tp);
+    var tp = gameTimeout(function () { btn.classList.remove('pressed'); }, 150);
     var expected = simonState.sequence[simonState.userIndex];
     if (idx === expected) {
         simonState.userIndex++;
@@ -443,16 +438,13 @@ function playPianoIntroScale(callback) {
         pianoState.lit = keyIdx;
         playPianoTone(pianoState.keys[keyIdx].freq);
         renderPianoKeys();
-        var t1 = setTimeout(function () {
+        var t1 = gameTimeout(function () {
             pianoState.lit = -1;
             renderPianoKeys();
-            var t2 = setTimeout(function () { i++; step(); }, 120);
-            activeTimers.push(t2);
+            var t2 = gameTimeout(function () { i++; step(); }, 120);
         }, 320);
-        activeTimers.push(t1);
     }
-    var t0 = setTimeout(step, 1000);
-    activeTimers.push(t0);
+    var t0 = gameTimeout(step, 1000);
 }
 function pianoSeqToNoteString(seq) {
     return seq.map(function (i) { return pianoState.keys[i].note; }).join('-');
@@ -499,16 +491,13 @@ function playPianoSequence() {
         pianoState.lit = -1;
         playPianoTone(pianoState.keys[keyIdx].freq);
         renderPianoKeys();
-        var t1 = setTimeout(function () {
+        var t1 = gameTimeout(function () {
             pianoState.lit = -1;
             renderPianoKeys();
-            var t2 = setTimeout(function () { i++; step(); }, 250);
-            activeTimers.push(t2);
+            var t2 = gameTimeout(function () { i++; step(); }, 250);
         }, 550);
-        activeTimers.push(t1);
     }
-    var t0 = setTimeout(step, 500);
-    activeTimers.push(t0);
+    var t0 = gameTimeout(step, 500);
 }
 function pianoKeyClick(btn, idx) {
     if (pianoState.showing) return;
@@ -518,8 +507,7 @@ function pianoKeyClick(btn, idx) {
     var restColor = key.black ? '#1f2937' : '#ffffff';
     var pressColor = key.black ? '#fbbf24' : '#fde68a';
     btn.style.background = pressColor;
-    var tp = setTimeout(function () { if (btn) btn.style.background = restColor; }, 150);
-    activeTimers.push(tp);
+    var tp = gameTimeout(function () { if (btn) btn.style.background = restColor; }, 150);
     if (pianoState.locked) return;
     var expected = pianoState.sequence[pianoState.userIndex];
     if (idx === expected) {

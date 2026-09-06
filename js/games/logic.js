@@ -274,7 +274,7 @@ function renderMirrorSymmetry() {
             if (x >= mirrorState.halfW && isSelected) bg = '#8b5cf6';
             if (mirrorState.failed && x >= mirrorState.halfW && isCorrectRight && !isSelected) { bg = '#d1fae5'; extra = 'box-shadow: inset 0 0 0 3px #10b981;'; }
             var borderRight = isMirrorLine ? '3px dashed #94a3b8' : '1px solid #e2e8f0';
-            html += '<div class="maze-cell" style="background:' + bg + '; border-right:' + borderRight + '; cursor:pointer;' + extra + '" onclick="clickMirrorCell(' + x + ',' + y + ')"></div>';
+            html += '<button type="button" class="maze-cell" style="background:' + bg + '; border-right:' + borderRight + '; cursor:pointer;' + extra + '" ' + (mirrorState.finished ? 'disabled' : '') + ' onclick="clickMirrorCell(' + x + ',' + y + ')"></button>';
         }
     }
     html += '</div></div>';
@@ -512,11 +512,10 @@ function checkWeightScale(btn, idx) {
     // 문제 저울에 내가 고른 개수만큼 아이콘을 올리고(처음엔 수평), 잠시 뒤 기울여 결과를 보여줌
     var qEl = document.getElementById('weightQ');
     if (qEl) qEl.innerHTML = buildBalanceScale(weightIconPile(s.items[0], 1), weightIconPile(s.items[2], s.chosen), 0, 236, 'weightQScaleBeam');
-    var t = setTimeout(function () {
+    var t = gameTimeout(function () {
         var g = document.getElementById('weightQScaleBeam');
         if (g) g.style.transform = 'rotate(' + tilt + 'deg)';
     }, 110);
-    activeTimers.push(t);
     var msg = document.getElementById('weightMsg');
     msg.style.display = 'block';
     if (correct) {
@@ -1190,7 +1189,7 @@ function checkTruthLiar(d) {
         st.firstTry = false;
         doors[d].classList.add('wrong');
         var b = doors[d];
-        var tt = setTimeout(function () { b.classList.remove('wrong'); }, 500); activeTimers.push(tt);
+        var tt = gameTimeout(function () { b.classList.remove('wrong'); }, 500);
         // 해설: 각 캐릭터의 진술을 실제 정답 기준으로 해석
         var expl = st.chars.map(function (c, i) {
             var actuallyTrue = tld_stmtTrue(c.clue, i, st.tp, st.chars.map(function (x) { return x.role; }));
