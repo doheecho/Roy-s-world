@@ -660,12 +660,19 @@ function buildStandardResultButtons(nextCall, retryCall, homeCall) {
 //   cols      options-grid 열 수 (기본: CSS 기본값)
 //   optClass  보기 버튼 클래스 (기본 'opt-btn text-opt')
 //   ok / bad  결과 메시지. 문자열 또는 fn(answerIndex)->string
-//   explain   채점 후 보기 아래 덧붙일 HTML. 문자열 또는 fn(ok)->string
-//   onCorrect / onWrong  각각 호출될 콜백 (점수 증가 등)
-//   onResolved(ok)       채점 후 항상 마지막에 호출 (round++ 등)
+//   timeout   제한시간 초과 시 메시지. 문자열 또는 fn(answerIndex)->string (choiceTimeout 호출 시)
+//   explain   채점 후 보기 아래 덧붙일 HTML. 문자열 또는 fn(ok)->string  (제출 시에만, 타임아웃 X)
+//   onPick    보기를 눌렀을 때(정/오답 무관) 가장 먼저 호출 — 게임 타이머 정지 등
+//   onCorrect / onWrong  각각 호출될 콜백 (점수 증가 등). 타임아웃은 onWrong 호출 안 함
+//   onTimeout 제한시간 초과 시 호출
+//   onResolved(ok)  제출 채점 후 마지막에 호출 (round++ 등). 타임아웃 시엔 호출 안 함
 //   next / retry / home  결과 버튼이 실행할 코드 문자열
-//   failStyle 'retryHome'(기본, 2버튼) | 'standard'(성공과 같은 buildStandardResultButtons)
+//   failStyle 'retryHome'(기본, 2버튼) | 'standard'(성공과 같은 buildStandardResultButtons). 오답/타임아웃에 적용
 var _choice = null;
+function _choiceFailButtons(c) {
+    return '<div class="options-grid"><button class="action-btn" onclick="' + c.retry + '">다시 풀어보기 🔁</button>' +
+        '<button class="action-btn secondary" onclick="' + c.home + '">처음부터 풀기 🔄</button></div>';
+}
 function choiceOptionsHtml(opts, cfg) {
     cfg = cfg || {};
     var cls = cfg.optClass || 'opt-btn text-opt';
@@ -678,11 +685,15 @@ function choiceOptionsHtml(opts, cfg) {
 function choiceBegin(answerIndex, cfg) {
     _choice = { answerIndex: answerIndex, cfg: cfg || {}, answered: false };
 }
+function _choiceMsgText(v, fallback, arg) {
+    return (typeof v === 'function') ? v(arg) : (v || fallback);
+}
 function choiceSubmit(i) {
     var st = _choice;
     if (!st || st.answered) return;
     st.answered = true;
     var c = st.cfg;
+    if (c.onPick) c.onPick();
     vibrateShort();
     var main = document.getElementById('mainArea');
     var buttons = main ? main.querySelectorAll('.opt-btn') : [];
@@ -693,9 +704,8 @@ function choiceSubmit(i) {
     if (msg) {
         msg.style.display = 'block';
         msg.className = ok ? 'msg-box' : 'msg-box bad';
-        var text = ok ? (typeof c.ok === 'function' ? c.ok(st.answerIndex) : (c.ok || '🎉 정답이에요!'))
-            : (typeof c.bad === 'function' ? c.bad(st.answerIndex) : (c.bad || '아쉬워요!'));
-        msg.innerText = text;
+        msg.innerText = ok ? _choiceMsgText(c.ok, '🎉 정답이에요!', st.answerIndex)
+            : _choiceMsgText(c.bad, '아쉬워요!', st.answerIndex);
     }
     if (c.explain) {
         var e = (typeof c.explain === 'function') ? c.explain(ok) : c.explain;
@@ -703,13 +713,28 @@ function choiceSubmit(i) {
     }
     if (ok && c.onCorrect) c.onCorrect();
     if (!ok && c.onWrong) c.onWrong();
-    var useStandard = ok || c.failStyle === 'standard';
-    var btnHtml = useStandard
-        ? buildStandardResultButtons(c.next, c.retry, c.home)
-        : '<div class="options-grid"><button class="action-btn" onclick="' + c.retry + '">다시 풀어보기 🔁</button>' +
-        '<button class="action-btn secondary" onclick="' + c.home + '">처음부터 풀기 🔄</button></div>';
+    var btnHtml = (ok || c.failStyle === 'standard') ? buildStandardResultButtons(c.next, c.retry, c.home) : _choiceFailButtons(c);
     if (main) main.insertAdjacentHTML('beforeend', btnHtml);
     if (c.onResolved) c.onResolved(ok);
+}
+// 제한시간 초과: 정답만 표시하고 실패 버튼을 붙인다. (게임의 타이머 콜백에서 호출)
+function choiceTimeout() {
+    var st = _choice;
+    if (!st || st.answered) return;
+    st.answered = true;
+    var c = st.cfg;
+    var main = document.getElementById('mainArea');
+    var buttons = main ? main.querySelectorAll('.opt-btn') : [];
+    if (buttons[st.answerIndex]) buttons[st.answerIndex].classList.add('correct');
+    var msg = document.getElementById(c.msgId || 'choiceMsg');
+    if (msg) {
+        msg.style.display = 'block';
+        msg.className = 'msg-box bad';
+        msg.innerText = _choiceMsgText(c.timeout, '⏰ 시간이 다 됐어요!', st.answerIndex);
+    }
+    if (c.onTimeout) c.onTimeout();
+    var btnHtml = (c.failStyle === 'standard') ? buildStandardResultButtons(c.next, c.retry, c.home) : _choiceFailButtons(c);
+    if (main) main.insertAdjacentHTML('beforeend', btnHtml);
 }
 
 // ===================== 타이머 관리 (모든 게임 공용) =====================

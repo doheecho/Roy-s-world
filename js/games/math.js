@@ -763,67 +763,37 @@ function startMathAdvTimer() {
     activeTimers.push(mathAdvState.timerId);
 }
 function handleMathAdvTimeout() {
-    if (mathAdvState.timedOut || mathAdvState.answered) return;
     if (mathAdvState.timerId) { clearInterval(mathAdvState.timerId); mathAdvState.timerId = null; }
-    mathAdvState.timedOut = true;
-    mathAdvState.answered = true;
-    renderMathAdventure();
+    choiceTimeout();
 }
-function checkMathAdvAnswer(idx) {
-    if (mathAdvState.answered) return;
-    mathAdvState.answered = true;
-    if (mathAdvState.timerId) { clearInterval(mathAdvState.timerId); mathAdvState.timerId = null; }
-    mathAdvState.selectedIdx = idx;
-    mathAdvState.correct = (mathAdvState.options[idx] === mathAdvState.quizData.answer);
-    if (mathAdvState.correct) mathAdvCorrect++;
-    renderMathAdventure();
+function mathAdvChoiceCfg() {
+    var ans = mathAdvState.quizData.answer;
+    return {
+        msgId: 'mathAdvMsg',
+        ok: '🎉 정답이에요!',
+        bad: '아쉬워요! 정답은 "' + ans + '" 였어요.',
+        timeout: '⏰ 시간이 다 됐어요! 정답은 "' + ans + '" 였어요.',
+        onPick: function () { if (mathAdvState.timerId) { clearInterval(mathAdvState.timerId); mathAdvState.timerId = null; } },
+        onCorrect: function () { mathAdvCorrect++; },
+        next: 'nextMathAdvRound()', retry: 'retryMathAdvRound()', home: 'renderMathAdvSetup()',
+        failStyle: 'retryHome'
+    };
 }
 function renderMathAdventure() {
     var gradeBadges = { grade1: '초1', grade2: '초2', grade3: '초3', grade4: '초4' };
     var html = '<div class="game-title-box">➕ 수학 대모험</div>';
     html += '<div class="game-sub-desc">문제를 잘 읽고 알맞은 답을 골라보세요!</div>';
     html += '<div class="status-row"><div>' + mathAdvRound + '라운드 (' + gradeBadges[mathAdvState.gradeKey] + ')</div><div>정답: ' + mathAdvCorrect + ' / ' + (mathAdvRound - 1) + '</div></div>';
-    if (mathAdvState.timeLimit > 0 && !mathAdvState.answered) {
+    if (mathAdvState.timeLimit > 0) {
         html += '<div class="timer-container"><div class="timer-bar" id="mathAdvTimerBar"></div></div>';
     }
     html += '<div style="background:#f8fafc; border:2px dashed #cbd5e1; border-radius:0.75rem; padding:1.25rem; margin-bottom:1.25rem; min-height:110px; display:flex; align-items:center; justify-content:center;">';
     html += '<div style="font-size:1.1rem; font-weight:700; line-height:1.5; text-align:center;">' + mathAdvState.quizData.q + '</div>';
     html += '</div>';
-    html += '<div class="options-grid">';
-    mathAdvState.options.forEach(function (opt, idx) {
-        var cls = 'opt-btn text-opt';
-        if (mathAdvState.answered) {
-            if (opt === mathAdvState.quizData.answer) cls += ' correct';
-            else if (idx === mathAdvState.selectedIdx) cls += ' wrong';
-        }
-        html += '<button class="' + cls + '" ' + (mathAdvState.answered ? 'disabled' : '') + ' onclick="checkMathAdvAnswer(' + idx + ')">' + opt + '</button>';
-    });
-    html += '</div>';
-    html += '<div id="mathAdvMsg" class="msg-box"></div>';
+    var cfg = mathAdvChoiceCfg();
+    html += choiceOptionsHtml(mathAdvState.options, cfg);
     document.getElementById('mainArea').innerHTML = html;
-    if (mathAdvState.timedOut) {
-        var msg = document.getElementById('mathAdvMsg');
-        msg.className = 'msg-box bad'; msg.style.display = 'block';
-        msg.innerText = '⏰ 시간이 다 됐어요! 정답은 "' + mathAdvState.quizData.answer + '" 였어요.';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-            '<div class="options-grid">' +
-            '<button class="action-btn" onclick="retryMathAdvRound()">다시 풀어보기 🔁</button>' +
-            '<button class="action-btn secondary" onclick="renderMathAdvSetup()">처음부터 풀기 🔄</button>' +
-            '</div>');
-    } else if (mathAdvState.answered) {
-        var msg2 = document.getElementById('mathAdvMsg');
-        if (mathAdvState.correct) {
-            msg2.className = 'msg-box'; msg2.style.display = 'block'; msg2.innerText = '🎉 정답이에요!';
-            document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextMathAdvRound()', 'retryMathAdvRound()', 'renderMathAdvSetup()'));
-        } else {
-            msg2.className = 'msg-box bad'; msg2.style.display = 'block'; msg2.innerText = '아쉬워요! 정답은 "' + mathAdvState.quizData.answer + '" 였어요.';
-            document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-                '<div class="options-grid">' +
-                '<button class="action-btn" onclick="retryMathAdvRound()">다시 풀어보기 🔁</button>' +
-                '<button class="action-btn secondary" onclick="renderMathAdvSetup()">처음부터 풀기 🔄</button>' +
-                '</div>');
-        }
-    }
+    choiceBegin(mathAdvState.options.indexOf(mathAdvState.quizData.answer), cfg);
 }
 
 // ===================== 게임 등록 =====================

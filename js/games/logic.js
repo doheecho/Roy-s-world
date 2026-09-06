@@ -84,22 +84,22 @@ function startPatternTimer() {
     activeTimers.push(patternState.timerId);
 }
 
-function handlePatternTimeout() {
-    if (patternState.finished) return;
-    patternState.finished = true;
-    patternState.answered = true;
-    var buttons = document.querySelectorAll('.opt-btn');
-    buttons.forEach(function (b, i) { if (patternState.options[i] === patternState.answer) b.classList.add('correct'); });
-    var msg = document.getElementById('patternMsg');
-    msg.className = 'msg-box bad'; msg.style.display = 'block';
-    msg.innerText = '⏰ 시간이 다 됐어요! 정답은 "' + patternState.answer + '" 였어요.';
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-        '<div class="options-grid">' +
-        '<button class="action-btn" onclick="retryPatternRound()">다시 풀어보기 🔁</button>' +
-        '<button class="action-btn secondary" onclick="initPatternMatrix()">처음부터 풀기 🔄</button>' +
-        '</div>');
-}
+function handlePatternTimeout() { choiceTimeout(); }
 
+function patternChoiceCfg() {
+    return {
+        msgId: 'patternMsg', optClass: 'opt-btn',
+        ok: '🎉 정답이에요!',
+        bad: '아쉬워요! 정답은 "' + patternState.answer + '" 였어요.',
+        timeout: '⏰ 시간이 다 됐어요! 정답은 "' + patternState.answer + '" 였어요.',
+        onPick: function () { patternState.finished = true; if (patternState.timerId) clearInterval(patternState.timerId); },
+        onCorrect: function () { patternCorrect++; },
+        onResolved: function () { patternRound++; },
+        onTimeout: function () { patternState.finished = true; },
+        next: 'nextPatternRound()', retry: 'retryPatternRound()', home: 'initPatternMatrix()',
+        failStyle: 'retryHome'
+    };
+}
 function renderPatternMatrix() {
     var html = '<div class="game-title-box">🧩 패턴 매트릭스</div>';
     html += '<div class="game-sub-desc">가로세로 규칙을 찾아 빈칸에 들어갈 모양을 골라보세요!</div>';
@@ -117,40 +117,10 @@ function renderPatternMatrix() {
         }
     }
     html += '</div>';
-    html += '<div class="options-grid">';
-    patternState.options.forEach(function (opt, idx) {
-        html += '<button class="opt-btn" onclick="checkPatternMatrix(this,' + idx + ')">' + opt + '</button>';
-    });
-    html += '</div>';
-    html += '<div id="patternMsg" class="msg-box"></div>';
+    var cfg = patternChoiceCfg();
+    html += choiceOptionsHtml(patternState.options, cfg);
     document.getElementById('mainArea').innerHTML = html;
-}
-
-function checkPatternMatrix(btn, idx) {
-    if (patternState.answered) return;
-    patternState.answered = true;
-    patternState.finished = true;
-    clearInterval(patternState.timerId);
-
-    var buttons = document.querySelectorAll('.opt-btn');
-    var opt = patternState.options[idx];
-    var msg = document.getElementById('patternMsg');
-    if (opt === patternState.answer) {
-        btn.classList.add('correct');
-        patternCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요!';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextPatternRound()', 'retryPatternRound()', 'initPatternMatrix()'));
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(function (b, i) { if (patternState.options[i] === patternState.answer) b.classList.add('correct'); });
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 정답은 "' + patternState.answer + '" 였어요.';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-            '<div class="options-grid">' +
-            '<button class="action-btn" onclick="retryPatternRound()">다시 풀어보기 🔁</button>' +
-            '<button class="action-btn secondary" onclick="initPatternMatrix()">처음부터 풀기 🔄</button>' +
-            '</div>');
-    }
-    patternRound++;
+    choiceBegin(patternState.options.indexOf(patternState.answer), cfg);
 }
 function nextPatternRound() { generatePatternMatrixRound(); }
 

@@ -321,20 +321,20 @@ function startTopViewTimer() {
     }, 100);
     activeTimers.push(topViewState.timerId);
 }
-function handleTopViewTimeout() {
-    if (topViewState.finished) return;
-    topViewState.finished = true;
-    topViewState.answered = true;
-    var buttons = document.querySelectorAll('.opt-btn');
-    buttons.forEach(function (b, i) { if (topViewState.options[i] === topViewState.answer) b.classList.add('correct'); });
-    var msg = document.getElementById('topViewMsg');
-    msg.className = 'msg-box bad'; msg.style.display = 'block';
-    msg.innerText = '⏰ 시간이 다 됐어요! 정답은 "' + topViewState.answer + '" 였어요.';
-    document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-        '<div class="options-grid">' +
-        '<button class="action-btn" onclick="retryTopViewRound()">다시 풀어보기 🔁</button>' +
-        '<button class="action-btn secondary" onclick="restartTopView()">처음부터 풀기 🔄</button>' +
-        '</div>');
+function handleTopViewTimeout() { choiceTimeout(); }
+function topViewChoiceCfg() {
+    return {
+        msgId: 'topViewMsg',
+        ok: '🎉 정답이에요! 이런 모양으로 보여요:',
+        bad: '아쉬워요! 정답은 "' + topViewState.answer + '" 였어요. 정답 모양은 이래요:',
+        timeout: '⏰ 시간이 다 됐어요! 정답은 "' + topViewState.answer + '" 였어요.',
+        explain: function () { return renderFrontViewBars(topViewState.answer); },
+        onPick: function () { topViewState.finished = true; if (topViewState.timerId) clearInterval(topViewState.timerId); },
+        onCorrect: function () { topViewCorrect++; },
+        onTimeout: function () { topViewState.finished = true; },
+        next: 'nextTopViewRound()', retry: 'retryTopViewRound()', home: 'restartTopView()',
+        failStyle: 'retryHome'
+    };
 }
 function renderTopViewMatch() {
     var html = '<div class="game-title-box">📦 위에서 본 모양 맞추기</div>';
@@ -354,13 +354,10 @@ function renderTopViewMatch() {
     for (var wc = 0; wc < topViewState.w; wc++) { html += '<div style="width:56px; text-align:center; font-size:1.2rem;">⬆️</div>'; }
     html += '</div>';
     html += '<div style="text-align:center; margin-bottom:1rem;"><span style="font-size:1.9rem;">🧍</span><div class="game-sub-desc" style="margin:0;">내가 여기서 이 방향으로 바라보고 있어요!</div></div>';
-    html += '<div class="options-grid">';
-    topViewState.options.forEach(function (opt, idx) {
-        html += '<button class="opt-btn text-opt" onclick="checkTopView(this,' + idx + ')">' + opt + '</button>';
-    });
-    html += '</div>';
-    html += '<div id="topViewMsg" class="msg-box"></div>';
+    var cfg = topViewChoiceCfg();
+    html += choiceOptionsHtml(topViewState.options, cfg);
     document.getElementById('mainArea').innerHTML = html;
+    choiceBegin(topViewState.options.indexOf(topViewState.answer), cfg);
 }
 function renderFrontViewBars(answerStr) {
     var heights = answerStr.split(',').map(function (s) { return parseInt(s.trim(), 10); });
@@ -374,32 +371,6 @@ function renderFrontViewBars(answerStr) {
     });
     html += '</div>';
     return html;
-}
-function checkTopView(btn, idx) {
-    if (topViewState.answered) return;
-    topViewState.answered = true;
-    topViewState.finished = true;
-    clearInterval(topViewState.timerId);
-    var buttons = document.querySelectorAll('.opt-btn');
-    var opt = topViewState.options[idx];
-    var msg = document.getElementById('topViewMsg');
-    if (opt === topViewState.answer) {
-        btn.classList.add('correct');
-        topViewCorrect++;
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요! 이런 모양으로 보여요:';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend', renderFrontViewBars(topViewState.answer));
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextTopViewRound()', 'retryTopViewRound()', 'restartTopView()'));
-    } else {
-        btn.classList.add('wrong');
-        buttons.forEach(function (b, i) { if (topViewState.options[i] === topViewState.answer) b.classList.add('correct'); });
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아쉬워요! 정답은 "' + topViewState.answer + '" 였어요. 정답 모양은 이래요:';
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend', renderFrontViewBars(topViewState.answer));
-        document.getElementById('mainArea').insertAdjacentHTML('beforeend',
-            '<div class="options-grid">' +
-            '<button class="action-btn" onclick="retryTopViewRound()">다시 풀어보기 🔁</button>' +
-            '<button class="action-btn secondary" onclick="restartTopView()">처음부터 풀기 🔄</button>' +
-            '</div>');
-    }
 }
 
 // ===================== 12. 공간지각: 지도 찾기 =====================
