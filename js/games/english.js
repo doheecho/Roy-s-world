@@ -110,6 +110,7 @@ function engStarStr(n) { return '⭐⭐⭐'.slice(0, n) + '☆☆☆'.slice(0, 3
 function renderEngResult(emoji, name, correct, total, initFn, startFn, extraLine) {
     engCancelSpeak();
     ENG_TTS.rerender = null;
+    if (typeof reportGameRound === 'function') reportGameRound(correct);
     var n = engStars(correct, total);
     var html = '<div class="game-title-box">' + emoji + ' ' + name + ' — 끝!</div>';
     html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + engStarStr(n) + '</div>';
@@ -265,14 +266,14 @@ function checkListenPick(idx) {
         btns[idx].classList.add('eng-ok');
         if (st.firstTry) st.correct++;
         engSpeak(item.t, 0);
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 맞았어요!';
+        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 맞았어요!'; playResultSound(true);
         var t = setTimeout(listenNext, 1100); activeTimers.push(t);
     } else {
         st.firstTry = false;
         btns[idx].classList.add('eng-no');
         var b = btns[idx];
         var tt = setTimeout(function () { b.classList.remove('eng-no'); }, 500); activeTimers.push(tt);
-        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '다시 한 번 들어볼까요? 🔊';
+        msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '다시 한 번 들어볼까요? 🔊'; playResultSound(false);
     }
 }
 function listenNext() {
@@ -517,7 +518,7 @@ function checkFollowHit(idx) {
         if (st.found.length >= st.targets.length) {
             if (st.timerId) { clearInterval(st.timerId); st.timerId = null; }
             st.cleared++;
-            msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 다 찾았어요!';
+            msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 다 찾았어요!'; playResultSound(true);
             var t = setTimeout(nextFollowRound, 900); activeTimers.push(t);
         } else {
             renderFollowRound();
@@ -745,7 +746,7 @@ function checkScramble() {
         else if (st.firstTry) st.correct += 0.5;
         renderScrambleRound();
         msg = document.getElementById('engScrambleMsg');
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 완성! ' + target + '.';
+        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 완성! ' + target + '.'; playResultSound(true);
         engSpeak(target + '.', 0);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" style="width:100%;" onclick="scrambleNext()">다음 ▶</button>');
     } else {
@@ -926,7 +927,7 @@ function checkFill(idx) {
         if (st.firstTry) st.correct++;
         var full = (item.pre ? item.pre + ' ' : '') + item.a + ' ' + item.post;
         engSpeak(full, 0);
-        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 맞아요! “' + full + '”';
+        msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 맞아요! “' + full + '”'; playResultSound(true);
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" style="width:100%;" onclick="fillNext()">다음 ▶</button>');
     } else {
         st.firstTry = false;

@@ -734,11 +734,16 @@ function _beep(freq, dur, when, type) {
     osc.connect(g); g.connect(ctx.destination);
     osc.start(t0); osc.stop(t0 + dur + 0.03);
 }
-// ok=true → 딩동(상행), false → 삐빅(하행). 게임 어디서든 호출 가능.
+// ok=true → 딩동댕~ (도미솔 상행 3음), false → 삐빅(하행). 게임 어디서든 호출 가능.
 function playResultSound(ok) {
     if (typeof SOUND_ON !== 'undefined' && !SOUND_ON) return;
-    if (ok) { _beep(660, 0.13, 0); _beep(988, 0.17, 0.11); }
-    else { _beep(300, 0.16, 0); _beep(220, 0.22, 0.13, 'square'); }
+    if (ok) {
+        _beep(523.25, 0.12, 0);      // 도 (C5)
+        _beep(659.25, 0.12, 0.12);   // 미 (E5)
+        _beep(783.99, 0.26, 0.24);   // 솔 (G5) — 마지막 음 조금 길게
+    } else {
+        _beep(300, 0.16, 0); _beep(220, 0.22, 0.13, 'square');
+    }
 }
 
 // --- 게임 설명을 한국어로 읽어주기 (헤더 📖 토글) ---
@@ -766,8 +771,13 @@ function speakKo(text) {
     } catch (e) { }
 }
 function speakCurrentHelp() {
-    var el = document.querySelector('#mainArea .game-sub-desc') || document.querySelector('#mainArea .game-title-box');
-    if (el) speakKo(el.innerText || el.textContent);
+    var parts = [];
+    var title = document.querySelector('#mainArea .game-title-box');
+    var desc = document.querySelector('#mainArea .game-sub-desc');
+    if (title) parts.push((title.innerText || title.textContent || '').trim());
+    if (desc) parts.push((desc.innerText || desc.textContent || '').trim());
+    var text = parts.filter(Boolean).join('. ');
+    if (text) speakKo(text);
 }
 function updateReadHelpBtn() {
     var b = document.getElementById('readHelpBtn');
@@ -805,12 +815,15 @@ function triggerInstall() {
 
 // ===================== 결과 버튼 공통 (모든 게임 공용) =====================
 function buildStandardResultButtons(nextCall, retryCall, homeCall) {
+    var inMode = todayModeActive || randomModeActive;
     var effNext = todayModeActive ? 'nextTodayModeRound()' : (randomModeActive ? 'nextRandomModeRound()' : nextCall);
     var effHome = todayModeActive ? 'exitTodayMode()' : (randomModeActive ? 'exitRandomMode()' : homeCall);
-    return '<button class="action-btn" onclick="' + effNext + '">다음 단계로 ▶</button>' +
+    var nextLabel = inMode ? '다음 게임 ▶' : '다음 단계로 ▶';
+    var homeLabel = inMode ? '그만하기 ⏹' : '초기 화면으로 ⏮';
+    return '<button class="action-btn" onclick="' + effNext + '">' + nextLabel + '</button>' +
         '<div class="options-grid">' +
         '<button class="action-btn secondary" onclick="' + retryCall + '">이번 단계 다시풀기 🔁</button>' +
-        '<button class="action-btn secondary" onclick="' + effHome + '">초기 화면으로 ⏮</button>' +
+        '<button class="action-btn secondary" onclick="' + effHome + '">' + homeLabel + '</button>' +
         '</div>';
 }
 
@@ -926,8 +939,24 @@ function startGame(id) {
     startGameSession(id);
     document.getElementById('homeBtn').style.display = 'inline-block';
     var fn = GAME_INIT_FNS[id];
-    if (fn) fn();
+    try {
+        if (fn) fn();
+    } catch (err) {
+        showGameError(err);
+        return;
+    }
     speakCurrentHelp();
+}
+// 게임이 렌더 도중 예외를 던져 화면이 반쯤 그려진 채 멈추는 것을 막는 안전망
+function showGameError(err) {
+    try { console.error('game error:', err); } catch (e) { }
+    clearAllGameTimers();
+    activeGameSession = null;
+    var html = '<div class="game-title-box">😅 앗, 문제가 생겼어요</div>';
+    html += '<div class="game-sub-desc">이 게임을 여는 중에 오류가 났어요. 다시 해보거나 다른 게임을 골라주세요.</div>';
+    html += '<div class="options-grid"><button class="action-btn" onclick="goHome()">홈으로 돌아가기 🏠</button></div>';
+    var ma = document.getElementById('mainArea');
+    if (ma) ma.innerHTML = html;
 }
 
 // ===================== 앱 시작점 =====================

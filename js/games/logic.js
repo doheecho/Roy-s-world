@@ -1203,6 +1203,7 @@ function checkTruthLiar(d) {
 }
 function finishTruthLiarSession() {
     var st = tldState;
+    if (typeof reportGameRound === 'function') reportGameRound(Math.round(st.correct));
     var n = tld_starN(Math.round(st.correct), TLD_TOTAL);
     var html = '<div class="game-title-box">🕵️‍♀️ 진실/거짓말 탐정 — 끝!</div>';
     html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + tld_starStr(n) + '</div>';
@@ -1400,6 +1401,7 @@ function checkOddRule(idx) {
 }
 function finishOddRuleSession() {
     var st = orrState;
+    if (typeof reportGameRound === 'function') reportGameRound(st.correct);
     var n = orr_starN(st.correct, ORR_TOTAL);
     var html = '<div class="game-title-box">🔍 규칙 벗어난 것 찾기 — 끝!</div>';
     html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + orr_starStr(n) + '</div>';

@@ -445,6 +445,7 @@ function checkFlashCount(idx) {
 }
 function finishFlashCountSession() {
     var st = fcsState;
+    if (typeof reportGameRound === 'function') reportGameRound(st.correct);
     var n = fcs_starN(st.correct, FCS_TOTAL);
     var html = '<div class="game-title-box">⚡ 순간 포착 세기 — 끝!</div>';
     html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + fcs_starStr(n) + '</div>';
