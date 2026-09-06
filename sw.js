@@ -1,21 +1,30 @@
 var CACHE_PREFIX = 'eroi-playground-';
-var CACHE_NAME = CACHE_PREFIX + 'v4.04';
+// 배포할 때마다 이 버전을 올리면 이전 캐시가 정리되고 새 파일이 받아진다.
+var CACHE_NAME = CACHE_PREFIX + 'v5.00';
+var BASE = '/Roy-s-world/';
+
+// index.html이 로드하는 모든 스크립트를 빠짐없이 넣는다.
+// (하나라도 빠지면 설치 후 첫 오프라인 실행에서 그 게임이 동작하지 않는다.)
 var PRECACHE_URLS = [
-    '/Roy-s-world/',
-    '/Roy-s-world/index.html',
-    '/Roy-s-world/manifest.json',
-    '/Roy-s-world/css/style.css',
-    '/Roy-s-world/js/main.js',
-    '/Roy-s-world/js/games/memory.js',
-    '/Roy-s-world/js/games/spatial.js',
-    '/Roy-s-world/js/games/hangul.js',
-    '/Roy-s-world/js/games/observation.js',
-    '/Roy-s-world/js/games/logic.js',
-    '/Roy-s-world/js/games/math.js',
-    '/Roy-s-world/js/games/coding.js',
-    '/Roy-s-world/js/games/memoryroom.js',
-    '/Roy-s-world/js/games/melody.js',
-    '/Roy-s-world/icon-512x512.png'
+    BASE,
+    BASE + 'index.html',
+    BASE + 'manifest.json',
+    BASE + 'css/style.css',
+    BASE + 'js/main.js',
+    BASE + 'js/games/memory.js',
+    BASE + 'js/games/spatial.js',
+    BASE + 'js/games/hangul.js',
+    BASE + 'js/games/hanja.js',
+    BASE + 'js/games/proverb.js',
+    BASE + 'js/games/worldquiz.js',
+    BASE + 'js/games/observation.js',
+    BASE + 'js/games/memoryroom.js',
+    BASE + 'js/games/melody.js',
+    BASE + 'js/games/logic.js',
+    BASE + 'js/games/math.js',
+    BASE + 'js/games/coding.js',
+    BASE + 'js/games/english.js',
+    BASE + 'icon-512x512.png'
 ];
 
 self.addEventListener('install', function (e) {
@@ -44,21 +53,66 @@ self.addEventListener('activate', function (e) {
     );
 });
 
+function putInCache(req, res) {
+    var clone = res.clone();
+    caches.open(CACHE_NAME).then(function (cache) { cache.put(req, clone); });
+}
+
 self.addEventListener('fetch', function (e) {
-    if (e.request.method !== 'GET') return;
-    e.respondWith(
-        caches.match(e.request).then(function (cached) {
-            if (cached) return cached;
-            return fetch(e.request).then(function (response) {
-                if (response && response.status === 200 && response.type === 'basic') {
-                    var clone = response.clone();
-                    caches.open(CACHE_NAME).then(function (cache) {
-                        cache.put(e.request, clone);
-                    });
-                }
-                return response;
+    var req = e.request;
+    if (req.method !== 'GET') return;
+
+    var url;
+    try { url = new URL(req.url); } catch (err) { return; }
+    var sameOrigin = url.origin === self.location.origin;
+
+    // ── 교차 출처 리소스(예: flagcdn.com 국기 이미지) ──
+    // 캐시 우선 + 성공 응답(opaque 포함)을 저장해 두 번째부터는 오프라인에서도 뜬다.
+    if (!sameOrigin) {
+        e.respondWith(
+            caches.match(req).then(function (cached) {
+                if (cached) return cached;
+                return fetch(req).then(function (res) {
+                    if (res && (res.ok || res.type === 'opaque')) { putInCache(req, res); }
+                    return res;
+                }).catch(function () {
+                    return cached || Response.error();
+                });
+            })
+        );
+        return;
+    }
+
+    var isDoc = req.mode === 'navigate';
+    var isCode = /\.(?:js|css)$/i.test(url.pathname);
+
+    // ── HTML / JS / CSS: 네트워크 우선 ──
+    // 온라인이면 항상 최신 코드를 받고(배포 즉시 반영), 오프라인이면 캐시로 대체한다.
+    if (isDoc || isCode) {
+        e.respondWith(
+            fetch(req).then(function (res) {
+                if (res && res.status === 200 && res.type === 'basic') { putInCache(req, res); }
+                return res;
             }).catch(function () {
-                if (e.request.mode === 'navigate') return caches.match('/Roy-s-world/index.html');
+                return caches.match(req).then(function (cached) {
+                    if (cached) return cached;
+                    return isDoc ? caches.match(BASE + 'index.html') : Response.error();
+                });
+            })
+        );
+        return;
+    }
+
+    // ── 그 외(이미지 / 아이콘 등): 캐시 우선 ──
+    e.respondWith(
+        caches.match(req).then(function (cached) {
+            if (cached) return cached;
+            return fetch(req).then(function (res) {
+                if (res && res.status === 200 && res.type === 'basic') { putInCache(req, res); }
+                return res;
+            }).catch(function () {
+                if (req.mode === 'navigate') return caches.match(BASE + 'index.html');
+                return Response.error();
             });
         })
     );

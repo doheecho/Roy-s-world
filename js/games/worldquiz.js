@@ -37,13 +37,13 @@ var WORLD_QUIZ_LIST = [
             { country: "아프가니스탄", engName: "Afghanistan", continent: "아시아", code: "af", capital: "카불 (Kabul)", region: "중앙아시아 (아시아), 수도는 카불", area: "652,230 km² (세계 41위)", pop: "약 4,100만 명 (세계 34위)", gdp: "내륙 개발도상국", cities: "카불, 칸다하르", famous: "실크로드 요충지", history: "다양한 문명이 교차하는 요충지였습니다.", relation: "국제 사회와 협력 중입니다." },
             { country: "키르기스스탄", engName: "Kyrgyzstan", continent: "아시아", code: "kg", capital: "비슈케크 (Bishkek)", region: "중앙아시아 (아시아), 수도는 비슈케크", area: "199,951 km² (세계 86위)", pop: "약 700만 명 (세계 110위)", gdp: "중앙아시아 신흥국", cities: "비슈케크, 오시", famous: "산악 지형 및 호수", history: "실크로드의 대상들이 거쳐간 곳입니다.", relation: "개발 협력 국가입니다." },
             { country: "타지키스탄", engName: "Tajikistan", continent: "아시아", code: "tj", capital: "두샨베 (Dushanbe)", region: "중앙아시아 (아시아), 수도는 두샨베", area: "143,100 km² (세계 95위)", pop: "약 1,000만 명 (세계 91위)", gdp: "중앙아시아 국가", cities: "두샨베, 후잔트", famous: "파미르 고원", history: "소련 구성국에서 독립했습니다.", relation: "경제 협력 관계입니다." },
-            { country: "투르크메니스탄", engName: "Turkmenistan", continent: "아시아", code: "tm", capital: "아흐바트 (Ashgabat)", region: "중앙아시아 (아시아), 수도는 아흐바트", area: "488,100 km² (세계 52위)", pop: "약 640만 명 (세계 113위)", gdp: "천연가스 부국", cities: "아흐바트, 투르크멘바시", famous: "가스 분화구 및 대리석 도시", history: "실크로드의 핵심 거점 중 하나였습니다.", relation: "자원 및 플랜트 협력국입니다." },
+            { country: "투르크메니스탄", engName: "Turkmenistan", continent: "아시아", code: "tm", capital: "아시가바트 (Ashgabat)", region: "중앙아시아 (아시아), 수도는 아시가바트", area: "488,100 km² (세계 52위)", pop: "약 640만 명 (세계 113위)", gdp: "천연가스 부국", cities: "아시가바트, 투르크멘바시", famous: "가스 분화구 및 대리석 도시", history: "실크로드의 핵심 거점 중 하나였습니다.", relation: "자원 및 플랜트 협력국입니다." },
             { country: "아르메니아", engName: "Armenia", continent: "아시아", code: "am", capital: "예레반 (Yerevan)", region: "서아시아 (아시아), 수도는 예레반", area: "29,743 km² (세계 138위)", pop: "약 280만 명 (세계 137위)", gdp: "유럽·아시아 접경국", cities: "예레반, 귬리", famous: "아라라트 산 및 기독교 유적", history: "세계 최초로 기독교를 국교로 채택했습니다.", relation: "외교 관계를 유지합니다." },
             { country: "아제르바이잔", engName: "Azerbaijan", continent: "아시아", code: "az", capital: "바쿠 (Baku)", region: "서아시아 (아시아), 수도는 바쿠", area: "86,600 km² (세계 112위)", pop: "약 1,000만 명 (세계 86위)", gdp: "에너지 자원 국가", cities: "바쿠, 간자", famous: "카스피해 석유 및 불의 나라", history: "실크로드의 교차로였습니다.", relation: "에너지 및 인프라 협력국입니다." },
             { country: "조지아", engName: "Georgia", continent: "아시아", code: "ge", capital: "트빌리시 (Tbilisi)", region: "서아시아 (아시아), 수도는 트빌리시", area: "69,700 km² (세계 119위)", pop: "약 370만 명 (세계 133위)", gdp: "코카서스 선진 신흥국", cities: "트빌리시, 바투미", famous: "와인 발상지 및 코카서스 산맥", history: "고대 코콜리다 왕국의 터전입니다.", relation: "관광 및 경제 협력국입니다." },
             { country: "라오스", engName: "Laos", continent: "아시아", code: "la", capital: "비엔티안 (Vientiane)", region: "동남아시아 (아시아), 수도는 비엔티안", area: "236,800 km² (세계 82위)", pop: "약 750만 명 (세계 105위)", gdp: "동남아 개발도상국", cities: "비엔티안, 루앙프라방", famous: "메콩강 및 불교 사원", history: "란창 왕국의 역사를 지닙니다.", relation: "ODA 및 개발 협력 국가입니다." },
             { country: "캄보디아", engName: "Cambodia", continent: "아시아", code: "kh", capital: "프놈펜 (Phnom Penh)", region: "동남아시아 (아시아), 수도는 프놈펜", area: "181,035 km² (세계 89위)", pop: "약 1,680만 명 (세계 71위)", gdp: "관광 및 농업 신흥국", cities: "프놈펜, 시엠레아프", famous: "앙코르 와트", history: "크메르 제국의 찬란한 유산을 가졌습니다.", relation: "경제 및 문화 협력국입니다." },
-            { country: "브루나이", engName: "Brunei", continent: "아시아", code: "bn", capital: "반다르ส리베가완 (Bandar Seri Begawan)", region: "동남아시아 (아시아), 수도는 반다르스리베가완", area: "5,765 km² (세계 169위)", pop: "약 44만 명 (세계 174위)", gdp: "석유·가스 고소득 국가", cities: "반다르스리베가완", famous: "이슬람 사원 및 자원", history: "술탄 왕조의 통치를 이어오고 있습니다.", relation: "에너지 협력국입니다." },
+            { country: "브루나이", engName: "Brunei", continent: "아시아", code: "bn", capital: "반다르스리베가완 (Bandar Seri Begawan)", region: "동남아시아 (아시아), 수도는 반다르스리베가완", area: "5,765 km² (세계 169위)", pop: "약 44만 명 (세계 174위)", gdp: "석유·가스 고소득 국가", cities: "반다르스리베가완", famous: "이슬람 사원 및 자원", history: "술탄 왕조의 통치를 이어오고 있습니다.", relation: "에너지 협력국입니다." },
             { country: "동티모르", engName: "East Timor", continent: "아시아", code: "tl", capital: "딜리 (Dili)", region: "동남아시아 (아시아), 수도는 딜리", area: "14,874 km² (세계 153위)", pop: "약 130만 명 (세계 157위)", gdp: "신생 독립국", cities: "딜리", famous: "아름다운 자연환경", history: "2002년 독립한 아시아 최신 독립국입니다.", relation: "평화 유지 및 지원 인연이 있습니다." },
             { country: "부탄", engName: "Bhutan", continent: "아시아", code: "bt", capital: "팀부 (Thimphu)", region: "남아시아 (아시아), 수도는 팀부", area: "38,394 km² (세계 135위)", pop: "약 78만 명 (세계 164위)", gdp: "국민총행복(GNH) 추구 국가", cities: "팀부, 파로", famous: "히말라야 산악 국가 및 불교", history: "독자적인 왕정 체제를 유지했습니다.", relation: "환경 및 문화 교류가 있습니다." },
             { country: "몰디브", engName: "Maldives", continent: "아시아", code: "mv", capital: "말레 (Male)", region: "남아시아 (아시아), 수도는 말레", area: "300 km² (세계 185위)", pop: "약 52만 명 (세계 171위)", gdp: "관광업 중심 국가", cities: "말레", famous: "세계적인 휴양지 및 산호섬", history: "인도양의 섬나라로 번영했습니다.", relation: "관광 및 휴양지로 친숙합니다." },
@@ -194,7 +194,7 @@ var WORLD_QUIZ_LIST = [
             { country: "미크로네시아", engName: "Micronesia", continent: "오세아니아", code: "fm", capital: "팔리키르 (Palikir)", region: "오세아니아 (오세아니아), 수도는 팔리키르", area: "702 km² (세계 179위)", pop: "약 11만 명 (세계 189위)", gdp: "태평양 섬나라", cities: "팔리키르, 웨논", famous: "산호초 및 바다", history: "여러 섬들로 이루어진 연방국입니다.", relation: "협력 관계입니다." },
             { country: "팔라우", engName: "Palau", continent: "오세아니아", code: "pw", capital: "은글루무드 (Ngerulmud)", region: "오세아니아 (오세아니아), 수도는 은글루무드", area: "459 km² (세계 179위)", pop: "약 1만 8천 명 (세계 197위)", gdp: "관광 휴양 섬나라", cities: "코로르, 은글루무드", famous: "록 아일랜드 및 다이빙 명소", history: "청정 자연환경으로 유명합니다.", relation: "관광 및 우호 교류국입니다." },
             { country: "마셜 제도", engName: "Marshall Islands", continent: "오세아니아", code: "mh", capital: "마주로 (Majuro)", region: "오세아니아 (오세아니아), 수도는 마주로", area: "181 km² (세계 187위)", pop: "약 4만 명 (세계 195위)", gdp: "태평양 섬나라", cities: "마주로", famous: "환상산호초 아일랜드", history: "태평양의 산호 환상섬들로 구성됩니다.", relation: "협력 관계입니다." },
-            { country: "키리바시", engName: "Kiribati", continent: "오세아니아", code: "ki", capital: "사우스타라와 (South Tarawa)", region: "오세아니아 (오세아니아), 수도는 사우스타라와", area: "811 km² (세계 176위)", pop: "약 13만 명 (세계 187위)", gdp: "적도에 걸쳐 있는 섬나라", cities: "사우스타라와", famous: "기후변화 대응에 민감한 섬나라입니다.", history: "기후변화 대응에 민감한 섬나라입니다.", relation: "협력 관계입니다." },
+            { country: "키리바시", engName: "Kiribati", continent: "오세아니아", code: "ki", capital: "사우스타라와 (South Tarawa)", region: "오세아니아 (오세아니아), 수도는 사우스타라와", area: "811 km² (세계 176위)", pop: "약 13만 명 (세계 187위)", gdp: "적도에 걸쳐 있는 섬나라", cities: "사우스타라와", famous: "적도가 지나가는 33개의 산호섬", history: "기후변화 대응에 민감한 섬나라입니다.", relation: "협력 관계입니다." },
             { country: "투발루", engName: "Tuvalu", continent: "오세아니아", code: "tv", capital: "푸나푸티 (Funafuti)", region: "오세아니아 (오세아니아), 수도는 푸나푸티", area: "26 km² (세계 193위)", pop: "약 1만 1천 명 (세계 199위)", gdp: "태평양 소국", cities: "푸나푸티", famous: "아름다운 환초 섬", history: "세계에서 인구가 적은 독립국 중 하나입니다.", relation: "기후변화 국제 협력국입니다." },
             { country: "나우루", engName: "Nauru", continent: "오세아니아", code: "nr", capital: "야렌 (Yaren)", region: "오세아니아 (오세아니아), 수도는 야렌", area: "21 km² (세계 194위)", pop: "약 1만 2천 명 (세계 198위)", gdp: "인광석 역사 섬나라", cities: "야렌", famous: "세계에서 가장 작은 공화국 중 하나", history: "독립된 섬 공화국입니다.", relation: "우호 관계입니다." }
 ];
@@ -332,6 +332,18 @@ function buildWorldQuizInfoHtml(data) {
         '<strong>특징:</strong> 주로 ' + data.famous + '(으)로 유명합니다.<br>' +
         '<strong>역사:</strong> ' + data.history + relationHtml;
 }
+// 국기 이미지(flagcdn.com)는 외부 리소스라 오프라인/네트워크 차단 시 로드에 실패할 수 있다.
+// 그럴 때 게임이 멈추지 않도록 국가 코드 텍스트 박스로 대체한다.
+function worldQuizFlagError(img) {
+    if (!img) return;
+    img.onerror = null;
+    var code = (img.getAttribute('data-code') || '').toUpperCase();
+    var box = document.createElement('div');
+    box.textContent = code || '국기';
+    box.style.cssText = 'display:flex; align-items:center; justify-content:center; min-height:120px; font-size:2.2rem; font-weight:800; letter-spacing:0.18em; color:#64748b; background:#f1f5f9; border-radius:0.5rem;';
+    if (img.parentNode) { img.parentNode.replaceChild(box, img); }
+}
+
 function renderWorldQuizQuiz() {
     var isCapitalMode = worldQuizSettings.quizType === "capital";
     var data = worldQuizState.correct;
@@ -341,7 +353,7 @@ function renderWorldQuizQuiz() {
     if (worldQuizState.timeLimit > 0 && !worldQuizState.answered) {
         html += '<div class="timer-container"><div class="timer-bar" id="worldQuizTimerBar" style="width:' + (worldQuizState.timeLeft / worldQuizState.timeLimit * 100) + '%;"></div></div>';
     }
-    html += '<div class="worldquiz-flag-box"><img src="https://flagcdn.com/w320/' + data.code + '.png" alt="국기"></div>';
+    html += '<div class="worldquiz-flag-box"><img src="https://flagcdn.com/w320/' + data.code + '.png" alt="국기" loading="lazy" data-code="' + data.code + '" onerror="worldQuizFlagError(this)"></div>';
     if (isCapitalMode) {
         html += '<div class="game-sub-desc" style="font-weight:700; color:var(--text-main); font-size:1rem;">' + data.country + ' (' + data.engName + ')</div>';
     }

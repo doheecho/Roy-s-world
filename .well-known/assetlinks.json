@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.netlify.charming_douhua_25bf32.twa",
+        "sha256_cert_fingerprints": ["61:44:A2:FF:A2:30:13:B3:E8:D2:F5:0B:B3:A9:8B:C8:4F:0B:FB:62:99:77:94:86:D2:96:21:0E:0E:D8:F4:79"]
+      }
+    }]

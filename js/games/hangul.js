@@ -231,12 +231,12 @@ function renderChosung() {
             html += buildStandardResultButtons('nextChosungQuestion()', 'retryChosungQuestion()', 'initChosungQuiz()');
         } else if (chosungState.showSuccess) {
             if (chosungState.voiceSaid !== undefined) {
-                html += '<div class="game-sub-desc">내가 말한 것: "' + chosungState.voiceSaid + '"</div>';
+                html += '<div class="game-sub-desc">내가 말한 것: "' + escapeHtml(chosungState.voiceSaid) + '"</div>';
             }
             html += '<div class="msg-box" style="display:block;">🎉 ' + (chosungState.voiceSaid !== undefined ? '정답을 정확히 말했어요!' : '정답이에요!') + '</div>';
             html += buildStandardResultButtons('nextChosungQuestion()', 'retryChosungQuestion()', 'initChosungQuiz()');
         } else if (chosungState.voiceSaid !== undefined) {
-            html += '<div class="game-sub-desc">내가 말한 것: "' + chosungState.voiceSaid + '"</div>';
+            html += '<div class="game-sub-desc">내가 말한 것: "' + escapeHtml(chosungState.voiceSaid) + '"</div>';
             html += '<div class="msg-box bad" style="display:block;">음... 다르게 들렸어요. 잘 말했는데 못 알아들었을 수도 있어요!</div>';
             var chosungEffNext = (typeof todayModeActive !== 'undefined' && todayModeActive) ? 'nextTodayModeRound()' : ((typeof randomModeActive !== 'undefined' && randomModeActive) ? 'nextRandomModeRound()' : 'nextChosungQuestion()');
             html += '<div class="options-grid">';

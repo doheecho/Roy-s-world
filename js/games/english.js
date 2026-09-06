@@ -9,18 +9,40 @@ var ENG_SPEED_PRESETS = [
     { v: 0.92, l: '보통' },
     { v: 1.12, l: '🐇 빠르게' }
 ];
-var ENG_TTS = { rate: 0.92, rerender: null, warmed: false, lastText: '' };
+// hasEnVoice: null = 아직 모름(음성 목록 미로딩) → 일단 지원으로 간주, false = 영어 음성 없음, true = 있음
+var ENG_TTS = { rate: 0.92, rerender: null, warmed: false, lastText: '', hasEnVoice: null, enVoice: null };
 (function () {
     try {
         var s = parseFloat(localStorage.getItem('engTtsRate'));
         if (s >= 0.4 && s <= 1.6) ENG_TTS.rate = s;
     } catch (e) { }
 })();
+// 설치된 음성 목록에서 영어(en-*) 음성이 있는지 확인한다. 목록은 비동기로 채워지므로 voiceschanged에서도 갱신.
+function engRefreshVoices() {
+    if (!window.speechSynthesis || !window.speechSynthesis.getVoices) return;
+    var voices = window.speechSynthesis.getVoices() || [];
+    if (!voices.length) return; // 아직 로딩 전 — hasEnVoice는 그대로(null) 둔다
+    var en = null;
+    for (var i = 0; i < voices.length; i++) {
+        if (/^en(-|_|$)/i.test(voices[i].lang || '')) { en = voices[i]; break; }
+    }
+    var prev = ENG_TTS.hasEnVoice;
+    ENG_TTS.enVoice = en;
+    ENG_TTS.hasEnVoice = !!en;
+    // 지원 여부가 바뀌었고 영어 게임 화면이 열려 있으면 다시 그려서 안내문/버튼을 갱신
+    if (prev !== ENG_TTS.hasEnVoice && typeof ENG_TTS.rerender === 'function') { ENG_TTS.rerender(); }
+}
+if (window.speechSynthesis) {
+    try {
+        engRefreshVoices();
+        window.speechSynthesis.addEventListener('voiceschanged', engRefreshVoices);
+    } catch (e) { }
+}
 function engCancelSpeak() {
     try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { }
 }
 function engSupportsTTS() {
-    return !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+    return !!(window.speechSynthesis && window.SpeechSynthesisUtterance) && ENG_TTS.hasEnVoice !== false;
 }
 function engSpeak(text, delayMs) {
     if (!engSupportsTTS() || !text) return;
@@ -30,6 +52,7 @@ function engSpeak(text, delayMs) {
         try {
             var u = new SpeechSynthesisUtterance(text);
             u.lang = 'en-US';
+            if (ENG_TTS.enVoice) u.voice = ENG_TTS.enVoice;
             u.rate = ENG_TTS.rate;
             u.pitch = 1.05;
             window.speechSynthesis.speak(u);

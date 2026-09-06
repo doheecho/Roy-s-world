@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이로이 놀이터 - 스모크 테스트</title>
+<style>
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 16px; background: #f3f4f6; color: #1f2937; }
+    h1 { font-size: 1.1rem; }
+    #summary { font-weight: 800; font-size: 1rem; margin: 8px 0 14px; padding: 10px 14px; border-radius: 8px; background: #fff; }
+    #summary.ok { color: #065f46; background: #d1fae5; }
+    #summary.fail { color: #991b1b; background: #fee2e2; }
+    table { border-collapse: collapse; width: 100%; background: #fff; font-size: 0.85rem; }
+    th, td { border: 1px solid #e5e7eb; padding: 5px 8px; text-align: left; vertical-align: top; }
+    th { background: #f8fafc; position: sticky; top: 0; }
+    tr.pass td:first-child { color: #059669; font-weight: 700; }
+    tr.fail td { background: #fef2f2; }
+    tr.fail td:first-child { color: #dc2626; font-weight: 800; }
+    .err { color: #b91c1c; font-family: monospace; white-space: pre-wrap; }
+    /* 게임이 그려질 자리 - 화면 밖으로 숨김 */
+    #app { position: absolute; left: -99999px; top: 0; width: 620px; }
+</style>
+</head>
+<body>
+<h1>🧪 이로이 놀이터 스모크 테스트</h1>
+<p style="font-size:0.85rem; color:#6b7280;">
+    모든 게임의 <code>GAME_INIT_FNS[id]()</code> 와 <code>quickStart</code> 함수를 한 번씩 호출해서
+    예외가 나지 않고 화면이 그려지는지 확인합니다. 코드를 고친 뒤 이 파일을 브라우저로 열어보세요.
+</p>
+<div id="summary">실행 중…</div>
+<table id="results">
+    <thead><tr><th>결과</th><th>게임</th><th>단계</th><th>비고</th></tr></thead>
+    <tbody></tbody>
+</table>
+
+<!-- 게임이 기대하는 최소 DOM (index.html 과 동일 구조) -->
+<div id="app">
+    <div class="app-container">
+        <div class="header-banner">
+            <div class="header-title"><h1>테스트</h1></div>
+            <button class="home-btn" id="homeBtn" onclick="goHome()">홈으로</button>
+        </div>
+        <div class="meta-progress-bar" id="metaProgressBar" style="display:none;"></div>
+        <div class="content-padding" id="mainArea"></div>
+    </div>
+    <div class="meaning-modal-overlay" id="meaningModalOverlay">
+        <div class="meaning-modal-box">
+            <h3 id="meaningModalTitle"></h3>
+            <p id="meaningModalDesc"></p>
+            <button onclick="closeMeaningModal()">확인</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/main.js"></script>
+<script src="js/games/memory.js"></script>
+<script src="js/games/spatial.js"></script>
+<script src="js/games/hangul.js"></script>
+<script src="js/games/hanja.js"></script>
+<script src="js/games/proverb.js"></script>
+<script src="js/games/worldquiz.js"></script>
+<script src="js/games/observation.js"></script>
+<script src="js/games/memoryroom.js"></script>
+<script src="js/games/melody.js"></script>
+<script src="js/games/logic.js"></script>
+<script src="js/games/math.js"></script>
+<script src="js/games/coding.js"></script>
+<script src="js/games/english.js"></script>
+<script>
+(function () {
+    var asyncErrors = [];
+    window.addEventListener('error', function (e) {
+        asyncErrors.push((e.message || 'error') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : ''));
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+        asyncErrors.push('unhandledrejection: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    });
+
+    var tbody = document.querySelector('#results tbody');
+    var mainArea = document.getElementById('mainArea');
+    var pass = 0, fail = 0;
+
+    function row(ok, game, step, note) {
+        var tr = document.createElement('tr');
+        tr.className = ok ? 'pass' : 'fail';
+        tr.innerHTML = '<td>' + (ok ? 'PASS' : 'FAIL') + '</td><td>' + game + '</td><td>' + step + '</td>' +
+            '<td class="' + (ok ? '' : 'err') + '">' + (note || '') + '</td>';
+        tbody.appendChild(tr);
+        if (ok) pass++; else fail++;
+    }
+
+    function cleanup() {
+        try { if (typeof clearAllGameTimers === 'function') clearAllGameTimers(); } catch (e) {}
+        try { if (typeof stopVoiceRecognition === 'function') stopVoiceRecognition(); } catch (e) {}
+        try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+        randomModeActive = false; todayModeActive = false;
+    }
+
+    function callStep(game, step, fn) {
+        mainArea.innerHTML = '';
+        asyncErrors.length = 0;
+        try {
+            fn();
+        } catch (e) {
+            row(false, game, step, (e && e.stack) ? e.stack.split('\n').slice(0, 3).join('\n') : String(e));
+            cleanup();
+            return;
+        }
+        var html = (mainArea.innerHTML || '').trim();
+        if (!html) {
+            row(false, game, step, 'mainArea 가 비어 있음 (아무것도 안 그림)');
+        } else if (asyncErrors.length) {
+            row(false, game, step, '비동기 오류: ' + asyncErrors.join(' | '));
+        } else {
+            row(true, game, step, html.length + ' chars');
+        }
+        cleanup();
+    }
+
+    function run() {
+        if (typeof GAME_LIST === 'undefined' || typeof GAME_INIT_FNS === 'undefined') {
+            document.getElementById('summary').textContent = '❌ main.js 로드 실패 (GAME_LIST 없음)';
+            document.getElementById('summary').className = 'fail';
+            return;
+        }
+        currentUser = '테스트';
+        var seen = {};
+        GAME_LIST.forEach(function (block) {
+            block.games.forEach(function (g) {
+                seen[g.id] = true;
+                var initFn = GAME_INIT_FNS[g.id];
+                if (typeof initFn !== 'function') {
+                    row(false, g.name, 'GAME_INIT_FNS.' + g.id, '등록 함수 없음');
+                } else {
+                    callStep(g.name, 'init(' + g.id + ')', initFn);
+                }
+                var qs = window[g.quickStart];
+                if (typeof qs !== 'function') {
+                    row(false, g.name, 'quickStart: ' + g.quickStart, '함수 정의 없음');
+                } else {
+                    callStep(g.name, g.quickStart + '()', qs);
+                }
+            });
+        });
+        // 등록됐지만 GAME_LIST에 없는 게임 확인
+        Object.keys(GAME_INIT_FNS).forEach(function (id) {
+            if (!seen[id]) row(false, id, 'orphan', 'GAME_INIT_FNS 에 있지만 GAME_LIST 에 없음');
+        });
+
+        var s = document.getElementById('summary');
+        s.textContent = (fail === 0 ? '✅ 전부 통과' : '❌ ' + fail + '개 실패') + '  (통과 ' + pass + ' / 실패 ' + fail + ')';
+        s.className = fail === 0 ? 'ok' : 'fail';
+        cleanup();
+        mainArea.innerHTML = '';
+    }
+
+    if (document.readyState === 'complete') setTimeout(run, 50);
+    else window.addEventListener('load', function () { setTimeout(run, 50); });
+})();
+</script>
+</body>
+</html>

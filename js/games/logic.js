@@ -29,7 +29,7 @@ function renderPatternSetup() {
 
 function setPatternSize(s) { patternSettings.size = s; renderPatternSetup(); }
 function setPatternTime(t) { patternSettings.timeLimit = t; renderPatternSetup(); }
-function startPatternSession() { generatePatternMatrixRound(); }
+function startPatternSession() { patternRound = 1; patternCorrect = 0; generatePatternMatrixRound(); }
 
 function generatePatternMatrixRound() {
     var size = patternSettings.size === 'random' ? pickRandom([2, 3, 4]) : patternSettings.size;

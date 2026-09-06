@@ -25,6 +25,16 @@ function shuffleArray(arr) {
 function vibrateShort() {
     if (navigator.vibrate) { navigator.vibrate(30); }
 }
+// 화면에 그대로 innerHTML로 넣는 사용자 입력(이름, 음성 인식 결과 등)을 안전하게 이스케이프한다.
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+// 사용자 이름은 표시 전용 문자열이므로 위험 문자(태그/따옴표/제어문자)를 아예 제거하고 길이를 제한한다.
+function sanitizeUserName(s) {
+    return String(s == null ? '' : s).replace(/[<>"'&\\\/\x00-\x1F]/g, '').trim().slice(0, 20);
+}
 
 // ===================== 공용 뜻풀이 팝업 모달 =====================
 function openMeaningModal(title, desc) {
@@ -283,7 +293,7 @@ function renderHome() {
     html += '<button class="action-btn secondary" onclick="renderRandomGamePicker()">🎲 무작위 게임</button>';
     html += '</div>';
     html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">';
-    html += '<div style="font-weight:800; color:var(--primary);">👋 ' + (currentUser || '플레이어') + '님</div>';
+    html += '<div style="font-weight:800; color:var(--primary);">👋 ' + escapeHtml(currentUser || '플레이어') + '님</div>';
     html += '<button class="action-btn secondary" style="padding:0.4rem 0.7rem; font-size:0.78rem;" onclick="renderHistory()">📜 게임 기록</button>';
     html += '</div>';
     GAME_LIST.forEach(function (block) {
@@ -317,7 +327,9 @@ function renderUsernamePrompt() {
     if (names.length > 0) {
         html += '<div class="setup-section-label">최근 사용한 이름</div><div class="setup-btn-group">';
         names.forEach(function (n) {
-            html += '<button class="setup-btn" onclick="selectExistingUsername(\'' + n.replace(/'/g, "\\'") + '\')">' + n + '</button>';
+            var safe = sanitizeUserName(n);
+            if (!safe) return;
+            html += '<button class="setup-btn" onclick="selectExistingUsername(\'' + safe.replace(/'/g, "\\'") + '\')">' + escapeHtml(safe) + '</button>';
         });
         html += '</div>';
     }
@@ -327,12 +339,12 @@ function renderUsernamePrompt() {
     document.getElementById('mainArea').innerHTML = html;
 }
 function selectExistingUsername(name) {
-    currentUser = name;
+    currentUser = sanitizeUserName(name) || '플레이어';
     renderHome();
 }
 function submitUsername() {
     var input = document.getElementById('usernameInput');
-    var name = ((input && input.value) || '').trim();
+    var name = sanitizeUserName((input && input.value) || '');
     if (!name) name = '플레이어';
     currentUser = name;
     try {
@@ -407,7 +419,8 @@ function renderHistory() {
     html += '<div class="setup-section-label">이름 필터</div><div class="setup-btn-group">';
     html += '<button class="setup-btn' + (historyFilter.user === '' ? ' active' : '') + '" onclick="setHistoryFilterUser(\'\')">전체</button>';
     allUsers.forEach(function (u) {
-        html += '<button class="setup-btn' + (historyFilter.user === u ? ' active' : '') + '" onclick="setHistoryFilterUser(\'' + u.replace(/'/g, "\\'") + '\')">' + u + '</button>';
+        var safe = sanitizeUserName(u);
+        html += '<button class="setup-btn' + (historyFilter.user === u ? ' active' : '') + '" onclick="setHistoryFilterUser(\'' + safe.replace(/'/g, "\\'") + '\')">' + escapeHtml(safe || u) + '</button>';
     });
     html += '</div>';
 
@@ -415,7 +428,7 @@ function renderHistory() {
     html += '<select onchange="setHistoryFilterGame(this.value)" style="width:100%; box-sizing:border-box; padding:0.6rem; border:2px solid #d1d5db; border-radius:0.6rem; font-size:0.9rem; margin-bottom:1rem;">';
     html += '<option value=""' + (historyFilter.game === '' ? ' selected' : '') + '>전체 게임</option>';
     allGames.forEach(function (g) {
-        html += '<option value="' + g.replace(/"/g, '&quot;') + '"' + (historyFilter.game === g ? ' selected' : '') + '>' + g + '</option>';
+        html += '<option value="' + escapeHtml(g) + '"' + (historyFilter.game === g ? ' selected' : '') + '>' + escapeHtml(g) + '</option>';
     });
     html += '</select>';
 
@@ -443,7 +456,7 @@ function renderHistory() {
             var dateStr = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
             var origIdx = list.indexOf(r);
             html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:0.4rem;">';
-            html += '<span><b>' + r.user + '</b> · ' + r.game + ' · ' + r.round + '라운드 · <span style="color:#9ca3af; font-size:0.78rem;">' + dateStr + '</span></span>';
+            html += '<span><b>' + escapeHtml(r.user) + '</b> · ' + escapeHtml(r.game) + ' · ' + (parseInt(r.round, 10) || 0) + '라운드 · <span style="color:#9ca3af; font-size:0.78rem;">' + dateStr + '</span></span>';
             html += '<button onclick="deleteHistoryRecord(' + origIdx + ')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:0.95rem; flex-shrink:0;">🗑️</button>';
             html += '</div>';
         });

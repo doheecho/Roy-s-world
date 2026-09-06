@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>두뇌 쑥쑥 놀이터 - 기억력·공간지각·한글·관찰력·감정놀이</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="manifest" href="/Roy-s-world/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1428A0">
-    <link rel="icon" href="/Roy-s-world/icon-512x512.png">
-    <link rel="apple-touch-icon" href="/Roy-s-world/icon-512x512.png">
+    <link rel="icon" href="icon-512x512.png">
+    <link rel="apple-touch-icon" href="icon-512x512.png">
 </head>
 <body>
     <div class="app-container">
@@ -50,7 +50,15 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('/Roy-s-world/sw.js').catch(function (err) {
+                // 페이지 로드 시점에 이미 제어 중인 SW가 있었는지 기록(첫 설치 때는 새로고침하지 않기 위함)
+                var hadController = !!navigator.serviceWorker.controller;
+                var reloaded = false;
+                navigator.serviceWorker.addEventListener('controllerchange', function () {
+                    if (reloaded || !hadController) return;
+                    reloaded = true;
+                    window.location.reload(); // 새 SW가 제어를 넘겨받으면 한 번 새로고침해 최신 코드 반영
+                });
+                navigator.serviceWorker.register('sw.js').catch(function (err) {
                     console.warn('SW registration failed:', err);
                 });
             });

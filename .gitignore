@@ -1,0 +1,11 @@
+# OS
+Thumbs.db
+ehthumbs.db
+.DS_Store
+desktop.ini
+
+# 임시 / 백업
+*.zip
+*.bak
+*~
+node_modules/
