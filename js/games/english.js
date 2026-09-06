@@ -46,6 +46,7 @@ function engSupportsTTS() {
 }
 function engSpeak(text, delayMs) {
     if (!engSupportsTTS() || !text) return;
+    if (typeof SOUND_ON !== 'undefined' && !SOUND_ON) { ENG_TTS.lastText = text; return; }
     ENG_TTS.lastText = text;
     var doIt = function () {
         engCancelSpeak();

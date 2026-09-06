@@ -125,6 +125,7 @@ var GAME_LIST = [
 
 var randomPickState = { selectedCats: null };
 function renderRandomGamePicker() {
+    navEnterScreen();
     document.getElementById('homeBtn').style.display = 'inline-block';
     if (!randomPickState.selectedCats) {
         randomPickState.selectedCats = GAME_LIST.map(function (b) { return b.cat; });
@@ -183,6 +184,8 @@ function launchRandomModeGame(g) {
     randomModeCurrent = g;
     clearAllGameTimers();
     if (typeof stopVoiceRecognition === 'function') stopVoiceRecognition();
+    navEnterScreen();
+    requestWakeLock();
     endGameSession();
     startGameSession(g.id);
     document.getElementById('homeBtn').style.display = 'inline-block';
@@ -227,6 +230,8 @@ function launchTodayModeGame(g) {
     todayModeCurrent = g;
     clearAllGameTimers();
     if (typeof stopVoiceRecognition === 'function') stopVoiceRecognition();
+    navEnterScreen();
+    requestWakeLock();
     endGameSession();
     startGameSession(g.id);
     document.getElementById('homeBtn').style.display = 'inline-block';
@@ -285,9 +290,14 @@ function hideMetaProgressBar() {
 }
 
 function renderHome() {
+    _navAway = false;
     document.getElementById('homeBtn').style.display = 'none';
+    updateSoundBtn();
     hideMetaProgressBar();
     var html = '';
+    if (_deferredInstall && !isStandalone()) {
+        html += '<button class="action-btn" style="width:100%; margin-bottom:0.6rem; background:#0f766e;" onclick="triggerInstall()">📲 이 놀이터를 앱으로 설치하기</button>';
+    }
     html += '<div class="options-grid" style="margin-bottom:0.6rem;">';
     html += '<button class="action-btn" onclick="startTodayGame()">🔥 오늘의 게임</button>';
     html += '<button class="action-btn secondary" onclick="renderRandomGamePicker()">🎲 무작위 게임</button>';
@@ -321,6 +331,7 @@ var historyFilter = { user: '', game: '' };
 var historySort = { key: 'date', dir: 'desc' };
 
 function renderUsernamePrompt() {
+    navEnterScreen();
     document.getElementById('homeBtn').style.display = 'none';
     var html = '<div class="game-title-box">👋 환영해요!</div>';
     html += '<div class="game-sub-desc">이름을 입력하거나 골라주세요.</div>';
@@ -433,6 +444,7 @@ function toggleHistorySort(key) {
     renderHistory();
 }
 function renderHistory() {
+    navEnterScreen();
     document.getElementById('homeBtn').style.display = 'inline-block';
     var html = '<div class="game-title-box">📜 게임 기록</div>';
     var list = [];
@@ -526,14 +538,105 @@ function deleteHistoryRecord(idx) {
     renderHistory();
 }
 
-function goHome() {
+function _teardownToHome() {
     randomModeActive = false;
     todayModeActive = false;
     hideMetaProgressBar();
     clearAllGameTimers();
     if (typeof stopVoiceRecognition === 'function') stopVoiceRecognition();
+    releaseWakeLock();
     endGameSession();
     renderHome();
+}
+function goHome() {
+    // 홈으로 버튼: 밀어넣었던 히스토리 항목이 있으면 소비하고(뒤로가기와 동일한 스택 상태 유지),
+    // 화면은 여기서 직접 홈으로 되돌린다.
+    if (_navAway) {
+        _navAway = false;
+        try { history.back(); } catch (e) { }
+    }
+    _teardownToHome();
+}
+
+// ===================== 앱 셸: 뒤로가기 / 화면잠금 / 절전 / 소리 / 설치 =====================
+
+// --- 안드로이드 뒤로가기: 게임 중 뒤로가기를 "홈으로"로 처리 (앱이 그냥 꺼지는 것 방지) ---
+var _navAway = false;
+function navEnterScreen() {
+    if (_navAway) return;
+    _navAway = true;
+    try { history.pushState({ eroi: 1 }, ''); } catch (e) { }
+}
+window.addEventListener('popstate', function () {
+    if (!_navAway && !activeGameSession && !randomModeActive && !todayModeActive) return;
+    _navAway = false;
+    _teardownToHome();
+});
+
+// --- 게임 중 화면 꺼짐 방지 ---
+var _wakeLock = null;
+function requestWakeLock() {
+    try {
+        if (navigator.wakeLock && document.visibilityState === 'visible' && !_wakeLock) {
+            navigator.wakeLock.request('screen').then(function (wl) {
+                _wakeLock = wl;
+                wl.addEventListener('release', function () { _wakeLock = null; });
+            }).catch(function () { });
+        }
+    } catch (e) { }
+}
+function releaseWakeLock() {
+    try { if (_wakeLock) { _wakeLock.release(); _wakeLock = null; } } catch (e) { }
+}
+
+// --- 앱 전환(백그라운드) 대응 ---
+var _hiddenAt = 0;
+document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+        _hiddenAt = Date.now();
+    } else {
+        var gap = _hiddenAt ? (Date.now() - _hiddenAt) : 0;
+        _hiddenAt = 0;
+        // 게임 중 앱을 1.5초 넘게 벗어났다가 돌아오면, 백그라운드에서 타이머가 흘러
+        // 잘못된 "시간 초과"가 뜨는 대신 홈으로 돌려보낸다.
+        if (gap > 1500 && (activeGameSession || randomModeActive || todayModeActive)) {
+            goHome();
+            return;
+        }
+        if (activeGameSession || randomModeActive || todayModeActive) { requestWakeLock(); }
+    }
+});
+
+// --- 전역 소리 on/off ---
+var SOUND_ON = true;
+try { SOUND_ON = localStorage.getItem('soundOn') !== '0'; } catch (e) { }
+function updateSoundBtn() {
+    var b = document.getElementById('soundBtn');
+    if (b) { b.innerText = SOUND_ON ? '🔊' : '🔇'; b.setAttribute('aria-label', SOUND_ON ? '소리 끄기' : '소리 켜기'); }
+}
+function toggleSound() {
+    SOUND_ON = !SOUND_ON;
+    try { localStorage.setItem('soundOn', SOUND_ON ? '1' : '0'); } catch (e) { }
+    if (!SOUND_ON) { try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { } }
+    updateSoundBtn();
+}
+
+// --- "홈 화면에 추가" 설치 안내 ---
+var _deferredInstall = null;
+function isStandalone() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+}
+window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    _deferredInstall = e;
+    var ma = document.getElementById('mainArea');
+    if (ma && ma.querySelector('.game-tile')) renderHome();
+});
+window.addEventListener('appinstalled', function () { _deferredInstall = null; });
+function triggerInstall() {
+    if (!_deferredInstall) return;
+    _deferredInstall.prompt();
+    _deferredInstall.userChoice.then(function () { _deferredInstall = null; renderHome(); });
 }
 
 // ===================== 결과 버튼 공통 (모든 게임 공용) =====================
@@ -561,6 +664,8 @@ function startGame(id) {
     hideMetaProgressBar();
     clearAllGameTimers();
     if (typeof stopVoiceRecognition === 'function') stopVoiceRecognition();
+    navEnterScreen();
+    requestWakeLock();
     startGameSession(id);
     document.getElementById('homeBtn').style.display = 'inline-block';
     var fn = GAME_INIT_FNS[id];

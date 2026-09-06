@@ -60,6 +60,8 @@ h1 { font-size: 1.1rem; margin: 0; text-align: left; }
     display: none;
 }
 .home-btn:hover { background: rgba(255,255,255,0.3); }
+.header-actions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+#soundBtn { display: inline-block; font-size: 1rem; padding: 0.3rem 0.55rem; line-height: 1; }
 .content-padding { padding: 1.3rem 1.4rem 1.6rem 1.4rem; text-align: center; }
 
 .category-block { margin-bottom: 1.4rem; text-align: left; }

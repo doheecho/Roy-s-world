@@ -375,6 +375,7 @@ function getPianoAudioCtx() {
     return pianoAudioCtx;
 }
 function playPianoTone(freq) {
+    if (typeof SOUND_ON !== 'undefined' && !SOUND_ON) return;
     var ctx = getPianoAudioCtx();
     if (!ctx) return;
     var osc = ctx.createOscillator();

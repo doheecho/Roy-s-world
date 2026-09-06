@@ -213,6 +213,21 @@ function setHanjaMode(v) { hanjaSettings.mode = v; renderHanjaSetup(); }
 function setHanjaTimeLimit(v) { hanjaSettings.timeLimit = v; renderHanjaSetup(); }
 function startHanjaSession() { hanjaRound = 1; hanjaCorrect = 0; generateHanjaRound(); }
 
+// 보기 중복 제거: 표시 글자가 같은 오답(정답과 헷갈림) 및 서로 겹치는 오답을 걸러낸다.
+function dedupeHanjaOptions(options) {
+    var correct = options.filter(function (o) { return o.correct; })[0];
+    var seen = {};
+    var out = [];
+    options.forEach(function (o) {
+        if (o.correct) { if (!seen[o.label]) { seen[o.label] = 1; out.push(o); } return; }
+        if (correct && o.label === correct.label) return;
+        if (seen[o.label]) return;
+        seen[o.label] = 1;
+        out.push(o);
+    });
+    return out;
+}
+
 function generateHanjaRound() {
     var mode = hanjaSettings.mode;
     var q, options;
@@ -243,6 +258,7 @@ function generateHanjaRound() {
             return { label: o.word, correct: o.correct, full: o.word + ' (' + o.meaning + ')' };
         });
     }
+    options = dedupeHanjaOptions(options);
     hanjaState = {
         mode: mode, q: q, options: options, answered: false, selectedIdx: -1, hintShown: false,
         timeLimit: hanjaSettings.timeLimit, timeLeft: hanjaSettings.timeLimit, timerId: null, timedOut: false

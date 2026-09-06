@@ -250,11 +250,20 @@ function generateWorldQuizRound() {
         wrongPool = WORLD_QUIZ_LIST.filter(function (it) { return it[key] !== correct[key]; });
     }
     var wrongs = pickN(wrongPool, 2);
-    var options = shuffleArray([
-        { value: correct[key], isCorrect: true },
-        { value: wrongs[0][key], isCorrect: false },
-        { value: wrongs[1][key], isCorrect: false }
-    ]);
+    var raw = [{ value: correct[key], isCorrect: true }];
+    wrongs.forEach(function (w) { if (w) raw.push({ value: w[key], isCorrect: false }); });
+    // 표시 값이 같은 보기 제거(정답 우선). 3개 미만이면 목록에서 채운다.
+    var byVal = {};
+    raw.forEach(function (o) { if (!byVal[o.value] || o.isCorrect) byVal[o.value] = o; });
+    var uniq = Object.keys(byVal).map(function (k) { return byVal[k]; });
+    if (uniq.length < 3) {
+        var fill = shuffleArray(WORLD_QUIZ_LIST.slice());
+        for (var fi = 0; fi < fill.length && uniq.length < 3; fi++) {
+            var v = fill[fi][key];
+            if (!byVal[v]) { byVal[v] = { value: v, isCorrect: false }; uniq.push(byVal[v]); }
+        }
+    }
+    var options = shuffleArray(uniq);
     worldQuizState = {
         correct: correct, options: options, answered: false, hintShown: false, selectedValue: null,
         timeLimit: worldQuizSettings.timeLimit, timeLeft: worldQuizSettings.timeLimit, timerId: null, timedOut: false
