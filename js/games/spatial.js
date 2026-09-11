@@ -3,6 +3,9 @@ var mazeSettings = { size: 8, timeLimit: 0 };
 var mazeSolved = 0;
 var mazeState = {};
 var mazeHoldInterval = null;
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('mazeGame', { easy: { size: 6 }, normal: { size: 8 }, hard: { size: 10 } });
+}
 
 function buildMaze(w, h) {
     var cells = [];
@@ -27,6 +30,7 @@ function buildMaze(w, h) {
     return cells;
 }
 function initMazeGame() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('mazeGame', mazeSettings);
     renderMazeSetup();
 }
 function renderMazeSetup() {
@@ -99,6 +103,7 @@ function startMazeTimer() {
         if (mazeState.timeLeft <= 0) {
             clearInterval(mazeState.timerId);
             mazeState.failed = true;
+            if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
             stopHoldMove();
             renderMaze();
         }
@@ -217,6 +222,7 @@ function moveMaze(dx, dy) {
         mazeState.won = true;
         mazeState.elapsed = (Date.now() - mazeState.startTime) / 1000;
         mazeSolved++;
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
         stopHoldMove();
     }
     renderMaze();

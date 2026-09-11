@@ -290,6 +290,21 @@ function hideMetaProgressBar() {
     if (bar) { bar.style.display = 'none'; bar.innerHTML = ''; }
 }
 
+function renderDifficultyToggle() {
+    var modes = [
+        { v: 'easy', l: '🙂 쉽게' },
+        { v: 'normal', l: '🎯 보통' },
+        { v: 'hard', l: '🔥 어렵게' },
+        { v: 'auto', l: '🤖 자동' }
+    ];
+    var html = '<div class="setup-section-label" style="margin-top:0;">전체 난이도 <span style="font-weight:400; color:#6b7280;">(일부 게임의 setup 기본값에 반영돼요)</span></div>';
+    html += '<div class="setup-btn-group" style="margin-bottom:0.8rem;">';
+    modes.forEach(function (m) {
+        html += '<button class="setup-btn' + (GAME_DIFFICULTY_MODE === m.v ? ' active' : '') + '" style="flex:1; padding:0.5rem 0.3rem; font-size:0.82rem;" onclick="setGameDifficultyMode(\'' + m.v + '\')">' + m.l + '</button>';
+    });
+    html += '</div>';
+    return html;
+}
 function renderHome() {
     _navAway = false;
     document.getElementById('homeBtn').style.display = 'none';
@@ -317,6 +332,8 @@ function renderHome() {
         html += '<div style="flex:1; display:flex; align-items:center; justify-content:center; font-weight:800; color:#b45309; background:#fffbeb; border:2px solid #fde68a; border-radius:0.6rem; font-size:0.85rem;">🔥 ' + _streak.count + '일 연속</div>';
     }
     html += '</div>';
+    // 전역 난이도 토글 (프리셋이 등록된 게임의 setup 기본 선택에 반영됨)
+    html += renderDifficultyToggle();
     // 카테고리 바로가기 칩 (홈 화면이 길어서 원하는 분류로 바로 스크롤)
     html += '<div class="cat-nav">';
     GAME_LIST.forEach(function (block, ci) {
@@ -550,6 +567,37 @@ function getAdaptiveLevel(id) {
         var all = JSON.parse(localStorage.getItem('gameAdaptive') || '{}');
         return (all[id] && all[id].level) || 'normal';
     } catch (e) { return 'normal'; }
+}
+
+// ===================== 난이도 프리셋 =====================
+// 게임이 자기 easy/normal/hard 값을 등록해두면(registerDifficultyPreset),
+// 홈의 전역 토글(쉽게/보통/어렵게/자동)이 그 게임 setup 화면의 "기본 선택"을 조절한다.
+// 프리셋을 등록하지 않은 게임은 이 시스템의 영향을 받지 않고 기존 그대로 동작한다.
+var GAME_DIFFICULTY_PRESETS = {};
+function registerDifficultyPreset(id, presets) { GAME_DIFFICULTY_PRESETS[id] = presets; }
+
+var GAME_DIFFICULTY_MODE = (function () {
+    try { return localStorage.getItem('gameDifficultyMode') || 'normal'; } catch (e) { return 'normal'; }
+})();
+function setGameDifficultyMode(v) {
+    GAME_DIFFICULTY_MODE = v;
+    try { localStorage.setItem('gameDifficultyMode', v); } catch (e) { }
+    renderHome();
+}
+// 이 게임에 지금 적용해야 할 난이도('easy'|'normal'|'hard'). '자동' 모드면 적응형 추정치를 쓴다.
+function resolveGameLevel(id) {
+    if (GAME_DIFFICULTY_MODE === 'auto') return getAdaptiveLevel(id);
+    return GAME_DIFFICULTY_MODE;
+}
+// setup 화면 진입 시(initXxx 맨 앞) 호출: 프리셋이 등록된 게임이면 settings 객체에
+// 현재 난이도 값을 덮어써서 "전역값이 기본 선택"이 되게 한다. 값을 몇 개만 등록해도 되고
+// (예: size만), settingsObj에 이미 있던 나머지 필드는 그대로 남는다.
+function applyDifficultyPreset(id, settingsObj) {
+    var presets = GAME_DIFFICULTY_PRESETS[id];
+    if (!presets || !settingsObj) return;
+    var preset = presets[resolveGameLevel(id)] || presets.normal;
+    if (!preset) return;
+    Object.keys(preset).forEach(function (k) { settingsObj[k] = preset[k]; });
 }
 
 function startGameSession(id) {

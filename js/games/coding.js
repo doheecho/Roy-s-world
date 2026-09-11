@@ -278,6 +278,7 @@ function handleBlockCodeSuccess() {
     blockCodeState.solved = true;
     blockCodeState.buggyIndex = null;
     blockCodeSolved++;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
     renderBlockCoding();
     var msg = document.getElementById('blockCodeMsg');
     msg.className = 'msg-box'; msg.style.display = 'block';
@@ -287,6 +288,7 @@ function handleBlockCodeSuccess() {
 function handleBlockCodeFail(reason, buggyOrigIndex) {
     blockCodeState.buggyIndex = (typeof buggyOrigIndex === 'number') ? buggyOrigIndex : null;
     blockCodeState.lastErrorMsg = reason;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     renderBlockCoding();
     var msg = document.getElementById('blockCodeMsg');
     msg.className = 'msg-box bad'; msg.style.display = 'block';
