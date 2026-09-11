@@ -1394,6 +1394,7 @@ function nextOddRuleRound() {
 }
 function renderOddRuleRound() {
     var st = orrState;
+    if (typeof reportGameRound === 'function') reportGameRound(st.correct);
     var k = st.cells.length;
     var cols = k <= 4 ? k : (k <= 6 ? 3 : 4);
     var html = '<div class="game-title-box">🔍 규칙 벗어난 것 찾기</div>';

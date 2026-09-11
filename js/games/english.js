@@ -236,6 +236,7 @@ function buildListenOptions(item) {
 function renderListenRound() {
     ENG_TTS.rerender = renderListenRound;
     var st = listenState;
+    if (typeof reportGameRound === 'function') reportGameRound(st.correct);
     var item = st.queue[st.i];
     if (!st.opts || st.optsFor !== st.i) { st.opts = buildListenOptions(item); st.optsFor = st.i; }
     var html = '<div class="game-title-box">🎧 듣고 그림 찾기</div>';
@@ -663,6 +664,7 @@ function loadScrambleRound() {
 function renderScrambleRound() {
     ENG_TTS.rerender = renderScrambleRound;
     var st = scrambleState;
+    if (typeof reportGameRound === 'function') reportGameRound(Math.round(st.correct));
     var item = st.queue[st.i];
     var html = '<div class="game-title-box">🧩 문장 만들기</div>';
     html += '<div class="status-row"><div>' + (st.i + 1) + ' / ' + SCRAMBLE_TOTAL + '</div><div>정답: ' + st.correct + '</div></div>';
@@ -897,6 +899,7 @@ function fillSentenceText(item) {
 function renderFillRound() {
     ENG_TTS.rerender = renderFillRound;
     var st = fillState;
+    if (typeof reportGameRound === 'function') reportGameRound(st.correct);
     var item = st.queue[st.i];
     if (!st.opts || st.optsFor !== st.i) { st.opts = shuffleArray(item.o.slice()); st.optsFor = st.i; }
     var html = '<div class="game-title-box">✏️ 빈칸 채우기</div>';
@@ -1029,6 +1032,7 @@ function startWordSortSession() {
 function renderWordSortRound() {
     ENG_TTS.rerender = renderWordSortRound;
     var st = wordSortState;
+    if (typeof reportGameRound === 'function') reportGameRound(Math.max(0, st.placed - st.wrong));
     var html = '<div class="game-title-box">🗂️ 단어 분류하기</div>';
     html += '<div class="game-sub-desc" style="text-align:center; margin-bottom:0.4rem;">단어 카드를 누른 다음, 알맞은 통을 눌러서 분류해요. <b>(카드 → 통 2번 누르기)</b></div>';
     html += '<div class="status-row"><div>' + st.placed + ' / ' + st.cards.length + ' 분류</div><div>실수: ' + st.wrong + '</div></div>';
@@ -1170,6 +1174,7 @@ function startOppSession() {
 function renderOppRound() {
     ENG_TTS.rerender = renderOppRound;
     var st = oppState;
+    if (typeof reportGameRound === 'function') reportGameRound(st.matched);
     var n = st.cards.length;
     var cols = n <= 12 ? 4 : (n <= 16 ? 4 : 5);
     var html = '<div class="game-title-box">🔄 ' + (st.mode === 'synonym' || oppState.mode === 'synonym' ? '비슷한말' : '반대말') + ' 짝짓기</div>';
