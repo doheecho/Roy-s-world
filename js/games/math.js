@@ -306,6 +306,7 @@ function startChangeTimer() {
 function handleChangeTimeout() {
     if (changeState.finished || changeState.timedOut) return;
     changeState.timedOut = true;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     renderChangeGame();
 }
 function scanChangeItem(idx) {
@@ -342,6 +343,7 @@ function checkChangeAnswer() {
     if (givenTotal === changeState.changeDue) {
         changeState.finished = true;
         changeSolved++;
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
         if (changeState.timerId) clearInterval(changeState.timerId);
         renderChangeGame();
         msg = document.getElementById('changeMsg');
@@ -349,6 +351,7 @@ function checkChangeAnswer() {
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextChangeRound()', 'retryChangeRound()', 'restartChangeGame()'));
     } else {
         changeState.failed = true;
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
         if (changeState.timerId) clearInterval(changeState.timerId);
         renderChangeGame();
         msg = document.getElementById('changeMsg');

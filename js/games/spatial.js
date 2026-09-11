@@ -622,9 +622,11 @@ function checkCube3DMatch() {
     var msg = document.getElementById('cube3dMsg');
     if (snapped === cube3dState.targetRotY) {
         cube3dCorrect++;
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
         msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 정답이에요! 똑같이 돌렸어요.';
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextCube3DRound()', 'retryCube3DRound()', 'restartCube3DMatch()'));
     } else {
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아직 달라요! 조금 더 돌려서 맞춰보세요.';
         document.getElementById('mainArea').insertAdjacentHTML('beforeend',
             '<div class="options-grid">' +
@@ -1537,6 +1539,7 @@ function checkPaperFold(idx) {
     vibrateShort();
     var boxes = document.querySelectorAll('.cube3d-option-box');
     var isCorrect = (idx === paperState.correctIndex);
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(isCorrect ? 'win' : 'lose');
     var msg = document.getElementById('paperMsg');
     if (isCorrect) {
         paperCorrect++;
@@ -1645,6 +1648,7 @@ function startCheeseTimer() {
 function handleCheeseTimeout() {
     if (cheeseState.finished || cheeseState.failed || cheeseState.timedOut) return;
     cheeseState.timedOut = true;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     stopCheeseHoldMove();
     renderCheeseMaze();
 }
@@ -1674,10 +1678,12 @@ function moveCheeseMouse(dx, dy) {
         if (nx === cheeseState.exit.x && ny === cheeseState.exit.y) {
             cheeseState.finished = true;
             cheeseSolved++;
+            if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
             if (cheeseState.timerId) clearInterval(cheeseState.timerId);
             stopCheeseHoldMove();
         } else {
             cheeseState.failed = true;
+            if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
             if (cheeseState.timerId) clearInterval(cheeseState.timerId);
             stopCheeseHoldMove();
         }
@@ -1689,6 +1695,7 @@ function moveCheeseMouse(dx, dy) {
         });
         if (stuck) {
             cheeseState.failed = true;
+            if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
             if (cheeseState.timerId) clearInterval(cheeseState.timerId);
             stopCheeseHoldMove();
         }
@@ -1860,6 +1867,7 @@ function retryNetFoldSameRound() {
 // 정답/오답 공용 결과 처리(다른 공간지각 게임들과 동일한 버튼 구성 재사용)
 function netfoldFinishRound(isCorrect, correctMsg, wrongMsg) {
     netfoldRound++;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(isCorrect ? 'win' : 'lose');
     var msg = document.getElementById('netfoldMsg');
     msg.style.display = 'block';
     if (isCorrect) {

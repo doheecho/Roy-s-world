@@ -318,6 +318,7 @@ function handleProverbTimeout() {
     if (proverbState.timerId) { clearInterval(proverbState.timerId); proverbState.timerId = null; }
     proverbState.timedOut = true;
     proverbState.answered = true;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     renderProverbQuiz();
 }
 function toggleProverbHint() {
@@ -332,6 +333,7 @@ function checkProverbAnswer(btn, title, isCorrect) {
     proverbState.selectedTitle = title;
     vibrateShort();
     if (isCorrect) { proverbCorrect++; }
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(isCorrect ? 'win' : 'lose');
     renderProverbQuiz();
     var msg = document.getElementById('proverbMsg');
     var modeLabel = proverbSettings.mode === 'idiom' ? '고사성어' : '속담';

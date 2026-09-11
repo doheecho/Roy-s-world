@@ -518,6 +518,40 @@ function captureCurrentRoundNumber() {
 function reportGameRound(n) {
     if (activeGameSession) { activeGameSession.round = parseInt(n, 10) || 0; }
 }
+
+// ===================== 적응형 난이도(준비) =====================
+// 게임이 한 판/한 문제가 끝날 때마다 'win'|'lose' 를 보고(선택)하면, 게임별로 최근 성적을
+// localStorage('gameAdaptive')에 쌓아 대표 난이도(easy/normal/hard)를 추정해둔다.
+// 아직 이 값을 실제 문제 생성에 반영하는 곳은 없음(다음 단계: 게임별 난이도 프리셋 도입 후 연결).
+var ADAPTIVE_LEVELS = ['easy', 'normal', 'hard'];
+var ADAPTIVE_UP_STREAK = 3;   // 연속 정답 n회 → 한 단계 상향
+var ADAPTIVE_DOWN_STREAK = 2; // 연속 오답 n회 → 한 단계 하향
+function reportGameOutcome(result) {
+    if (!activeGameSession) return;
+    var id = activeGameSession.id;
+    var all = {};
+    try { all = JSON.parse(localStorage.getItem('gameAdaptive') || '{}'); } catch (e) { }
+    var st = all[id] || { level: 'normal', recent: [] };
+    st.recent = (st.recent || []).slice(-5);
+    st.recent.push(result === 'win' ? 1 : 0);
+    var n = st.recent.length;
+    var idx = ADAPTIVE_LEVELS.indexOf(st.level); if (idx < 0) idx = 1;
+    var lastUp = n >= ADAPTIVE_UP_STREAK && st.recent.slice(-ADAPTIVE_UP_STREAK).every(function (v) { return v === 1; });
+    var lastDown = n >= ADAPTIVE_DOWN_STREAK && st.recent.slice(-ADAPTIVE_DOWN_STREAK).every(function (v) { return v === 0; });
+    if (lastUp && idx < ADAPTIVE_LEVELS.length - 1) { idx++; st.recent = []; }
+    else if (lastDown && idx > 0) { idx--; st.recent = []; }
+    st.level = ADAPTIVE_LEVELS[idx];
+    all[id] = st;
+    try { localStorage.setItem('gameAdaptive', JSON.stringify(all)); } catch (e) { }
+}
+// 게임별 현재 추정 난이도 조회(선택 사용). 기록이 없으면 'normal'.
+function getAdaptiveLevel(id) {
+    try {
+        var all = JSON.parse(localStorage.getItem('gameAdaptive') || '{}');
+        return (all[id] && all[id].level) || 'normal';
+    } catch (e) { return 'normal'; }
+}
+
 function startGameSession(id) {
     activeGameSession = { id: id, name: getGameName(id), startTime: Date.now() };
 }
@@ -892,6 +926,7 @@ function choiceSubmit(i) {
     var main = document.getElementById('mainArea');
     var buttons = main ? main.querySelectorAll(c.selector || '.opt-btn') : [];
     var ok = (i === st.answerIndex);
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(ok ? 'win' : 'lose');
     if (buttons[i]) buttons[i].classList.add(ok ? 'correct' : 'wrong');
     if (!ok && buttons[st.answerIndex]) buttons[st.answerIndex].classList.add('correct');
     var msg = document.getElementById(c.msgId || 'choiceMsg');
@@ -919,6 +954,7 @@ function choiceTimeout() {
     st.answered = true;
     var c = st.cfg;
     if (c.rerender) c.rerender(-1, false);
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     var main = document.getElementById('mainArea');
     var buttons = main ? main.querySelectorAll(c.selector || '.opt-btn') : [];
     if (buttons[st.answerIndex]) buttons[st.answerIndex].classList.add('correct');

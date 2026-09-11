@@ -101,6 +101,7 @@ function startSpotTimer() {
 function handleSpotTimeout() {
     if (spotState.finished) return;
     spotState.finished = true;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     var boxes = document.querySelectorAll('.row-box.clickable');
     spotState.changeIndices.forEach(function (idx) {
         if (boxes[idx] && spotState.found.indexOf(idx) === -1) {
@@ -129,6 +130,7 @@ function checkSpotChange(el, idx) {
         if (countEl) countEl.innerText = spotState.found.length;
         if (spotState.found.length === spotState.changeIndices.length) {
             spotState.finished = true;
+            if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
             clearInterval(spotState.timerId);
             msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 성공! 모두 찾았어요.'; playResultSound(true);
             document.getElementById('mainArea').insertAdjacentHTML('beforeend',
@@ -253,11 +255,13 @@ function clickNumberRush(btn, num) {
         numberRushState.currentIndex++;
         if (numberRushState.currentIndex >= numberRushState.total) {
             numberRushState.finished = true;
+            if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
         }
         renderNumberRush();
     } else {
         vibrateShort();
         numberRushState.failed = true;
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
         renderNumberRush();
     }
 }
@@ -443,6 +447,7 @@ function finishFlashCountSession() {
     var st = fcsState;
     if (typeof reportGameRound === 'function') reportGameRound(st.correct);
     var n = fcs_starN(st.correct, FCS_TOTAL);
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(n >= 2 ? 'win' : 'lose');
     var html = '<div class="game-title-box">⚡ 순간 포착 세기 — 끝!</div>';
     html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + fcs_starStr(n) + '</div>';
     html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">' + FCS_TOTAL + '문제 중 <span style="color:var(--primary);">' + st.correct + '개</span> 정답!</div>';

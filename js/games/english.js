@@ -112,6 +112,7 @@ function renderEngResult(emoji, name, correct, total, initFn, startFn, extraLine
     ENG_TTS.rerender = null;
     if (typeof reportGameRound === 'function') reportGameRound(correct);
     var n = engStars(correct, total);
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(n >= 2 ? 'win' : 'lose');
     var html = '<div class="game-title-box">' + emoji + ' ' + name + ' — 끝!</div>';
     html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + engStarStr(n) + '</div>';
     html += '<div class="game-sub-desc" style="text-align:center; font-weight:800; font-size:1rem;">' + total + '문제 중 <span style="color:var(--primary);">' + correct + '개</span> 정답!';

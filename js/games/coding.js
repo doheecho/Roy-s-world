@@ -690,6 +690,7 @@ function finishCodeTraceRound() {
     renderCodeTrace();
     var msg = document.getElementById('codeTraceMsg');
     var correct = codeTraceState.chosen.x === codeTraceState.finalPos.x && codeTraceState.chosen.y === codeTraceState.finalPos.y;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(correct ? 'win' : 'lose');
     if (correct) {
         codeTraceCorrect++;
         msg.className = 'msg-box'; msg.style.display = 'block';
@@ -1478,6 +1479,7 @@ function startWaterPipeTimer() {
 function handleWaterPipeTimeout() {
     if (waterPipeState.fired || waterPipeState.timedOut) return;
     waterPipeState.timedOut = true;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     renderWaterPipe();
 }
 function restartWaterPipe() { renderWaterPipeSetup(); }
@@ -1537,6 +1539,7 @@ function stepWaterFlow(i) {
         waterPipeState.flowing = false;
         waterPipeState.fired = true;
         waterPipeState.success = waterPipeState.willSucceed;
+        if (typeof reportGameOutcome === 'function') reportGameOutcome(waterPipeState.success ? 'win' : 'lose');
         if (waterPipeState.success) {
             waterPipeSolved++;
         } else if (waterPipeState.timeLimit > 0 && waterPipeState.timeLeft > 0 && !waterPipeState.timedOut) {
@@ -1822,6 +1825,7 @@ function stepCleanbotProgram() {
 }
 function handleCleanbotFail(reason) {
     renderCleanbot();
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     var msg = document.getElementById('cleanbotMsg');
     msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = reason;
     document.getElementById('mainArea').insertAdjacentHTML('beforeend', '<button class="action-btn" onclick="retryCleanbotRound()">다시 실행하기 🔁</button>');
@@ -1849,6 +1853,7 @@ function runCleanbotGeneralizationTest() {
     html += '</div>';
     document.getElementById('mainArea').insertAdjacentHTML('beforeend', html);
     cleanbotRound++;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(passCount === 3 ? 'win' : 'lose');
     if (passCount === 3) {
         cleanbotSolved++;
         cleanbotState.solved = true;

@@ -580,6 +580,7 @@ function handleSudokuTimeout() {
     if (sudokuState.timedOut || sudokuState.checked) return;
     if (sudokuState.timerId) { clearInterval(sudokuState.timerId); sudokuState.timerId = null; }
     sudokuState.timedOut = true;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     renderSudoku();
 }
 function generateSudokuSolution() {
@@ -707,11 +708,13 @@ function checkSudoku() {
         sudokuState.checked = true;
         if (sudokuState.timerId) { clearInterval(sudokuState.timerId); sudokuState.timerId = null; }
         sudokuCorrect++;
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
         renderSudoku();
         msg = document.getElementById('sudokuMsg');
         msg.className = 'msg-box'; msg.style.display = 'block'; msg.innerText = '🎉 완벽해요! 규칙에 맞게 모두 채웠어요.';
         document.getElementById('mainArea').insertAdjacentHTML('beforeend', buildStandardResultButtons('nextSudokuRound()', 'retrySudokuRound()', 'renderSudokuSetup()'));
     } else {
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
         sudokuState.wrongCells = wrongCells;
         renderSudoku();
         msg = document.getElementById('sudokuMsg');
@@ -912,6 +915,7 @@ function startSuspectTimer() {
 function handleSuspectTimeout() {
     if (suspectState.checked || suspectState.timedOut) return;
     suspectState.timedOut = true;
+    if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
     renderSuspectLogic();
     var msg = document.getElementById('suspectMsg');
     var ans = suspectState.suspects.filter(function (s) { return s.id === suspectState.answerId; })[0];
@@ -951,6 +955,7 @@ function checkSuspectAnswer() {
         suspectState.checked = true;
         suspectState.success = true;
         suspectCorrect++;
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
         if (suspectState.timerId) { clearInterval(suspectState.timerId); }
         renderSuspectLogic();
         msg = document.getElementById('suspectMsg');
@@ -961,6 +966,7 @@ function checkSuspectAnswer() {
     } else if (active.length > 1) {
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '아직 용의자가 ' + active.length + '명 남았어요. 단서를 다시 살펴보고 더 지워보세요!';
     } else {
+        if (typeof reportGameOutcome === 'function') reportGameOutcome('lose');
         msg.className = 'msg-box bad'; msg.style.display = 'block'; msg.innerText = '이 용의자는 범인이 아니에요! 단서를 다시 살펴보세요.';
     }
 }
@@ -1204,6 +1210,7 @@ function finishTruthLiarSession() {
     var st = tldState;
     if (typeof reportGameRound === 'function') reportGameRound(Math.round(st.correct));
     var n = tld_starN(Math.round(st.correct), TLD_TOTAL);
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(n >= 2 ? 'win' : 'lose');
     var html = '<div class="game-title-box">🕵️‍♀️ 진실/거짓말 탐정 — 끝!</div>';
     html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + tld_starStr(n) + '</div>';
     html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">' + TLD_TOTAL + '문제 중 <span style="color:var(--primary);">' + Math.round(st.correct) + '개</span> 정답!</div>';
@@ -1402,6 +1409,7 @@ function finishOddRuleSession() {
     var st = orrState;
     if (typeof reportGameRound === 'function') reportGameRound(st.correct);
     var n = orr_starN(st.correct, ORR_TOTAL);
+    if (typeof reportGameOutcome === 'function') reportGameOutcome(n >= 2 ? 'win' : 'lose');
     var html = '<div class="game-title-box">🔍 규칙 벗어난 것 찾기 — 끝!</div>';
     html += '<div style="text-align:center; font-size:2rem; letter-spacing:0.15rem; margin:0.7rem 0;">' + orr_starStr(n) + '</div>';
     html += '<div class="game-sub-desc" style="text-align:center; font-weight:800;">' + ORR_TOTAL + '문제 중 <span style="color:var(--primary);">' + st.correct + '개</span> 정답!</div>';
