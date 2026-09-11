@@ -236,7 +236,17 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 var topViewSettings = { maxHeight: 3, width: 2, depth: 2, timeLimit: 0 };
 var topViewState = {};
 var topViewRound = 1, topViewCorrect = 0;
-function initTopViewMatch() { renderTopViewSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('topViewMatch', {
+        easy: { maxHeight: 3, width: 2, depth: 2 },
+        normal: { maxHeight: 5, width: 3, depth: 3 },
+        hard: { maxHeight: 10, width: 4, depth: 4 }
+    });
+}
+function initTopViewMatch() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('topViewMatch', topViewSettings);
+    renderTopViewSetup();
+}
 function renderTopViewSetup() {
     var heights = [{ v: 3, l: '3층' }, { v: 5, l: '5층' }, { v: 10, l: '10층' }, { v: 'random', l: '무작위' }];
     var widths = [{ v: 2, l: '2개' }, { v: 3, l: '3개' }, { v: 4, l: '4개' }, { v: 'random', l: '무작위' }];
@@ -442,7 +452,13 @@ var CUBE3D_TILT_X = -22;
 var cube3dSettings = { blockCount: 4, timeLimit: 10 };
 var cube3dState = {};
 var cube3dRound = 1, cube3dCorrect = 0;
-function initCube3DMatch() { renderCube3DSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('cube3dMatch', { easy: { blockCount: 4 }, normal: { blockCount: '5-7' }, hard: { blockCount: '8-10' } });
+}
+function initCube3DMatch() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('cube3dMatch', cube3dSettings);
+    renderCube3DSetup();
+}
 function renderCube3DSetup() {
     var counts = [{ v: 4, l: '4개' }, { v: '5-7', l: '5~7개' }, { v: '8-10', l: '8~10개' }, { v: 'random', l: '무작위' }];
     var times = [{ v: 10, l: '10초' }, { v: 15, l: '15초' }, { v: 20, l: '20초' }, { v: 'random', l: '무작위' }];
@@ -659,7 +675,13 @@ var PROJECTION_DIRECTIONS = [
 var projMatchSettings = { blockCount: 4, timeLimit: 10 };
 var projMatchState = {};
 var projMatchRound = 1, projMatchCorrect = 0;
-function initProjectionMatch() { renderProjectionMatchSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('projectionMatch', { easy: { blockCount: 4 }, normal: { blockCount: 5 }, hard: { blockCount: 6 } });
+}
+function initProjectionMatch() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('projectionMatch', projMatchSettings);
+    renderProjectionMatchSetup();
+}
 function renderProjectionMatchSetup() {
     var counts = [{ v: 4, l: '4개' }, { v: 5, l: '5개' }, { v: 6, l: '6개' }, { v: 'random', l: '무작위' }];
     var times = [{ v: 10, l: '10초' }, { v: 15, l: '15초' }, { v: 20, l: '20초' }, { v: 0, l: '무제한' }];
@@ -976,7 +998,13 @@ var lightMazeSettings = { size: 4, timeLimit: 10 };
 var LIGHT_MAX_MIRRORS = { 4: 4, 5: 5, 6: 6 };
 var lightMazeState = {};
 var lightMazeRound = 1, lightMazeSolved = 0;
-function initLightMirrorMaze() { renderLightMazeSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('lightMirrorMaze', { easy: { size: 4 }, normal: { size: 5 }, hard: { size: 6 } });
+}
+function initLightMirrorMaze() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('lightMirrorMaze', lightMazeSettings);
+    renderLightMazeSetup();
+}
 function renderLightMazeSetup() {
     var sizes = [{ v: 4, l: '쉬움 (4×4)' }, { v: 5, l: '보통 (5×5)' }, { v: 6, l: '어려움 (6×6)' }, { v: 'random', l: '무작위' }];
     var times = [{ v: 10, l: '10초' }, { v: 15, l: '15초' }, { v: 20, l: '20초' }, { v: 'random', l: '무작위' }];
@@ -1231,7 +1259,13 @@ var PAPER_FOLD_COUNT_MAP = { low: 1, mid: 2, high: 3 };
 var paperSettings = { level: 'low' };
 var paperState = {};
 var paperRound = 1, paperCorrect = 0;
-function initPaperFold() { renderPaperFoldSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('paperFold', { easy: { level: 'low' }, normal: { level: 'mid' }, hard: { level: 'high' } });
+}
+function initPaperFold() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('paperFold', paperSettings);
+    renderPaperFoldSetup();
+}
 function renderPaperFoldSetup() {
     var levels = [
         { v: 'low', l: '쉬움 (1번 접기)' },
@@ -1564,7 +1598,13 @@ function checkPaperFold(idx) {
 var cheeseSettings = { size: 4, timeLimit: 10 };
 var cheeseState = {};
 var cheeseRound = 1, cheeseSolved = 0;
-function initCheeseMaze() { renderCheeseSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('cheeseMaze', { easy: { size: 4 }, normal: { size: 5 }, hard: { size: 6 } });
+}
+function initCheeseMaze() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('cheeseMaze', cheeseSettings);
+    renderCheeseSetup();
+}
 function renderCheeseSetup() {
     var sizes = [{ v: 4, l: '쉬움 (4×4)' }, { v: 5, l: '보통 (5×5)' }, { v: 6, l: '어려움 (6×6)' }, { v: 'random', l: '무작위' }];
     var times = [{ v: 10, l: '10초' }, { v: 15, l: '15초' }, { v: 20, l: '20초' }, { v: 'random', l: '무작위' }];
@@ -1826,7 +1866,13 @@ var NETFOLD_FACE_FRONT = {
 var netfoldSettings = { level: 'low' };
 var netfoldState = {};
 var netfoldRound = 1, netfoldCorrect = 0;
-function initNetFoldBox() { renderNetFoldSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('netFoldBox', { easy: { level: 'low' }, normal: { level: 'mid' }, hard: { level: 'high' } });
+}
+function initNetFoldBox() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('netFoldBox', netfoldSettings);
+    renderNetFoldSetup();
+}
 function renderNetFoldSetup() {
     var levels = [
         { v: 'low', l: '쉬움 (마주보는 면 맞히기)' },

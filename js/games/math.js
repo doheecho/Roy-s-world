@@ -242,7 +242,13 @@ var CHANGE_DENOM_LABEL = { 10000: '만원', 5000: '오천원', 1000: '천원', 5
 var changeSettings = { itemCount: 1, timeLimit: 0 };
 var changeState = {};
 var changeRound = 1, changeSolved = 0;
-function initChangeGame() { renderChangeSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('changeCounter', { easy: { itemCount: 1 }, normal: { itemCount: 2 }, hard: { itemCount: 3 } });
+}
+function initChangeGame() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('changeCounter', changeSettings);
+    renderChangeSetup();
+}
 function renderChangeSetup() {
     var counts = [{ v: 1, l: '1개' }, { v: 2, l: '2개' }, { v: 3, l: '3개' }, { v: 'random', l: '무작위' }];
     var times = [{ v: 10, l: '10초' }, { v: 15, l: '15초' }, { v: 20, l: '20초' }, { v: 0, l: '무제한' }];

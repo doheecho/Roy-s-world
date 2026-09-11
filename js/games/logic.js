@@ -3,8 +3,15 @@ var MATRIX_SHAPE_POOL = ["●", "■", "▲", "◆", "★", "♥", "♦", "♣",
 var patternSettings = { size: 3, timeLimit: 0 };
 var patternState = {};
 var patternRound = 1, patternCorrect = 0;
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('patternMatrix', { easy: { size: 2 }, normal: { size: 3 }, hard: { size: 4 } });
+}
 
-function initPatternMatrix() { patternRound = 1; patternCorrect = 0; renderPatternSetup(); }
+function initPatternMatrix() {
+    patternRound = 1; patternCorrect = 0;
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('patternMatrix', patternSettings);
+    renderPatternSetup();
+}
 function renderPatternSetup() {
     var sizes = [{v: 2, l: '2x2'}, {v: 3, l: '3x3'}, {v: 4, l: '4x4'}, {v: 'random', l: '무작위'}];
     var times = [{v: 5, l: '5초'}, {v: 10, l: '10초'}, {v: 20, l: '20초'}, {v: 0, l: '무제한'}];
@@ -538,7 +545,13 @@ var SUDOKU_HINT_MAP = { low: 3, mid: 2, high: 1, extreme: 0 };
 var sudokuSettings = { level: 'low', timeLimit: 20 };
 var sudokuState = {};
 var sudokuRound = 1, sudokuCorrect = 0;
-function initSudokuLite() { renderSudokuSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('sudokuLite', { easy: { level: 'low' }, normal: { level: 'mid' }, hard: { level: 'high' } });
+}
+function initSudokuLite() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('sudokuLite', sudokuSettings);
+    renderSudokuSetup();
+}
 function renderSudokuSetup() {
     var levels = [
         { v: 'low', l: '쉬움 (힌트 3개)' },
@@ -823,7 +836,13 @@ function buildSuspectSVG(s) {
 var suspectSettings = { count: 6, timeLimit: 0 };
 var suspectState = {};
 var suspectRound = 1, suspectCorrect = 0;
-function initSuspectLogic() { renderSuspectSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('suspectLogic', { easy: { count: 6 }, normal: { count: 8 }, hard: { count: 10 } });
+}
+function initSuspectLogic() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('suspectLogic', suspectSettings);
+    renderSuspectSetup();
+}
 function renderSuspectSetup() {
     var counts = [{ v: 6, l: '6명' }, { v: 8, l: '8명' }, { v: 10, l: '10명' }, { v: 'random', l: '무작위' }];
     var times = [{ v: 5, l: '5초' }, { v: 10, l: '10초' }, { v: 20, l: '20초' }, { v: 0, l: '무제한' }];

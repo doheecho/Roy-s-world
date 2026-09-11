@@ -32,7 +32,13 @@ var roomState = {};
 var roomRound = 1;
 var roomBaseCount = 6;
 
-function initMemoryRoom() { renderRoomSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('memoryRoom', { easy: { objectCount: 4 }, normal: { objectCount: 6 }, hard: { objectCount: 8 } });
+}
+function initMemoryRoom() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('memoryRoom', roomSettings);
+    renderRoomSetup();
+}
 
 function renderRoomSetup() {
     var counts = [4, 6, 8, 10];

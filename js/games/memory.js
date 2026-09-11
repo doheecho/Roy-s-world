@@ -2,7 +2,11 @@
 var memorySettings = { cardCount: 12, timeLimit: 0 };
 var memoryState = {};
 var memoryRound = 1;
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('memoryMatch', { easy: { cardCount: 8 }, normal: { cardCount: 12 }, hard: { cardCount: 16 } });
+}
 function initMemoryMatch() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('memoryMatch', memorySettings);
     renderMemoryMatchSetup();
 }
 function renderMemoryMatchSetup() {
@@ -242,7 +246,13 @@ function retrySimonRound() {
 var flashSettings = { pieceCount: 6, prepTime: 10 };
 var flashState = {};
 var flashRound = 1, flashCorrect = 0;
-function initFlashMemory() { renderFlashSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('flashMemory', { easy: { pieceCount: 4 }, normal: { pieceCount: 6 }, hard: { pieceCount: 8 } });
+}
+function initFlashMemory() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('flashMemory', flashSettings);
+    renderFlashSetup();
+}
 function renderFlashSetup() {
     var counts = [{ v: 4, l: '4개' }, { v: 6, l: '6개' }, { v: 8, l: '8개' }, { v: 'random', l: '무작위' }];
     var preps = [{ v: 5, l: '5초' }, { v: 10, l: '10초' }, { v: 15, l: '15초' }, { v: 20, l: '20초' }];
@@ -405,7 +415,13 @@ function buildPianoKeys(level) {
 }
 var pianoSettings = { level: 'low' };
 var pianoState = {};
-function initPianoKeys() { renderPianoSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('pianoKeys', { easy: { level: 'low' }, normal: { level: 'mid' }, hard: { level: 'high' } });
+}
+function initPianoKeys() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('pianoKeys', pianoSettings);
+    renderPianoSetup();
+}
 function renderPianoSetup() {
     var levels = [{ v: 'low', l: '쉬움 (1옥타브 흰 건반)' }, { v: 'mid', l: '보통 (1옥타브 전체)' }, { v: 'high', l: '어려움 (2옥타브 전체)' }];
     var html = '<div class="game-title-box">🎹 피아노 건반 누르기</div>';

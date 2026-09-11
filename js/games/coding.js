@@ -17,7 +17,13 @@ var BLOCK_TYPES = [
 var blockCodeSettings = { size: 5 };
 var blockCodeState = {};
 var blockCodeRound = 1, blockCodeSolved = 0;
-function initBlockCoding() { renderBlockCodeSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('blockCoding', { easy: { size: 5 }, normal: { size: 7 }, hard: { size: 9 } });
+}
+function initBlockCoding() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('blockCoding', blockCodeSettings);
+    renderBlockCodeSetup();
+}
 function renderBlockCodeSetup() {
     var sizes = [{ v: 5, l: '쉬움 (5×5)' }, { v: 7, l: '보통 (7×7)' }, { v: 9, l: '어려움 (9×9)' }];
     var html = '<div class="game-title-box">🧑‍💻 블록코딩 로봇</div>';
@@ -535,7 +541,17 @@ var CMD_WORD_MAP = { forward: '앞으로', backward: '뒤로', turnLeft: '왼쪽
 var codeTraceState = {};
 var codeTraceRound = 1, codeTraceCorrect = 0;
 var codeTraceSettings = { size: 'medium', count: 4 };
-function initCodeTrace() { renderCodeTraceSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('codeTrace', {
+        easy: { size: 'easy', count: 4 },
+        normal: { size: 'medium', count: 4 },
+        hard: { size: 'hard', count: 8 }
+    });
+}
+function initCodeTrace() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('codeTrace', codeTraceSettings);
+    renderCodeTraceSetup();
+}
 function renderCodeTraceSetup() {
     var sizes = [{ v: 'easy', l: '쉬움' }, { v: 'medium', l: '보통' }, { v: 'hard', l: '어려움' }, { v: 'random', l: '무작위' }];
     var counts = [{ v: 4, l: '4개' }, { v: 6, l: '6개' }, { v: 8, l: '8개' }, { v: 'random', l: '무작위' }];
@@ -891,7 +907,13 @@ function retryFunctionFinder() { renderFunctionFinder(); }
 var efficiencyState = {};
 var efficiencyRound = 1, efficiencyCorrect = 0;
 var efficiencySettings = { level: 'medium' };
-function initEfficiencyGuess() { renderEfficiencySetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('efficiencyGuess', { easy: { level: 'low' }, normal: { level: 'medium' }, hard: { level: 'high' } });
+}
+function initEfficiencyGuess() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('efficiencyGuess', efficiencySettings);
+    renderEfficiencySetup();
+}
 function renderEfficiencySetup() {
     var levels = [{ v: 'low', l: '쉬움' }, { v: 'medium', l: '보통' }, { v: 'high', l: '어려움' }, { v: 'random', l: '무작위' }];
     var html = '<div class="game-title-box">⚡ 최소 명령 개수 맞추기</div>';
@@ -1355,7 +1377,17 @@ var waterPipeSettings = { size: 4, pipeMode: 'min', timeLimit: 0 };
 var waterPipeState = {};
 var waterPipeRound = 1, waterPipeSolved = 0;
 var WATER_ROTATE_MAP = { top: 'right', right: 'bottom', bottom: 'left', left: 'top' };
-function initWaterPipe() { renderWaterPipeSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('waterPipe', {
+        easy: { size: 4, pipeMode: 'min' },
+        normal: { size: 6, pipeMode: 'mid' },
+        hard: { size: 8, pipeMode: 'max' }
+    });
+}
+function initWaterPipe() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('waterPipe', waterPipeSettings);
+    renderWaterPipeSetup();
+}
 function renderWaterPipeSetup() {
     var sizes = [{ v: 4, l: '4×4' }, { v: 6, l: '6×6' }, { v: 8, l: '8×8' }, { v: 'random', l: '무작위' }];
     var modes = [{ v: 'min', l: '최소' }, { v: 'mid', l: '중간' }, { v: 'max', l: '최대' }, { v: 'random', l: '무작위' }];
@@ -1649,7 +1681,13 @@ var CLEANBOT_TURN_BLOCK = { type: 'turnRight', label: '🔄 코너 돌기', shor
 var cleanbotSettings = { level: 'low' };
 var cleanbotState = {};
 var cleanbotRound = 1, cleanbotSolved = 0;
-function initCleanbot() { renderCleanbotSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('cleanbot', { easy: { level: 'low' }, normal: { level: 'mid' }, hard: { level: 'high' } });
+}
+function initCleanbot() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('cleanbot', cleanbotSettings);
+    renderCleanbotSetup();
+}
 function renderCleanbotSetup() {
     var levels = [
         { v: 'low', l: '쉬움 (복도 1개)' },

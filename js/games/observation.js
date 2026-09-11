@@ -2,7 +2,11 @@
 var spotSettings = { count: 10, timeLimit: 5 };
 var spotState = {};
 var spotRound = 1;
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('spotChange', { easy: { count: 6 }, normal: { count: 10 }, hard: { count: 12 } });
+}
 function initSpotChange() {
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('spotChange', spotSettings);
     renderSpotChangeSetup();
 }
 function renderSpotChangeSetup() {
@@ -292,7 +296,14 @@ var FCS_LEVELS = {
 var fcsState = { level: 1 };
 var FCS_TOTAL = 8;
 var FCS_STAGE_W = 320, FCS_STAGE_H = 220, FCS_OBJ = 34;
-function initFlashCount() { clearAllGameTimers(); renderFlashCountSetup(); }
+if (typeof registerDifficultyPreset === 'function') {
+    registerDifficultyPreset('flashCountSpot', { easy: { level: 1 }, normal: { level: 2 }, hard: { level: 3 } });
+}
+function initFlashCount() {
+    clearAllGameTimers();
+    if (typeof applyDifficultyPreset === 'function') applyDifficultyPreset('flashCountSpot', fcsState);
+    renderFlashCountSetup();
+}
 function renderFlashCountSetup() {
     if (!fcsState.level) fcsState.level = 1;
     var html = '<div class="game-title-box">⚡ 순간 포착 세기</div>';
