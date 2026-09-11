@@ -223,6 +223,7 @@ function moveMaze(dx, dy) {
         mazeState.elapsed = (Date.now() - mazeState.startTime) / 1000;
         mazeSolved++;
         if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
+        if (typeof reportGameRound === 'function') reportGameRound(mazeSolved);
         stopHoldMove();
     }
     renderMaze();
@@ -1725,6 +1726,7 @@ function moveCheeseMouse(dx, dy) {
             cheeseState.finished = true;
             cheeseSolved++;
             if (typeof reportGameOutcome === 'function') reportGameOutcome('win');
+            if (typeof reportGameRound === 'function') reportGameRound(cheeseSolved);
             if (cheeseState.timerId) clearInterval(cheeseState.timerId);
             stopCheeseHoldMove();
         } else {

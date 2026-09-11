@@ -202,6 +202,7 @@ function startChosungTimer() {
 }
 
 function renderChosung() {
+    if (typeof reportGameRound === 'function') reportGameRound(chosungState.correctCount);
     var html = '<div class="game-title-box">🔤 초성 퀴즈</div>';
     html += '<div class="game-sub-desc">초성을 보고 정답을 소리 내어 말해보세요!' + (SPEECH_SUPPORTED ? ' 마이크 버튼을 누르고 말해보세요.' : ' 다 말했으면 눌러서 확인해요.') + '</div>';
 

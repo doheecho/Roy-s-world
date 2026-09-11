@@ -674,6 +674,7 @@ function updateMelodyKeyboardArea() {
 }
 
 function renderMelodyTopHtml() {
+    if (typeof reportGameRound === 'function') reportGameRound(melodyState.hits);
     var song = melodyState.song;
     var totalNotes = song.noteEvents.length;
     var isFull = melodyState.mode === 'full';
